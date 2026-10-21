@@ -25,7 +25,7 @@
   #ui{height:100%;height:100dvh;height:var(--app-h,100dvh);min-height:0 !important;overflow:hidden;overscroll-behavior:none}
   #game{height:var(--app-h,100%);bottom:auto !important}
   /* the stats list is the only screen allowed to scroll, and only up and down */
-  #ui[data-screen="rankings"],#ui[data-screen="log"]{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  #ui[data-screen="rankings"],#ui[data-screen="log"],#ui[data-screen="schedule"],#ui[data-screen="mail"]{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 </style>
 <script>
   // Launch guard for the shifted screen: measure the real screen, pin the page to it, put the page back at 0,0,
@@ -228,7 +228,97 @@ tr.champ td{color:#fff3b8}
 .res .lines span{color:var(--muted);text-align:right}
 .res .lines b{text-align:left}
 
+/* --- calendar hub --- */
+.bar.slim{margin-bottom:6px}
+#ui[data-screen="hub"]{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.hub2{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:12px;flex:1;min-height:0}
+.hub2 .left{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:6px;min-height:0}
+.hub2 .right{display:flex;flex-direction:column}
+.cal{position:relative;background:#f4efe0;color:#1d1d1d;border-radius:4px;padding:14px 10px 8px;box-shadow:0 5px 0 var(--navy);display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+.cal .rings{position:absolute;top:-7px;left:0;right:0;display:flex;justify-content:space-around}
+.cal .rings i{width:10px;height:16px;border-radius:5px;background:#9a9aa8;border:2px solid #555}
+.cal .mh{font-family:var(--px);font-weight:700;font-size:16px;color:#c42d2d;text-align:center;border-bottom:2px solid #1d1d1d;padding-bottom:3px;margin-bottom:4px}
+.cal .mh span{color:#1d1d1d}
+.cal .grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(0,1fr);min-height:0;gap:2px;font-family:var(--numf);font-size:12px}
+.cal .dh{font-family:var(--px);font-size:9px;text-align:center;color:#666}
+.cal .cd{position:relative;display:grid;place-items:center;border:1px solid #d8d0bc;min-height:0}
+.cal .cd.past span{opacity:.35}
+.cal .cd.past::after{content:'';position:absolute;inset:2px;background:linear-gradient(45deg,transparent 45%,#c42d2d 45%,#c42d2d 55%,transparent 55%),linear-gradient(-45deg,transparent 45%,#c42d2d 45%,#c42d2d 55%,transparent 55%);opacity:.5}
+.cal .cd.today{background:#ffd23f;font-weight:700}
+.cal .cd.fight::before{content:'';position:absolute;inset:-2px 0;border:3px solid #e01b1b;border-radius:50%}
+.cal .cd.tf span{text-decoration:underline;text-decoration-color:#c99a12;text-decoration-thickness:2px}
+.cal .cd.bd span::after{content:'*';color:#c42d2d}
+.next{font-size:13px;text-align:center}
+.notes{background:var(--blue-dd);border:2px solid var(--yellow);border-radius:6px;padding:5px 8px;margin-bottom:6px;font-size:13px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.notes div{flex:1}
+.mecard{display:flex;gap:10px;align-items:center}
+.mecard .face{border:3px solid #fff;border-radius:6px;background:var(--blue-dd);overflow:hidden;flex:none}
+.mecard .nm{font-family:var(--px);font-size:15px}
+.fatrow{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;margin-top:4px}
+.fatrow .hbar{height:10px}
+.ails{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.ail{font-family:var(--px);font-size:9px;padding:2px 5px;border-radius:3px;background:#6a6a2a}
+.ail.t1{background:#8a6a1a} .ail.t2{background:#b8451f} .ail.t3{background:#c41e1e}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:auto}
+.acts .btn{padding:8px 4px;font-size:12px}
+.acts .big{padding:14px 4px;font-size:15px}
+.acts .wide{grid-column:1/-1}
+.badge2{background:var(--red);border-radius:8px;padding:0 5px;font-family:var(--numf)}
+.beltchip{font-family:var(--px);font-size:9px;background:var(--yellow);color:#241a00;border-radius:3px;padding:1px 4px;vertical-align:2px}
+.rdesc{font-size:12px;color:var(--muted);margin:-5px 0 3px 92px}
+/* --- training / rest --- */
+.dcards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.dcard{border:3px solid #fff;border-radius:6px;background:var(--blue-d);padding:8px 6px;text-align:left;display:flex;flex-direction:column;gap:5px;box-shadow:0 4px 0 var(--navy);min-height:180px}
+.dcard:active{transform:translateY(2px)}
+.dcard .nm{font-family:var(--px);font-size:12px;color:var(--yellow)}
+.dcard .ds{font-size:12px;line-height:1.2;color:var(--muted)}
+.dcard .gn{display:grid;gap:1px;font-size:12px}
+.dcard .ft{font-family:var(--px);font-size:9px;color:#ffb3aa;margin-top:auto}
+.dcard.lock{opacity:.45}
+.fatmini b{font-size:15px}
+.restgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px}
+.rcards{display:grid;gap:5px;margin-top:4px}
+.rcard{border:3px solid rgba(255,255,255,.4);border-radius:6px;background:var(--blue-d);padding:4px 8px;text-align:left}
+.rcard.on{border-color:var(--yellow)}
+.rcard .nm{font-family:var(--px);font-size:12px} .rcard .ds{font-size:12px;color:var(--muted)} .rcard .ft{font-size:11px;color:#7dff95}
+.treats{display:grid;gap:5px;margin-top:4px;max-height:calc(100dvh - 140px);overflow-y:auto}
+.trow2{display:flex;gap:8px;align-items:center;text-align:left;border:2px solid rgba(255,255,255,.35);border-radius:6px;background:var(--blue-d);padding:4px 8px;font-size:12px;line-height:1.2}
+.trow2.on{border-color:var(--yellow)}
+.trow2 .ck{width:16px;height:16px;border:2px solid #fff;border-radius:3px;display:grid;place-items:center;flex:none}
+.mini-ails{margin-top:3px}
+.arow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:12px;margin:2px 0}
+.abar{height:8px;background:#000;border-radius:2px;overflow:hidden}
+.abar i{display:block;height:100%;background:linear-gradient(90deg,#c99a12,#c41e1e)}
+.arow b{font-family:var(--px);font-size:9px}
+.t0{color:#e8d48a} .t1{color:#ffb35a} .t2{color:#ff7a5a} .t3{color:#ff4a4a}
+/* --- mail / dates / call-outs / team --- */
+.mail{display:grid;gap:8px}
+.mrow{display:flex;gap:10px;align-items:center;border:3px solid #fff;border-radius:6px;background:var(--blue-d);padding:6px 8px}
+.mrow.grudge{border-color:var(--red)} .mrow.title{border-color:var(--yellow)} .mrow.news{border-style:dashed}
+.mrow .face{border:2px solid #fff;border-radius:4px;overflow:hidden;background:var(--blue-dd);flex:none}
+.mrow .nm{font-family:var(--px);font-size:12px} .mrow .ds{font-size:13px}
+.col{display:grid;gap:5px}
+.dopts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dopt{border:3px solid #fff;border-radius:6px;background:var(--blue-d);padding:14px 6px;display:grid;gap:4px;box-shadow:0 4px 0 var(--navy)}
+.dopt:active{transform:translateY(2px)}
+.dopt .nm{font-family:var(--px);font-size:16px;color:var(--yellow)}
+.sheet{display:flex;gap:10px;align-items:center;border:3px solid var(--yellow);border-radius:6px;background:var(--blue-dd);padding:6px 8px;margin-bottom:8px;position:sticky;top:0;z-index:2}
+.sheet .nm{font-family:var(--px);font-size:12px} .sheet .face{border:2px solid #fff;border-radius:4px;overflow:hidden;flex:none}
+tr.tap{cursor:pointer} tr.tap:active td{background:rgba(255,255,255,.08)}
+.teamgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tm{display:flex;gap:8px;align-items:center;padding:5px 0;border-top:2px solid rgba(255,255,255,.12)}
+.tm.on b{color:var(--yellow)} .tm .ds{font-size:12px;color:var(--muted)}
+/* --- between rounds --- */
+#over .panel.brk{min-width:min(600px,94vw)}
+.brkcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
+.advice{font-size:14px;text-align:left;background:rgba(0,0,0,.25);border-radius:6px;padding:6px 8px}
+.advice b{font-family:var(--px);font-size:11px;color:var(--yellow)}
+#getup .gz{position:relative;width:240px;height:18px;border:3px solid #fff;background:#000;margin:6px auto 0}
+#getup .gz b{position:absolute;top:0;bottom:0;background:#2f8a3a}
+#getup .gz i{position:absolute;top:-5px;width:4px;height:22px;margin-left:-2px;background:var(--yellow)}
+
 /* --- fight --- */
+
 #game{position:fixed;inset:0;background:var(--navy);touch-action:none;overflow:hidden}
 #game[hidden]{display:none}
 #cv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
@@ -332,6 +422,14 @@ tr.champ td{color:#fff3b8}
   .tt{margin-bottom:3px}
   .tline{padding:2px 0;font-size:13px}
   .trow{margin-bottom:3px}
+
+  .dcard{min-height:0}
+  .acts .big{padding:10px 4px}
+  .acts .btn{padding:6px 4px}
+  .cal{padding:12px 8px 6px}
+  .cal .grid{font-size:11px}
+
+  .mecard .face img{width:56px;height:auto}
   .story{grid-template-columns:130px minmax(0,1fr);min-height:calc(100dvh - 24px)}
   .res{gap:5px;padding-top:2px}
   .res h1{font-size:34px}
@@ -381,9 +479,9 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', 
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 /* ================= data ================= */
-const RK = ['pow', 'spd', 'sta', 'chin'];
-const RNAME = { pow:'Power', spd:'Speed', sta:'Stamina', chin:'Chin' };
-const RDESC = { pow:'Damage of every punch', spd:'Faster punches and recovery', sta:'More energy, refills faster', chin:'More health, easier to get up' };
+const RK = ['pow', 'spd', 'sta', 'grit'];
+const RNAME = { pow:'Power', spd:'Speed', sta:'Stamina', grit:'Grit' };
+const RDESC = { pow:'How much every punch hurts.', spd:'How fast your punch comes out after you tap or swipe.', sta:'More energy, and it refills faster.', grit:'Health, heart, and getting back up off the floor.' };
 const FIRST = ['Marcus','Tony','Rico','Danny','Leon','Victor','Sal','Andre','Mickey','Ray','Eddie','Hector','Jamal','Viktor','Kenji','Omar','Frankie','Luis','Darnell','Ivan','Tommy','Dmitri','Carlos','Jesse','Nate','Malik','Sonny','Paulie','Felix','Rocco','Terrence','Abel','Junior','Dante','Gus','Ramon','Teddy','Bruno','Calvin','Moses'];
 const LAST = ['Reyes','Malone','Kowalski','Brooks','Vargas','Okafor','Petrov','Santos','Mendez','Hayes','Doyle','Castillo','Washington','Ito','Romero','Dunn','Novak','Jackson','Quinn','Ortega','Burke','Volkov','Graves','Diaz','Fontaine','Sullivan','Morales','Kane','Russo','Bishop','Carter','Lopez','Ward','Silva','Holloway','Murphy','Rivera','Stone','Pryor','Benitez'];
 const NICK = ['Iron','The Hammer','Kid','Bulldog','Lightning','Smokin\'','Hurricane','The Tank','Sugar','Mad Dog','Stone Fist','Rocket','The Truth','Slick','Hitman','Thunder','Bad News','Gentleman','Cobra','The Bull','Pretty Boy','El Toro','Machine','Butterbean','Showtime','Big Country','The Wall','Rattlesnake','Midnight','Doc'];
@@ -394,10 +492,10 @@ const HAIRS = ['#1b1b1b','#5a3a1e','#c9a24a','#b5462e','#e8e8e8','none'];
 const KITS = ['#e24b3b','#3f7be0','#ffd23f','#44c45d','#f4f4f4','#1d1d1d','#a24be0','#ff8a2b'];
 const GLOVES = ['#d42d2d','#2d5fd4','#1d1d1d','#f2f2f2','#e0b12d'];
 const STYLES = {
-  brawler:  { name:'Brawler',   mod:{ pow:8,  spd:-6, sta:0,  chin:3 },  w:{ jab:.3,  hook:.42, upper:.28 }, agg:1.25, dodge:.2, react:0 },
-  speedster:{ name:'Speedster', mod:{ pow:-6, spd:8,  sta:4,  chin:-4 }, w:{ jab:.62, hook:.26, upper:.12 }, agg:1.15, dodge:.75, react:.05 },
-  tank:     { name:'Tank',      mod:{ pow:3,  spd:-8, sta:5,  chin:9 },  w:{ jab:.4,  hook:.35, upper:.25 }, agg:.9,  dodge:.1, react:-.05 },
-  counter:  { name:'Counter',   mod:{ pow:0,  spd:4,  sta:0,  chin:0 },  w:{ jab:.5,  hook:.3,  upper:.2 },  agg:.7,  dodge:.6, react:.15 },
+  brawler:  { name:'Brawler',   mod:{ pow:8,  spd:-6, sta:0,  grit:3 },  w:{ jab:.3,  hook:.42, upper:.28 }, agg:1.25, dodge:.2, react:0 },
+  speedster:{ name:'Speedster', mod:{ pow:-6, spd:8,  sta:4,  grit:-4 }, w:{ jab:.62, hook:.26, upper:.12 }, agg:1.15, dodge:.75, react:.05 },
+  tank:     { name:'Tank',      mod:{ pow:3,  spd:-8, sta:5,  grit:9 },  w:{ jab:.4,  hook:.35, upper:.25 }, agg:.9,  dodge:.1, react:-.05 },
+  counter:  { name:'Counter',   mod:{ pow:0,  spd:4,  sta:0,  grit:0 },  w:{ jab:.5,  hook:.3,  upper:.2 },  agg:.7,  dodge:.6, react:.15 },
 };
 // the four men the story is built around
 const RIVALS = {
@@ -443,11 +541,11 @@ function storyBeat(lines, who){ (G.story = G.story || []).push({ lines, who:who 
 // story beats that unlock as you climb
 function checkStory(){
   const r = rankOf('me'), R = G.rivals; if (!R) return;
-  if (!R.viper.met && G.week >= 1) { R.viper.met = true; storyBeat(RIVALS.viper.callout, 'viper'); R.viper.rematchAt = G.week; }
-  if (!R.hurricane.met && r > 0 && r <= 18) { R.hurricane.met = true; storyBeat(RIVALS.hurricane.callout, 'hurricane'); R.hurricane.rematchAt = G.week; }
+  if (!R.viper.met && G.log.length >= 1) { R.viper.met = true; storyBeat(RIVALS.viper.callout, 'viper'); R.viper.rematchAt = G.day; }
+  if (!R.hurricane.met && r > 0 && r <= 18) { R.hurricane.met = true; storyBeat(RIVALS.hurricane.callout, 'hurricane'); R.hurricane.rematchAt = G.day; }
   if (!R.golden.met && r > 0 && r <= 5) { R.golden.met = true; storyBeat(RIVALS.golden.callout, 'golden'); }
   if (!R.iceberg.met && r === 0) {
-    R.iceberg.met = true; storyBeat(RIVALS.iceberg.callout, 'iceberg'); R.iceberg.rematchAt = G.week;
+    R.iceberg.met = true; storyBeat(RIVALS.iceberg.callout, 'iceberg'); R.iceberg.rematchAt = G.day;
     G.ladder = G.ladder.filter(x => x !== R.iceberg.id); G.ladder.splice(1, 0, R.iceberg.id);
     while (G.ladder.length > 31) { const out = G.ladder.pop(); if (out !== 'me') G.pool.push(out); }
   }
@@ -457,7 +555,7 @@ function grudgeDue(){
   if (!G.rivals) return null;
   for (const key of ['viper', 'hurricane', 'iceberg']) {
     const R = G.rivals[key];
-    if (R.met && !R.beaten && R.rematchAt !== null && G.week >= R.rematchAt && G.fighters[R.id]) return { key, id:R.id, rematch:R.lost > 0 };
+    if (R.met && !R.beaten && R.rematchAt !== null && G.day >= R.rematchAt && !booked(R.id) && G.fighters[R.id]) return { key, id:R.id, rematch:R.lost > 0 };
   }
   return null;
 }
@@ -506,9 +604,10 @@ function genFighter(base, age){
   return f;
 }
 const skillOf = f => clamp((ovr(f) - 28) / 60, 0, 1);       // how well the computer reads you
+const randomBday = () => { const d = ri(0, 364), t = dateOf(d); return { m:t.getUTCMonth(), d:t.getUTCDate() }; };
 function newCareer(name, nick, look, town){
-  G = { v:1, nextId:1, week:0, cash:500, sessions:3, fighters:{}, ladder:[], pool:[], offers:null, log:[], best:null, nrWins:0, titles:0, defenses:0, over:false };
-  G.fighters.me = { id:'me', me:true, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, chin:40 }, age:21, w:0, l:0, d:0, ko:0, look };
+  G = { v:2, nextId:1, day:0, cash:500, fat:0, gym:0, trainer:0, mail:[], card:[], fight:null, fighters:{}, ladder:[], pool:[], log:[], best:null, titles:0, defenses:0, over:false, nrWins:0, declines:0, notes:[] };
+  G.fighters.me = { id:'me', me:true, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, grit:40 }, age:21, bday:randomBday(), w:0, l:0, d:0, ko:0, look, ail:{} };
   for (let i = 0; i <= 30; i++) {                             // 0 is the champion, 1-30 the rankings
     const f = genFighter(87 - i * 1.5);
     f.w = ri(9, 15) + Math.round((30 - i) * .6); f.l = i === 0 ? ri(0, 1) : ri(0, 4) + (i > 15 ? ri(0, 3) : 0); f.d = Math.random() < .3 ? 1 : 0; f.ko = Math.round(f.w * rnd(.4, .75));
@@ -516,11 +615,22 @@ function newCareer(name, nick, look, town){
   }
   for (let i = 0; i < 12; i++) { const f = genFighter(rnd(30, 40)); f.w = ri(2, 9); f.l = ri(2, 10); f.ko = Math.round(f.w * rnd(.3, .6)); G.pool.push(f.id); }
   addRivals();
-  G.story = [{ who:null, lines:[['news', `${esc(G.fighters.me.town).toUpperCase()}. AGE 21. RECORD 0-0.`], ['news', 'Nobody in this town knows your name.'], ['news', 'Thirty men stand between you and the world title.'], ['news', 'Time to go to work.']] }];
+  fillCard();
+  G.story = [{ who:null, lines:[['news', `${esc(G.fighters.me.town).toUpperCase()}. ${fmtDate(0, true).toUpperCase()}.`], ['news', `Age 21. Record 0-0. Nobody in this town knows your name.`], ['news', 'Thirty men stand between you and the world title.'], ['news', 'Train. Rest. Call people out. Every day counts.']] }];
 }
+// older saves: the calendar, ailments and Grit arrived in version 2
 function migrate(){
-  if (G.sessions === undefined) G.sessions = 3;
   if (!G.rivals) { addRivals(); G.story = G.story || []; }
+  for (const f of Object.values(G.fighters)) if (f.rat.chin !== undefined) { f.rat.grit = f.rat.chin; delete f.rat.chin; }
+  if (!G.v || G.v < 2) {
+    const me = G.fighters.me;
+    Object.assign(G, { v:2, day:G.day || 0, fat:0, gym:0, trainer:0, mail:[], card:[], fight:null, declines:0, notes:[] });
+    me.age = Math.floor(me.age); me.bday = me.bday || randomBday(); me.ail = me.ail || {};
+    for (const f of Object.values(G.fighters)) f.age = Math.floor(f.age);
+    delete G.offers; delete G.sessions; delete G.week;
+    if (G.rivals) for (const r of Object.values(G.rivals)) if (r.rematchAt !== null) r.rematchAt = G.day;
+    fillCard();
+  }
 }
 const rankOf = id => G.ladder.indexOf(id);
 const rankLabel = id => { const i = rankOf(id); return i < 0 ? 'Unranked' : i === 0 ? 'Champion' : '#' + i; };
@@ -540,80 +650,247 @@ function dropMe(n){
   L.splice(i, 1); L.splice(Math.min(L.length, i + n), 0, 'me');
 }
 function simBout(a, b){
-  const A = G.fighters[a], B = G.fighters[b]; if (!A || !B) return;
+  const A = G.fighters[a], B = G.fighters[b]; if (!A || !B) return null;
   const p = 1 / (1 + Math.exp(-(ovr(A) - ovr(B)) / 5));
-  if (Math.random() < .06) { A.d++; B.d++; return; }
+  if (Math.random() < .06) { A.d++; B.d++; return { draw:true }; }
   const [W, L] = Math.random() < p ? [A, B] : [B, A];
-  W.w++; L.l++; if (Math.random() < .5) W.ko++;
+  const ko = Math.random() < .5;
+  W.w++; L.l++; if (ko) W.ko++;
   beat(W.id, L.id);
-}
-function worldSim(){
-  const L = G.ladder;
-  for (let k = 0; k < 4; k++) {
-    const i = ri(1, 30), j = Math.max(0, i - ri(1, 3));
-    if (L[i] === 'me' || L[j] === 'me' || (j === 0 && Math.random() < .6)) continue;
-    simBout(L[i], L[j]);
-  }
-  if (Math.random() < .6) simBout(pick(G.pool), L[ri(25, 30)]);
-  for (const f of Object.values(G.fighters)) {
-    if (f.me) continue;
-    f.age += .3;
-    for (const k of RK) f.rat[k] = clamp(f.rat[k] + (f.age < 27 ? rnd(0, .7) : f.age > 32 ? -rnd(0, .9) : 0), 15, 99);
-  }
-  // old fighters retire; a new prospect joins the unranked pool for each
-  for (const f of Object.values(G.fighters)) {
-    if (f.me || f.rival || f.age < 36 || Math.random() > .3 || (G.offers || []).some(o => o.id === f.id)) continue;
-    G.ladder = G.ladder.filter(x => x !== f.id); G.pool = G.pool.filter(x => x !== f.id); delete G.fighters[f.id];
-    const n = genFighter(rnd(32, 44), ri(20, 24)); n.w = ri(3, 8); n.l = ri(0, 2); n.ko = Math.round(n.w * .6); G.pool.push(n.id);
-  }
-  while (G.ladder.length < 31 && G.pool.length) {           // fill a gap in the rankings with the best of the pool
-    G.pool.sort((a, b) => ovr(G.fighters[b]) - ovr(G.fighters[a]));
-    G.ladder.push(G.pool.shift());
-  }
-  while (G.pool.length < 10) { const n = genFighter(rnd(30, 40)); n.w = ri(2, 9); n.l = ri(2, 10); G.pool.push(n.id); }
+  return { W, L, ko };
 }
 
-/* ================= fight offers ================= */
-function roundsFor(id, title){ if (title) return 10; const i = rankOf(id); return i < 0 ? 3 : i > 20 ? 4 : i > 10 ? 6 : 8; }
+/* ================= the calendar ================= */
+const BASE_DAY = Date.UTC(1976, 0, 1);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dateOf = d => new Date(BASE_DAY + d * 864e5);
+const fmtDate = (d, year) => { const t = dateOf(d); return `${DOW[t.getUTCDay()]} ${MON[t.getUTCMonth()]} ${t.getUTCDate()}${year ? ', ' + t.getUTCFullYear() : ''}`; };
+const DATE_OPTS = [14, 21, 28, 42];                         // 2, 3, 4 or 6 weeks out
+const note = s => { (G.notes = G.notes || []).push(s); };
+const booked = id => (G.fight && G.fight.id === id) || G.card.some(c => c.a === id || c.b === id);
+
+// the other fighters' schedule: bouts booked on real dates
+function fillCard(){
+  const L = G.ladder;
+  let guard = 0;
+  while (G.card.length < 7 && guard++ < 60) {
+    const i = ri(1, 30), j = Math.max(0, i - ri(1, 3)), a = L[i], b = L[j];
+    if (!a || !b || a === 'me' || b === 'me' || booked(a) || booked(b) || (j === 0 && Math.random() < .7)) continue;
+    G.card.push({ a, b, day:G.day + ri(6, 40), title:j === 0 });
+  }
+  if (Math.random() < .5) {
+    const p = pick(G.pool), b = L[ri(25, 30)];
+    if (p && b && b !== 'me' && !booked(p) && !booked(b)) G.card.push({ a:p, b, day:G.day + ri(5, 30), title:false });
+  }
+  G.card.sort((x, y) => x.day - y.day);
+}
+function runCard(){
+  const today = G.card.filter(c => c.day <= G.day);
+  G.card = G.card.filter(c => c.day > G.day);
+  for (const c of today) {
+    const r = simBout(c.a, c.b);
+    if (r && c.title && r.W && r.W.id !== c.b) note(`NEW CHAMPION: ${r.W.name} ${r.ko ? 'knocks out' : 'beats'} ${r.L.name}.`);
+  }
+}
+// someone calls you out
+const CHALLENGE_LINES = ['Says you\'re all hype and he wants to prove it.', 'Thinks you\'re an easy payday.', 'Wants your spot in the rankings.', 'Called you out on the radio this morning.', 'His manager rang the gym: name the date.'];
+function maybeChallenge(){
+  if (G.fight) return;
+  const due = grudgeDue();
+  if (due && !G.mail.some(m => m.id === due.id)) {
+    const R = RIVALS[due.key], title = rankOf('me') === 0 && rankOf(due.id) >= 0 && rankOf(due.id) <= 6;
+    G.mail.push({ type:'ch', id:due.id, exp:G.day + 10, grudge:true, rematch:due.rematch, title, msg:due.rematch ? 'Wants the rematch. Says last time was a fluke.' : pick(R.tape), purse:Math.round(purseFor(due.id, title) * 1.5 / 100) * 100 + 1000, rounds:Math.max(roundsFor(due.id, title), 4) });
+    return;
+  }
+  if (G.mail.filter(m => m.type === 'ch').length >= 3 || Math.random() > .16) return;
+  const L = G.ladder, i = L.indexOf('me');
+  let id;
+  if (i < 0) id = Math.random() < .7 ? pick(G.pool) : L[ri(26, 30)];
+  else if (i === 0) id = L[ri(1, 5)];
+  else id = Math.random() < .8 ? L[Math.min(L.length - 1, i + ri(1, 6))] : L[Math.max(1, i - ri(1, 3))];
+  if (!id || id === 'me' || booked(id) || G.mail.some(m => m.id === id)) return;
+  const title = i === 0;
+  G.mail.push({ type:'ch', id, exp:G.day + ri(5, 9), title, msg:pick(CHALLENGE_LINES), purse:purseFor(id, title), rounds:roundsFor(id, title) });
+}
+// you call someone out; the far-better men won't bother
+const REFUSALS = ['I don\'t fight nobodies.', 'Come back when somebody knows your name.', 'Who? Get in line, kid.', 'My manager says you\'re not worth the purse.', 'Not interested.'];
+function callOut(id){
+  const f = G.fighters[id], me = rankOf('me'), them = rankOf(id);
+  if (G.fight) return { ok:false, msg:'You already have a fight booked.' };
+  const c = G.card.find(c => c.a === id || c.b === id);
+  if (c) return { ok:false, msg:`He's already booked: fights ${esc(G.fighters[c.a === id ? c.b : c.a].name)} on ${fmtDate(c.day)}.` };
+  const mine = me < 0 ? 40 : me, his = them < 0 ? 40 : them;
+  if (them === 0 && mine > 2) return { ok:false, msg:`"${pick(['Get to the top two first.', 'Champions don\'t fight down the rankings.', REFUSALS[2]])}"` };
+  if (his < mine - 6) return { ok:false, msg:`"${pick(REFUSALS)}"` };
+  if (Math.random() < .12) return { ok:false, msg:`"Not right now. Ask me next month."` };
+  const title = them === 0 || mine === 0, rv = rivalOf(id);
+  const gr = rv && G.rivals[f.rival] && !G.rivals[f.rival].beaten;
+  return { ok:true, deal:{ id, title, grudge:!!gr, purse:Math.round(purseFor(id, title) * (gr ? 1.5 : 1) / 100) * 100, rounds:roundsFor(id, title) } };
+}
+function bookFight(deal, days){
+  G.fight = { ...deal, day:G.day + days, tape:0, postponed:false };
+  G.mail = G.mail.filter(m => m.id !== deal.id);
+  G.declines = 0;
+  save();
+}
+function declineMail(k){
+  const m = G.mail[k]; G.mail.splice(k, 1);
+  if (m && m.type === 'ch' && ++G.declines >= 3) { G.declines = 0; dropMe(1); note('The papers say you\'re ducking fights. You slip a spot in the rankings.'); }
+  save();
+}
+// pushing the fight back a week: smaller purse, and he lets everyone know
+function postpone(){
+  const F = G.fight; if (!F || F.postponed) return;
+  F.postponed = true; F.day += 7; F.purse = Math.round(F.purse * .85 / 100) * 100;
+  const o = G.fighters[F.id];
+  storyBeat([['news', `You push the fight back a week to ${fmtDate(F.day)}. The purse drops to ${money(F.purse)}.`], [o.rival || 'opp:' + o.id, pick(['Scared? Take all the time you need. I\'ll still be here.', 'He\'s hiding. Everybody can see it.', 'Postponed? Tell him to bring a note from his mother.'])]], o.rival || null);
+  save();
+}
+
+/* ---- one day passes ---- */
+function newDay(){
+  G.day++;
+  const t = dateOf(G.day), me = G.fighters.me;
+  if (t.getUTCMonth() === me.bday.m && t.getUTCDate() === me.bday.d) {
+    me.age++;
+    let s = `Happy birthday: you turn ${me.age}.`;
+    if (me.age >= 31) {
+      const lost = {}; for (const k of RK) { const d = k === 'spd' ? ri(1, 3) : k === 'pow' ? ri(0, 1) : ri(0, 2); me.rat[k] = Math.max(15, me.rat[k] - d); if (d) lost[k] = d; }
+      s += ' The body is slowing down: ' + (Object.keys(lost).map(k => RNAME[k] + ' -' + lost[k]).join(', ') || 'no change') + '.';
+    }
+    note(s);
+    if (me.age >= 40) G.over = true;
+  }
+  if (t.getUTCMonth() === 0 && t.getUTCDate() === 1) {                    // new year: everybody else gets older, the old ones retire
+    for (const f of Object.values(G.fighters)) if (!f.me) f.age++;
+    for (const f of Object.values(G.fighters)) {
+      if (f.me || f.rival || f.age < 36 || Math.random() > .4 || booked(f.id)) continue;
+      G.ladder = G.ladder.filter(x => x !== f.id); G.pool = G.pool.filter(x => x !== f.id); delete G.fighters[f.id];
+      const n = genFighter(rnd(32, 44), ri(20, 24)); n.w = ri(3, 8); n.l = ri(0, 2); n.ko = Math.round(n.w * .6); G.pool.push(n.id);
+    }
+    while (G.ladder.length < 31 && G.pool.length) { G.pool.sort((a, b) => ovr(G.fighters[b]) - ovr(G.fighters[a])); G.ladder.push(G.pool.shift()); }
+  }
+  if (t.getUTCDate() === 1 && G.trainer > 0) {                            // the trainer gets paid on the 1st
+    const T = TRAINERS[G.trainer];
+    if (G.cash >= T.fee) { G.cash -= T.fee; note(`Paid ${T.name} ${money(T.fee)} for ${MONTH[t.getUTCMonth()]}.`); }
+    else { note(`You couldn't pay ${T.name}. He walks out. Sal is back in your corner.`); G.trainer = 0; }
+  }
+  if (G.day % 7 === 0) for (const f of Object.values(G.fighters)) {     // the rest of the world trains too
+    if (f.me) continue;
+    for (const k of RK) f.rat[k] = clamp(f.rat[k] + (f.age < 27 ? rnd(0, .5) : f.age > 32 ? -rnd(0, .6) : 0), 15, 99);
+  }
+  runCard(); fillCard();
+  while (G.pool.length < 10) { const n = genFighter(rnd(30, 40)); n.w = ri(2, 9); n.l = ri(2, 10); G.pool.push(n.id); }
+  G.mail = G.mail.filter(m => m.type !== 'ch' || m.exp >= G.day);
+  if (G.fight && G.fight.day > G.day + 2 && Math.random() < .003) {     // your man gets hurt in camp
+    const o = G.fighters[G.fight.id];
+    G.mail.unshift({ type:'news', day:G.day, text:`${o.name} pulled out of your fight: hurt in sparring. The date is off.` });
+    G.fight = null;
+  }
+  maybeChallenge();
+  checkStory();
+}
+
+/* ================= fight terms ================= */
+function roundsFor(id, title){ if (title) return 8; const i = rankOf(id); return i < 0 ? 3 : i > 20 ? 4 : i > 10 ? 5 : 6; }
 function purseFor(id, title){
   const i = rankOf(id);
   if (i < 0) return ri(5, 9) * 100;
   const base = 300 + 60 * (31 - i) ** 2;
   return Math.round(base * (title ? 2.2 : 1) / 100) * 100;
 }
-function makeOffers(){
-  const L = G.ladder, i = L.indexOf('me'), o = [];
-  const add = (id, title) => { if (id && id !== 'me' && !o.some(x => x.id === id)) o.push({ id, title:!!title }); };
-  if (i < 0) { shuffle([...G.pool]).slice(0, 2).forEach(id => add(id)); add(L[ri(27, 30)]); }
-  else if (i === 0) { shuffle([1, 2, 3, 4, 5, 6]).forEach(k => { if (o.length < 3) add(L[k], true); }); }
-  else if (i === 1) { add(L[0], true); add(L[ri(2, 4)]); add(L[ri(5, 8)]); }
-  else {
-    add(L[Math.min(L.length - 1, i + ri(1, 3))]);
-    add(L[Math.max(1, i - ri(1, 2))]);
-    add(L[Math.max(1, i - ri(3, 5))]);
-  }
-  let guard = 0;
-  while (o.length < 3 && guard++ < 40) add(pick(G.pool));
-  G.offers = o.map(x => ({ ...x, purse:purseFor(x.id, x.title), rounds:roundsFor(x.id, x.title) }));
-  // order: easiest first
-  G.offers.sort((a, b) => ovr(G.fighters[a.id]) - ovr(G.fighters[b.id]));
-  const gr = grudgeDue();
-  if (gr && !G.offers.some(x => x.id === gr.id)) {
-    const title = i === 0 && rankOf(gr.id) >= 0 && rankOf(gr.id) <= 6;
-    G.offers[G.offers.length - 1] = { id:gr.id, title, grudge:true, rematch:gr.rematch, purse:Math.round(purseFor(gr.id, title) * 1.5 / 100) * 100 + 1000, rounds:Math.max(roundsFor(gr.id, title), 4) };
-  } else if (gr) { const x = G.offers.find(x => x.id === gr.id); x.grudge = true; x.rematch = gr.rematch; }
-}
 
-/* ================= training ================= */
-const priceOf = v => Math.max(50, Math.round(120 * 1.06 ** (v - 40) / 10) * 10);
-function train(k, n){
-  const me = G.fighters.me;
-  for (let i = 0; i < n; i++) {
-    if (me.rat[k] >= 99) break;
-    const p = priceOf(me.rat[k]); if (G.cash < p) break;
-    G.cash -= p; me.rat[k]++;
+/* ================= training and rest days ================= */
+// every training day builds a spread of ratings and tires you out by its own amount
+const TRAIN = {
+  bag:    { name:'Heavy bag',   gym:0, fat:18, gain:{ pow:1.2, sta:.35, grit:.15 }, desc:'Sit down on your punches. Power.' },
+  run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:1.2, grit:.35, spd:.15 }, desc:'Run the city, then the stairs. Stamina.' },
+  weights:{ name:'Weight room', gym:0, fat:30, gain:{ pow:.9, grit:.8 },            desc:'Bench press till it burns. Power, Grit.' },
+  speed:  { name:'Speed bag',   gym:1, fat:12, gain:{ spd:1.2, sta:.3 },            desc:'Rhythm and fast hands. Speed.' },
+  spar:   { name:'Sparring',    gym:2, fat:34, gain:{ pow:.45, spd:.45, sta:.45, grit:.45 }, desc:'One real round in headgear. A bit of everything.' },
+};
+const TRAIN_ORDER = ['bag', 'speed', 'run', 'weights', 'spar'];
+const GRADE_Q = { S:1, A:.8, B:.6, C:.4, F:.15 };
+const GYMS = [
+  { name:'Basement gym', cost:0,     heal:0,   desc:'Leaky pipes, one heavy bag and a bench.' },
+  { name:'City gym',     cost:8000,  heal:.2,  desc:'Speed bags and ice baths. Heal 20% faster.' },
+  { name:'Pro gym',      cost:30000, heal:.4,  desc:'A real ring and sparring partners. Heal 40% faster.' },
+  { name:'Elite center', cost:90000, heal:.7,  desc:'Physio room, the best partners. Heal 70% faster.' },
+];
+const TRAINERS = [
+  { name:'Sal Moretti',     fee:0,    gain:0,   fat:0,   desc:'Old-timer. Works for free and means well.' },
+  { name:'Benny Ortiz',     fee:500,  gain:.15, fat:.1,  desc:'+15% gains, a little less tiring. Basic advice.' },
+  { name:'Lou Banks',       fee:2000, gain:.3,  fat:.2,  desc:'+30% gains, less tiring. Reads your opponent.' },
+  { name:'"Professor" Reyes', fee:6000, gain:.45, fat:.3, desc:'+45% gains, much less tiring. Sees everything.' },
+];
+function trainGain(k, q){
+  const T = TRAIN[k], me = G.fighters.me, tr = TRAINERS[G.trainer], out = {};
+  for (const [r, b] of Object.entries(T.gain)) {
+    const dim = clamp(1.45 - me.rat[r] / 100, .3, 1.05);                  // harder to improve near the top
+    const v = .65 * b * q * (1 + tr.gain) * dim * (1 - G.fat / 200) * (k === 'spar' ? 1 + .15 * Math.max(0, G.gym - 2) : 1);
+    me.rat[r] = Math.min(99, me.rat[r] + v); out[r] = v;
   }
-  save(); render();
+  const before = G.fat;
+  G.fat = clamp(G.fat + T.fat * (1 - tr.fat), 0, 100);
+  return { gains:out, fat:[before, G.fat] };
+}
+const REST = {
+  sleep:{ name:'Sleep in',   fat:35, desc:'Clears the most fatigue.' },
+  ice:  { name:'Ice bath',   fat:20, heal:{ eye:1.6, ribs:1.4, liver:1.4, hand:1.5, jaw:1.3, nose:1.2 }, desc:'Swelling and bruises go down faster.' },
+  tape: { name:'Study tape', fat:15, desc:'Learn his habits: his punches show a bit earlier. Up to 3 times.', needFight:true },
+};
+const TREAT = {
+  massage:{ name:'Sports massage', cost:300,  fat:15, fix:{ ribs:6, liver:14 }, desc:'Deep tissue work on the back and sides. Loosens tired muscles and moves the bruising out of the ribs and liver.' },
+  acu:    { name:'Acupuncture',    cost:450,  fix:{ ribs:15, liver:6 },          desc:'Fine needles along the ribcage and back calm the pain so cracked ribs knit faster.' },
+  physio: { name:'Physio',         cost:400,  fat:5, fix:{ hand:18, head:5 },    desc:'Ultrasound, taping and mobility work on sore hands, wrists and legs.' },
+  stitch: { name:'Cut stitches',   cost:250,  fix:{ cut:35 },                    desc:'A doctor cleans the cut and closes it with fine stitches so it seals and won\'t reopen as easily.' },
+  eye:    { name:'Eye doctor',     cost:700,  fix:{ eye:35 },                    desc:'Drains the swollen lid with a needle, then cold compresses and ointment for the bruising.' },
+  ent:    { name:'ENT doctor',     cost:1200, fix:{ nose:40 },                   desc:'An ear, nose and throat specialist resets the broken nose, packs it and tapes a splint over it.' },
+  oral:   { name:'Oral surgeon',   cost:900,  fix:{ jaw:35 },                    desc:'X-rays the jaw, steadies loose teeth and stitches the inside of the lip.' },
+  hyper:  { name:'Hyperbaric chamber', cost:4000, fat:20, mult:2,               desc:'An hour breathing pure oxygen under pressure. Everything heals twice as fast today.' },
+};
+// ailments: 0-100, gone below 1
+const AIL = {
+  eye:  { name:'Eye',   tiers:['Puffy', 'Swollen', 'Swelling shut', 'Closed'], heal:7 },
+  cut:  { name:'Cut',   tiers:['Nick', 'Cut', 'Deep cut', 'Gash'], heal:6 },
+  nose: { name:'Nose',  tiers:['Bloody', 'Bleeding badly', 'Broken', 'Smashed'], heal:3.5 },
+  ribs: { name:'Ribs',  tiers:['Bruised', 'Sore', 'Cracked', 'Broken'], heal:2.5 },
+  liver:{ name:'Liver', tiers:['Tender', 'Bruised', 'Hurt', 'Damaged'], heal:9 },
+  jaw:  { name:'Jaw',   tiers:['Busted lip', 'Swollen jaw', 'Cracked jaw', 'Broken jaw'], heal:3 },
+  hand: { name:'Hand',  tiers:['Sore', 'Swollen', 'Sprained', 'Fractured'], heal:4 },
+  head: { name:'Head',  tiers:['Dazed', 'Foggy', 'Concussed', 'Bad concussion'], heal:4 },
+};
+const tierOf = v => v <= 30 ? 0 : v <= 60 ? 1 : v <= 85 ? 2 : 3;
+const ailList = a => Object.entries(a || {}).filter(([, v]) => v >= 1).sort((x, y) => y[1] - x[1]);
+const hurt = () => ailList(G.fighters.me.ail).some(([, v]) => v > 30);
+function heal(rest, act, treats){
+  const me = G.fighters.me, A = me.ail, mult = treats.some(t => TREAT[t].mult) ? 2 : 1;
+  const f = (rest ? 1.6 : 1) * (1 + GYMS[G.gym].heal) * mult;
+  for (const k of Object.keys(A)) {
+    let amt = AIL[k].heal * f * ((act && REST[act].heal && REST[act].heal[k]) || 1);
+    for (const t of treats) amt += (TREAT[t].fix && TREAT[t].fix[k]) || 0;
+    A[k] -= amt; if (A[k] < 1) delete A[k];
+  }
+}
+function restDay(act, treats){
+  const before = { fat:G.fat, ail:{ ...G.fighters.me.ail } };
+  const cost = treats.reduce((s, t) => s + TREAT[t].cost, 0);
+  if (cost > G.cash) return null;
+  G.cash -= cost;
+  G.fat = Math.max(0, G.fat - REST[act].fat - treats.reduce((s, t) => s + (TREAT[t].fat || 0), 0));
+  if (act === 'tape' && G.fight) G.fight.tape = Math.min(3, (G.fight.tape || 0) + 1);
+  heal(true, act, treats);
+  G.restedOn = G.day;
+  newDay(); save();
+  return before;
+}
+function trainDay(k, q){
+  const r = trainGain(k, q);
+  heal(false, null, []);
+  newDay(); save();
+  return r;
 }
 
 /* ================= results ================= */
@@ -624,7 +901,6 @@ function applyResult(R){
   else if (R.win) {
     me.w++; o.l++; if (R.ko) me.ko++; pay = R.purse;
     beat('me', o.id);
-    // unranked: two wins over unranked fighters get you in at #30
     if (rankOf('me') < 0 && rankOf(o.id) < 0 && ++G.nrWins >= 2) { G.ladder.push('me'); while (G.ladder.length > 31) { const out = G.ladder.splice(G.ladder.length - 2, 1)[0]; G.pool.push(out); } }
     if (R.title) { if (wasChamp) G.defenses++; else G.titles++; }
   } else {
@@ -633,32 +909,36 @@ function applyResult(R){
     if (oi >= 0 && wasRank >= 0 && oi < wasRank) dropMe(ri(1, 3)); else beat(o.id, 'me');
   }
   G.cash += pay;
-  G.sessions = Math.min(SESSIONS_MAX, (G.sessions || 0) + SESSIONS_PER_FIGHT);
-  const nowRank = rankOf('me');
-  if (nowRank >= 0 && (G.best === null || nowRank < G.best)) G.best = nowRank;
-  // birthday: from 31 on, the body starts to slow down
-  const before = Math.floor(me.age); me.age = +(me.age + .3).toFixed(2);
-  let aged = null;
-  if (Math.floor(me.age) > before && me.age >= 31) {
-    aged = {};
-    for (const k of RK) { const d = k === 'spd' ? ri(1, 3) : k === 'pow' ? ri(0, 1) : ri(0, 2); me.rat[k] = Math.max(15, me.rat[k] - d); aged[k] = d; }
-  }
+  // you carry the damage out of the ring
+  me.ail = {};
+  for (const [k, v] of Object.entries(R.ail || {})) { const keep = ['eye', 'cut', 'liver'].includes(k) ? .85 : 1; if (v * keep >= 1) me.ail[k] = Math.min(100, v * keep); }
+  G.fat = Math.min(100, G.fat + 25);
+  const nowRank0 = rankOf('me');
+  if (nowRank0 >= 0 && (G.best === null || nowRank0 < G.best)) G.best = nowRank0;
   if (o.rival && G.rivals) {
     const RV = G.rivals[o.rival], D = RIVALS[o.rival];
     if (R.win) { RV.beaten++; if (RV.beaten === 1) storyBeat([[o.rival, pick(D.lose)]], o.rival); }
     else if (RV.beaten) RV.lost++;
-    else { RV.lost++; RV.rematchAt = G.week + 3; storyBeat([[o.rival, pick(D.win)], ['news', 'You\'ll get your rematch. Train harder.']], o.rival); }
+    else { RV.lost++; RV.rematchAt = G.day + 21; storyBeat([[o.rival, pick(D.win)], ['news', 'You\'ll get your rematch. Train harder.']], o.rival); }
   }
   R.oppRankIdx = R.oppRankIdxBefore ?? -1;
-  G.log.unshift({ wk:G.week, opp:o.name, oppRank:R.oppRank, res:R.draw ? 'D' : R.win ? 'W' : 'L', how:R.how, rd:R.rd, title:R.title });
-  G.week++;
-  worldSim();
-  G.offers = null;
-  G.last = { ...R, pay, wasRank, nowRank:rankOf('me'), aged, age:Math.floor(me.age) };
+  G.log.unshift({ day:G.day, opp:o.name, oppRank:R.oppRank, res:R.draw ? 'D' : R.win ? 'W' : 'L', how:R.how, rd:R.rd, title:R.title });
+  G.fight = null;
+  G.last = { ...R, pay, wasRank, nowRank:rankOf('me'), age:me.age };
   G.last.paper = headline({ ...R, wasRank }, o);
-  checkStory();
-  if (me.age >= 40) G.over = true;
+  G.fighters.me.ail = me.ail;
+  newDay();
   save();
+}
+// a sparring round: no record, just training
+function applySpar(S){
+  const q = clamp(.25 + .5 * S.landed / (S.landed + S.taken + 3) + .25 * S.hpLeft, .15, 1);
+  const r = trainGain('spar', q);
+  const me = G.fighters.me;
+  for (const [k, v] of Object.entries(S.ail || {})) if (v * .4 >= 1) me.ail[k] = Math.min(100, Math.max(me.ail[k] || 0, v * .4));
+  heal(false, null, []);
+  newDay(); save();
+  return { q, ...r };
 }
 
 /* ================= sprites ================= */
@@ -693,6 +973,7 @@ const POSE = {
   hurt:  { lean:-4, cr:1,  hx:-3, hy:-1, fg:[9,-39],  fe:[6,-31],  bg:[3,-41],  be:[-1,-31] },
   hurtB: { lean:3,  cr:5,  hx:1,  hy:1,  fg:[8,-35],  fe:[5,-30],  bg:[4,-33],  be:[0,-30] },
   robe:  { lean:0,  cr:0,  hx:0,  hy:0,  fg:[5,-26], fe:[5,-34],  bg:[-3,-26], be:[-3,-34] },
+  knee:  { lean:5,  cr:14, hx:2,  hy:2,  fg:[10,-27], fe:[7,-34],  bg:[5,-25],  be:[1,-31] },
   win:   { lean:0,  cr:-1, hx:0,  hy:-1, fg:[9,-64],  fe:[8,-52],  bg:[-3,-64], be:[-5,-52] },
 };
 const PK = ['lean','cr','hx','hy'], PV = ['fg','fe','bg','be'];
@@ -750,6 +1031,10 @@ function drawBoxer(g, ox, gy, dir, p, look, o = {}){
   if (o.cut >= 1) R(4 + hx, -51 + hy, 1, 2, '#c41e1e');                    // cut over the eye
   if (o.cut >= 2) { R(4 + hx, -49 + hy, 1, 3, '#c41e1e'); R(3 + hx, -46 + hy, 1, 2, '#a01818'); }
   if (o.cut >= 3) { R(2 + hx, -45 + hy, 2, 1, '#a01818'); R(2 + L, -37 + C, 1, 2, '#a01818'); R(-1 + L, -34 + C, 1, 1, '#a01818'); }
+  if (o.nose > 20) R(5 + hx, -46 + hy, 1, o.nose > 50 ? 3 : 2, '#c41e1e');            // bloody nose
+  if (o.nose > 60) R(5 + hx, -48 + hy, 1, 1, mix(skin, '#6a2f7a', .6));                 // broken
+  if (o.jaw > 30) R(3 + hx, -45 + hy, 3, 1, mix(skin, '#a03050', .5 + o.jaw / 200));      // fat lip
+  if (o.headgear) { R(-6 + hx, -54 + hy, 12, 4, '#c42d2d'); R(-6 + hx, -50 + hy, 3, 7, '#c42d2d'); R(4 + hx, -51 + hy, 2, 5, '#c42d2d'); R(-6 + hx, -54 + hy, 12, 1, '#e24b3b'); }
   arm([4 + L, -38 + C], p.fe, p.fg, skin, glove);                          // front arm
 }
 // flat on his back, head away from the other man
@@ -761,7 +1046,9 @@ function drawDown(g, ox, gy, dir, look, o = {}){
   R(11, -7, 3, 6, '#f2f2f2'); R(10, -11, 3, 5, '#f2f2f2');                  // shoes
   R(-13, -7, 12, 6, look.trunks); R(-13, -7, 2, 6, '#f4f4f4');
   R(-27, -7, 15, 6, skin);                                                   // body
-  R(-37, -9, 10, 9, skin);                                                   // head
+  const up = o.prop ? -3 : 0;                                               // propped up on an elbow
+  if (o.prop) { R(-30, -11, 3, 6, skin); }
+  R(-37, -9 + up, 10, 9, skin);                                              // head
   if (hair !== 'none') R(-37, -9, 3, 9, hair);
   if (o.swell > .12) R(-32, -8, 3, 3, mix(skin, '#7a3f86', o.swell));
   R(-31, -6, 2, 1, '#141414');
@@ -872,19 +1159,28 @@ const GUARD = { jab:.15, hook:.25, upper:.55 };              // share of a punch
 const AI_TELL = { jab:1.35, hook:1.55, upper:1.55 };
 const SLIP_T = .42, SLIP_BACK = 10, DUCK_T = .45, EVADE_CD = .3, EVADE_COST = 4, OPEN_T = .6;
 const WALK = 16, CLOSE = 32, MIN_GAP = 24, ROPE_IN = 13;
-const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6;
-const ROUND_SECS = 180, CLOCK_X = 4;                       // a 3:00 round lasts 45 real seconds
+const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6, AILX = .55;
+const ROUND_SECS = 180, CLOCK_X = 3;                       // a 3:00 round lasts 60 real seconds
 const LH = 120;
 let CROWD = [], M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
 const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('canvas'), g = low.getContext('2d');
 
-function mkF(src, side, user){
-  const r = src.rat;
-  return { src, side, user, r, hpMax:70 + r.chin * .6, hp:70 + r.chin * .6, stMax:50 + r.sta * .7, st:50 + r.sta * .7, regen:6 + r.sta * .1,
-    pm:.6 + r.pow / 100, sm:1.25 - .5 * r.spd / 100, walkV:WALK * (.8 + r.spd / 250), state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0,
-    weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
-    x:0, walk:0, pinned:false, swell:0, cut:0, body:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
+function mkF(src, side, user, opt = {}){
+  const r = src.rat, ail = user ? { ...(src.ail || {}) } : {};
+  const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && G.restedOn === G.day - 1 && fat <= 25;
+  const hpMax = 70 + r.grit * .6, stMax = (50 + r.sta * .7) * (1 - fat / 300);
+  return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
+    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250), sharp,
+    state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0, weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
+    x:0, walk:0, pinned:false, ail, rock:0, maxRock:0, unanswered:0, streak:0, lastLand:-9, foldAt:0, gprog:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
     ai:{ next:rnd(.9, 1.6), seen:0, react:0, reacted:false, punished:0, blockUntil:0 } };
+}
+const A = (f, k) => f.ail[k] || 0;
+const ailLook = a => ({ swell:(a.eye || 0) / 100, cut:a.cut >= 1 ? Math.min(3, 1 + tierOf(a.cut)) : 0, body:Math.max(a.ribs || 0, a.liver || 0) / 100, nose:a.nose || 0, jaw:a.jaw || 0 });
+const AIL_MSG = { eye:[95, 'EYE SHUT'], nose:[60, 'NOSE BROKEN'], ribs:[60, 'RIBS CRACKED'], jaw:[60, 'JAW CRACKED'], cut:[60, 'BAD CUT'] };
+function addAil(f, k, v){
+  const was = f.ail[k] || 0, now = Math.min(100, was + v); f.ail[k] = now;
+  const m = AIL_MSG[k]; if (m && was < m[0] && now >= m[0] && M) { fx(m[1], f.side, 'r'); hype(.3); }
 }
 const away = f => f.side === 0 ? -1 : 1;                   // the direction of his own ropes
 const gapOf = () => M.f[1].x - M.f[0].x;
@@ -894,9 +1190,12 @@ function punch(f, type, tgt){
   const P = FT[type], cost = f.rage > 0 ? 0 : P.cost;
   f.weak = f.st < cost; f.st = Math.max(0, f.st - cost);
   f.state = 'wind'; f.t = 0; f.pt = type; f.tgt = type === 'upper' ? 'head' : (tgt || 'head'); f.pid = ++punchSeq; f.whiff = false;
-  // a swollen eye shortens how long you get to see his punch coming
-  const tell = f.user ? 1 : Math.max(1, AI_TELL[type] - .45 * M.f[0].swell);
-  f.dur = P.wind * f.sm * (f.weak ? 1.3 : 1) * (f.rage > 0 ? .8 : 1) * tell;
+  // a swollen eye shortens how long you get to see his punch coming (shut: no warning at all on the hook); studying tape lengthens it
+  const eye = A(M.f[0], 'eye'), tape = (!M.offer.spar && G.fight && G.fight.tape) || 0;
+  let tell = 1;
+  if (!f.user) { tell = Math.max(1, AI_TELL[type] - .45 * eye / 100) * (1 + .06 * tape); if (type === 'hook' && eye >= 95) tell = 1; }
+  f.dur = P.wind * (f.user ? f.lag : f.sm) * (f.weak ? 1.3 : 1) * (f.rage > 0 ? .8 : 1) * (f.rock > 55 ? 1.25 : 1) * tell;
+  f.unanswered = 0;
   f.thrown++; f.rThrown++;
   return true;
 }
@@ -921,40 +1220,65 @@ function resolve(a, d){
   if (Math.abs(d.x - a.x) > P.reach) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
-  let dmg = P.dmg * a.pm * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
+  let dmg = P.dmg * a.pm * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
   const guarded = d.state === 'block' && (d.guard === 'high') === head;
   if (guarded) {
-    dmg *= GUARD[a.pt] * (1 + Math.min(.6, d.body * 1.5));            // a beaten-up body can't hold the guard up as well
+    const sore = Math.max(A(d, 'ribs'), A(d, 'liver')) / 100;             // a beaten-up body can't hold the guard up as well
+    dmg *= GUARD[a.pt] * (1 + Math.min(.8, sore * 1.2)) * (head ? 1 : 1 + A(d, 'ribs') / 120);
     d.st = Math.max(0, d.st - P.cost * .6); thud(.2, true); push(d, 1.5);
     sparks(hitX, hitY, 3, '#bfe6ff');
+    if (a.pt !== 'jab') addAil(a, 'hand', .5);
+    flurry(a);
     if (d.st <= 0) { d.state = 'stun'; d.t = 0; d.dur = .55; d.hurtLow = !head; fx('GUARD BROKEN', d.side, 'r'); }
   } else {
     if (d.state === 'duck' && a.pt === 'upper') { dmg *= 1.4; tag = 'COUNTER!'; }
     else if (d.state === 'wind') { dmg *= 1.4; tag = 'COUNTER!'; }
     else if (d.whiff && d.state === 'rec') { dmg *= 1.6; tag = 'COUNTER!'; }
-    if (!head) dmg *= BODY_DMG;
-    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (tag ? 1.35 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
+    if (!head) dmg *= BODY_DMG * (1 + A(d, 'ribs') / 150);
+    else dmg *= 1 + A(d, 'jaw') / 250;
+    const kr = tag ? 1.4 : 1, k = kr * AILX;                               // injuries build at their own pace
+    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (tag ? 1.35 : 1) * (!head && A(d, 'ribs') > 60 ? 1.4 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
     push(d, P.push * (tag ? 1.5 : 1) * (a.rage > 0 ? 1.4 : 1));
-    a.landed++; a.rLanded++;
+    a.landed++; a.rLanded++; d.unanswered++;
+    // what the punch does to him
     if (head) {
-      d.swell = Math.min(1, d.swell + dmg / d.hpMax * 1.25);
-      if (a.pt !== 'jab' && d.swell > .25 && d.cut < 3 && Math.random() < .1 + (tag ? .1 : 0)) { d.cut++; fx(d.cut === 3 ? 'BAD CUT!' : 'CUT!', d.side, 'r'); }
+      if (a.pt === 'jab') { addAil(d, 'nose', dmg * 1.1 * k); addAil(d, 'eye', dmg * .5 * k); }
+      else if (a.pt === 'hook') { addAil(d, 'eye', dmg * .9 * k); addAil(d, 'jaw', dmg * .6 * k); }
+      else { addAil(d, 'jaw', dmg * k); addAil(d, 'nose', dmg * .6 * k); }
+      if (A(d, 'cut')) addAil(d, 'cut', dmg * .55 * k);
+      else if (a.pt !== 'jab' && A(d, 'eye') > 25 && Math.random() < .12 + (tag ? .12 : 0)) { addAil(d, 'cut', 15); fx('CUT!', d.side, 'r'); }
+      d.rock += dmg * (a.pt === 'jab' ? .8 : a.pt === 'hook' ? 2 : 2.6) * kr * (1 + A(d, 'head') / 100) * (1 + A(d, 'jaw') / 150);
+      if (d.rock > 55 && !d.rockedShown) { d.rockedShown = true; fx('ROCKED!', d.side, 'y'); hype(.3); }
     } else {
       d.st = Math.max(0, d.st - dmg * BODY_DRAIN);
-      d.body = Math.min(1, d.body + dmg / d.hpMax);
+      addAil(d, 'ribs', dmg * (a.pt === 'hook' ? .9 : .7) * k);
+      if (a.pt === 'hook') {
+        addAil(d, 'liver', dmg * 1.6 * k);
+        // a hurt liver can fold a man a moment after the punch lands
+        if (A(d, 'liver') >= 60 && !d.foldAt && Math.random() < (A(d, 'liver') - 45) / 70) d.foldAt = M.time + .6;
+      }
     }
+    if (a.pt !== 'jab') addAil(a, 'hand', .3);
     if (a.user && a.hp < a.hpMax * .4) addHeart(.07);
     const big = a.pt !== 'jab' || tag;
     thud(a.pt === 'jab' ? .2 : a.pt === 'hook' ? .6 : 1, false);
     sparks(hitX, hitY, big ? 9 : 4, big ? '#ffd23f' : '#ffffff');
-    if (d.cut && head) sparks(hitX, hitY + 2, 3, '#c41e1e');
-    M.shake = big ? .18 : .07;
-    if (big) { M.flashes += 8; hype(tag ? .35 : .18); }
+    if (head && (A(d, 'cut') || A(d, 'nose') > 40)) sparks(hitX, hitY + 2, 4, '#c41e1e');
+    M.shake = Math.max(M.shake, big ? .22 : .07);
+    if (big) { M.zoom = Math.max(M.zoom, tag ? .08 : .045); M.flashes += 8; hype(tag ? .35 : .18); }
     if (tag) fx(tag, a.side, 'y');
     else if (!head && d.user === false && Math.random() < .3) fx('BODY', d.side, '');
+    flurry(a);
+    // the referee waves it off when a rocked man stops answering back
+    if (d.rock > 70 && d.unanswered >= 5 && d.hp < d.hpMax * .6 && !M.offer.spar) { d.hp -= dmg; a.rDmg += dmg; banner('STOPPED!', 'y'); return finish(a.side, 'REF'); }
   }
   d.hp -= dmg; a.rDmg += dmg;
   if (d.hp <= 0) knockdown(d, a);
+}
+// one man letting his hands go gets the crowd up
+function flurry(a){
+  a.streak = M.time - a.lastLand < 1.3 ? a.streak + 1 : 1; a.lastLand = M.time;
+  if (a.streak === 4 || a.streak === 7) { hype(.4); fxAt(pick(['OHHH!', 'WOW!', 'GO! GO!']), rnd(.2, .8), rnd(.12, .25), 'y'); M.shake = Math.max(M.shake, .12); roar(.6); }
 }
 function addHeart(n){
   const me = M.f[0];
@@ -979,6 +1303,12 @@ function chant(){
 function step(f, o, dt){
   f.t += dt; f.evadeCD = Math.max(0, f.evadeCD - dt);
   if (f.rage > 0) f.rage = Math.max(0, f.rage - dt);
+  f.rock = Math.max(0, f.rock - dt * 7 * (1 - A(f, 'head') / 200)); f.maxRock = Math.max(f.maxRock, f.rock);
+  if (f.rock < 40) f.rockedShown = false;
+  if (f.foldAt && M.time >= f.foldAt && f.state !== 'down') {             // the liver shot lands late
+    f.foldAt = 0; f.ail.liver = Math.max(0, A(f, 'liver') - 25); fx('LIVER SHOT', f.side, 'r'); f.fold = true;
+    knockdown(f, M.f[1 - f.side]); return;
+  }
   switch (f.state) {
     case 'wind': if (f.t >= f.dur) { f.state = 'hit'; f.t = 0; f.dur = FT[f.pt].hit; resolve(f, o); } break;
     case 'hit': if (f.t >= f.dur) { f.state = 'rec'; f.t = 0; f.dur = FT[f.pt].rec * f.sm + (f.whiff ? OPEN_T : 0); } break;
@@ -989,7 +1319,7 @@ function step(f, o, dt){
     case 'idle': if (f.blockHeld) f.state = 'block'; break;
   }
   f.blockT = f.state === 'block' ? f.blockT + dt : 0;
-  const regen = f.regen * (1 - Math.min(.5, f.body * 1.2));            // body shots slow the second wind
+  const regen = f.regen * (1 - Math.min(.5, A(f, 'ribs') / 160 + A(f, 'liver') / 250)) * (1 - A(f, 'nose') / 220);   // hurt ribs and a broken nose slow the second wind
   if (f.state === 'idle' || f.state === 'block' || f.state === 'rec') f.st = Math.min(f.stMax, f.st + regen * dt * (f.state === 'block' ? .5 : 1));
 }
 // footwork: both men walk in until they're in range; a slip carries you back a step
@@ -998,7 +1328,7 @@ function move(f, o, dt){
   if (f.state === 'slip' && f.t < SLIP_T * .5) f.x += away(f) * SLIP_BACK / (SLIP_T * .5) * dt;
   else if (f.state === 'idle' || f.state === 'block' || f.state === 'rec') {
     const gap = Math.abs(o.x - f.x);
-    if (gap > CLOSE) f.x -= away(f) * Math.min(gap - CLOSE, f.walkV * (f.state === 'block' ? .5 : 1) * dt);
+    if (gap > CLOSE) f.x -= away(f) * Math.min(gap - CLOSE, f.walkV * (f.state === 'block' ? .5 : 1) * (f.rock > 55 ? .55 : 1) * dt);
   }
   f.x = clamp(f.x, M.lo, M.hi);
   if (Math.abs(o.x - f.x) < MIN_GAP) f.x = o.x + away(f) * MIN_GAP;
@@ -1011,20 +1341,20 @@ function move(f, o, dt){
 // the computer's brain: reads your wind-ups, punishes your misses, otherwise throws on a rhythm
 const STYLE_BODY = { brawler:.4, speedster:.2, tank:.35, counter:.25 };
 function aiThink(f, o, dt){
-  const S = STYLES[f.src.style] || STYLES.counter, A = f.ai;
-  const sk = clamp(skillOf(f.src) + S.react, 0, 1) * (1 - .5 * f.swell);
-  if (f.blockHeld && M.time > A.blockUntil) f.blockHeld = false;
-  if (o.state === 'wind' && A.seen !== o.pid) { A.seen = o.pid; A.react = rnd(.11, .24) + (1 - sk) * .06; A.reacted = false; }
-  if (o.state === 'wind' && A.seen === o.pid && !A.reacted && o.t >= A.react) {
-    A.reacted = true;
+  const S = STYLES[f.src.style] || STYLES.counter, AI = f.ai;
+  const sk = clamp(skillOf(f.src) + S.react, 0, 1) * (1 - .5 * A(f, 'eye') / 100) * (f.rock > 55 ? .6 : 1);
+  if (f.blockHeld && M.time > AI.blockUntil) f.blockHeld = false;
+  if (o.state === 'wind' && AI.seen !== o.pid) { AI.seen = o.pid; AI.react = rnd(.11, .24) + (1 - sk) * .06; AI.reacted = false; }
+  if (o.state === 'wind' && AI.seen === o.pid && !AI.reacted && o.t >= AI.react) {
+    AI.reacted = true;
     const ok = f.state === 'idle' || f.state === 'block', head = o.tgt === 'head';
     if (ok && Math.random() < .1 + sk * .65) {
       if (Math.random() < S.dodge && f.evadeCD <= 0) {
         if (head && o.pt !== 'upper' && (f.pinned || Math.random() < .45)) duck(f);
         else if (!f.pinned) slip(f);
-        else { f.blockHeld = true; f.guard = 'high'; A.blockUntil = M.time + .5; }
+        else { f.blockHeld = true; f.guard = 'high'; AI.blockUntil = M.time + .5; }
       } else {
-        f.blockHeld = true; A.blockUntil = M.time + rnd(.35, .7);
+        f.blockHeld = true; AI.blockUntil = M.time + rnd(.35, .7);
         f.guard = (head ? 'high' : 'low');
         if (Math.random() < (1 - sk) * .3) f.guard = head ? 'low' : 'high';                  // guessed wrong
       }
@@ -1032,46 +1362,47 @@ function aiThink(f, o, dt){
   }
   const inRange = t => Math.abs(o.x - f.x) <= FT[t].reach - 1;
   const pickTgt = () => Math.random() < (STYLE_BODY[f.src.style] || .3) + (o.state === 'block' && o.guard === 'high' ? .35 : 0) ? 'body' : 'head';
-  if (o.whiff && o.state === 'rec' && A.punished !== o.pid) {
-    A.punished = o.pid;
+  if (o.whiff && o.state === 'rec' && AI.punished !== o.pid) {
+    AI.punished = o.pid;
     if (Math.random() < .2 + sk * .7) {
       f.blockHeld = false; if (f.state === 'block') f.state = 'idle';
       const t = Math.random() < .5 ? 'hook' : 'upper'; if (inRange(t)) punch(f, t, pickTgt());
     }
   }
   if (o.state === 'stun' && f.state === 'idle' && Math.random() < dt * 2.5 * (.4 + sk)) { const t = Math.random() < .6 ? 'jab' : 'hook'; if (inRange(t)) punch(f, t, pickTgt()); }
-  A.next -= dt;
-  if (A.next <= 0 && (f.state === 'idle' || f.state === 'block') && !f.blockHeld) {
+  AI.next -= dt;
+  if (AI.next <= 0 && (f.state === 'idle' || f.state === 'block') && !f.blockHeld) {
     const tired = f.st < f.stMax * .22;
-    if ((tired || (f.pinned && f.hp < f.hpMax * .35)) && Math.random() < .6) { f.blockHeld = true; f.guard = Math.random() < .7 ? 'high' : 'low'; A.blockUntil = M.time + rnd(.6, 1.2); A.next = rnd(.6, 1.1); return; }
+    if ((tired || (f.pinned && f.hp < f.hpMax * .35)) && Math.random() < .6) { f.blockHeld = true; f.guard = Math.random() < .7 ? 'high' : 'low'; AI.blockUntil = M.time + rnd(.6, 1.2); AI.next = rnd(.6, 1.1); return; }
     const w = { ...S.w };
     if (o.blockT > .7) { w.upper += .5; w.jab *= .5; }                     // you've been sitting behind the gloves
     const x = Math.random() * (w.jab + w.hook + w.upper);
     const t = x < w.jab ? 'jab' : x < w.jab + w.hook ? 'hook' : 'upper';
-    if (!inRange(t)) { A.next = .12; return; }                            // walk in first
+    if (!inRange(t)) { AI.next = .12; return; }                            // walk in first
     punch(f, t, pickTgt());
-    A.next = (Math.random() < .3 ? rnd(.15, .3) : rnd(.6, 1.6) / S.agg * (1.3 - sk * .45));
+    AI.next = (Math.random() < .3 ? rnd(.15, .3) : rnd(.6, 1.6) / S.agg * (1.3 - sk * .45));
   }
 }
 
 function knockdown(d, a){
-  d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false; d.rage = 0;
+  d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false; d.rage = 0; d.gprog = 0; d.foldAt = 0;
   a.state = 'idle'; a.blockHeld = false;
+  if (M.offer.spar) { banner('THAT\'S ENOUGH', 'y'); return finish(a.side, 'STOP'); }
   M.shake = .3; M.flashes += 25; hype(.9);
   M.capture = { frames:M.buf.slice(), until:M.time + .9 };                 // keep this for the replay
   if (d.kdR >= 3) { banner('T.K.O.!', 'y'); thud(1, false); return finish(a.side, 'TKO'); }
   banner('DOWN!', 'y'); thud(1, false);
   M.phase = 'count'; M.count = 0; M.countT = 0; M.downSide = d.side;
-  if (d.user) { M.taps = 0; M.tapNeed = Math.round(clamp(10 + 6 * (d.kd - 1) - (d.r.chin - 50) / 8, 6, 34)); }
+  if (d.user) M.gu = { prog:0, hold:false, sx:0, base:0, off:0, t:0, m:0, pid:null, zone:clamp(.34 - .05 * (d.kd - 1) + (d.r.grit - 50) / 450 - d.rock / 600, .12, .42), amp:.55 + .18 * (d.kd - 1) };
   else {
-    const p = clamp(.95 - .25 * (d.kd - 1) + (d.r.chin - 60) / 220, .05, .97);
+    const p = clamp(.95 - .25 * (d.kd - 1) + (d.r.grit - 60) / 220, .05, .97);
     d.riseAt = Math.random() < p ? ri(3, 8) : 99;
   }
   renderGetup();
 }
 function rise(d){
-  d.state = 'idle'; d.t = 0;
-  d.hp = d.hpMax * clamp(.62 - .12 * (d.kd - 1) + (d.r.chin - 50) / 400, .2, .7);
+  d.state = 'idle'; d.t = 0; d.rock = 35; d.fold = false; d.gprog = 0;
+  d.hp = d.hpMax * clamp(.62 - .12 * (d.kd - 1) + (d.r.grit - 50) / 400, .2, .7);
   d.st = Math.max(d.st, d.stMax * .5);
   M.phase = 'rise'; M.pt = 1.1; banner('FIGHT!', '');
   $('#getup').hidden = true;
@@ -1081,6 +1412,7 @@ function finish(winSide, how){
   M.phase = 'end'; M.pt = 2.6; M.result = { winSide, how };
   const W = M.f[winSide], Lo = M.f[1 - winSide];
   if (W) { W.state = 'win'; W.blockHeld = false; W.rage = 0; }
+  if (Lo && how === 'REF') { Lo.state = 'stun'; Lo.dur = 99; }
   if (Lo && (how === 'KO' || how === 'TKO')) { Lo.state = 'down'; M.doReplay = !!(M.capture && M.capture.frames.length > 20); }
   bell(3); hype(1); roar(1);
 }
@@ -1114,16 +1446,16 @@ function decision(){
   if (winSide < 0) { M.phase = 'end'; M.pt = 1.8; M.result = { winSide:-1, how }; bell(3); }
   else finish(winSide, how);
 }
-const HOW = { KO:'Knockout', TKO:'Technical knockout', DOC:'Doctor stops it (cut)', UD:'Unanimous decision', SD:'Split decision', MD:'Majority decision', DRAW:'Draw', RTD:'Quit on the stool' };
+const HOW = { REF:'Referee stops it', STOP:'Trainer stops it', SPAR:'Sparring', KO:'Knockout', TKO:'Technical knockout', DOC:'Doctor stops it (cut)', UD:'Unanimous decision', SD:'Split decision', MD:'Majority decision', DRAW:'Draw', RTD:'Quit on the stool' };
 
 function placeFighters(){
   const cx = Math.round(LW / 2);
   M.f[0].x = cx - 17; M.f[1].x = cx + 17;
 }
 function startFight(offer){
-  const me = G.fighters.me, o = G.fighters[offer.id];
+  const me = G.fighters.me, o = offer.partner || G.fighters[offer.id];
   M = { offer, opp:o.id, oppRank:rankShort(o.id), rounds:offer.rounds, round:1, clock:ROUND_SECS, phase:'intro', pt:1.6, time:0,
-    f:[mkF(me, 0, true), mkF(o, 1, false)], cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0,
+    f:[mkF(me, 0, true, offer), mkF(o, 1, false)], zoom:0, cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0,
     hype:0, ref:{ x:0, arm:0 }, buf:[], capture:null, robes:false, card:null };
   $('#game').hidden = false; $('#ui').hidden = true; $('#over').hidden = true; $('#getup').hidden = true;
   $('#n0').textContent = me.name; $('#n1').textContent = o.name;
@@ -1131,7 +1463,17 @@ function startFight(offer){
   last = performance.now();
   M.ref.x = Math.round(LW / 2);
   if (!G.tutDone) { M.phase = 'tut'; showControls(true); }
+  else if (offer.spar) sparIntro();
   else startWalkout();
+}
+function sparIntro(){ M.phase = 'intro'; M.pt = 1.4; banner('SPARRING', 'y'); bell(1); }
+// a training day in the ring: one round in headgear against a partner your gym provides
+function startSpar(){
+  if (!G || G.gym < 2) return;
+  const me = G.fighters.me, base = clamp(ovr(me) + [0, 0, -2, 3][G.gym] + rnd(-3, 3), 30, 95);
+  const p = { id:'spar', name:pick(FIRST) + ' ' + pick(LAST), nick:'', style:pick(Object.keys(STYLES)), rat:{}, age:ri(22, 30), town:me.town, w:0, l:0, d:0, ko:0, look:{ ...genLook(), trunks:'#3a3a44' } };
+  for (const k of RK) p.rat[k] = clamp(base + STYLES[p.style].mod[k] * .5 + rnd(-4, 4), 20, 95);
+  startFight({ id:'spar', spar:true, partner:p, rounds:1, purse:0, title:false });
 }
 // both men walk out in their robes while the announcer calls their names
 function startWalkout(){
@@ -1170,8 +1512,8 @@ function skipWalkout(){
 function nextRound(){
   M.round++; M.clock = ROUND_SECS; M.phase = 'intro'; M.pt = 1.4;
   for (const f of M.f) {
-    f.hp = Math.min(f.hpMax, f.hp + (f.hpMax - f.hp) * (.3 + f.r.chin / 500)); f.st = f.stMax;
-    f.swell = Math.max(0, f.swell - .06); f.body *= .6;
+    f.hp = Math.min(f.hpMax, f.hp + (f.hpMax - f.hp) * (.3 + f.r.grit / 500)); f.st = f.stMax;
+    if (f.ail.eye) f.ail.eye = Math.max(0, f.ail.eye - 5); f.rock = 0; f.unanswered = 0; f.streak = 0;
     f.kdR = 0; f.rThrown = 0; f.rLanded = 0; f.rDmg = 0; f.state = 'idle'; f.whiff = false; f.ai.next = rnd(.9, 1.6);
   }
   placeFighters();
@@ -1183,8 +1525,16 @@ function quitFight(){
   M.result = { winSide:1, how:'RTD' }; leaveFight();
 }
 function leaveFight(){
+  if (M.offer.spar) {
+    const me = M.f[0], o = M.f[1], S = { landed:me.landed, taken:o.landed, hpLeft:Math.max(0, me.hp) / me.hpMax, ail:me.ail };
+    M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true; $('#game').hidden = true; $('#ui').hidden = false;
+    G.lastSpar = { ...applySpar(S), landed:S.landed, taken:S.taken };
+    screen = 'spardone'; render(); return;
+  }
+  const ail = { ...M.f[0].ail }, hd = M.f[0].kd * 18 + M.f[0].maxRock * .25;
+  if (hd >= 1) ail.head = Math.min(100, Math.max(ail.head || 0, hd));
   const res = M.result, R = { opp:M.opp, oppRank:M.oppRank, oppRankIdxBefore:rankOf(M.opp), purse:M.offer.purse, title:M.offer.title, rd:M.round,
-    win:res.winSide === 0, draw:res.winSide < 0, ko:['KO', 'TKO', 'RTD', 'DOC'].includes(res.how), how:res.how, totals:M.totals || null };
+    win:res.winSide === 0, draw:res.winSide < 0, ko:['KO', 'TKO', 'RTD', 'DOC'].includes(res.how), how:res.how, totals:M.totals || null, ail };
   M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true;
   $('#game').hidden = true; $('#ui').hidden = false;
   applyResult(R);
@@ -1196,7 +1546,7 @@ let last = performance.now();
 function update(dt){
   M.time += dt;
   const [a, b] = M.f;
-  M.shake = Math.max(0, M.shake - dt);
+  M.shake = Math.max(0, M.shake - dt); M.zoom = Math.max(0, (M.zoom || 0) - dt * .3);
   for (const p of M.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; p.life -= dt; }
   M.parts = M.parts.filter(p => p.life > 0);
   M.hype = Math.max(0, M.hype - dt * .22);
@@ -1218,19 +1568,24 @@ function update(dt){
       const d = M.f[M.downSide], up = M.f[1 - M.downSide];
       up.x = clamp(up.x + away(up) * 14 * dt * (M.count < 2 ? 1 : 0), M.lo, M.hi);   // off to a neutral corner
       if (M.countT >= 1) { M.countT -= 1; M.count++; M.ref.arm = .45; banner(String(M.count), M.count >= 8 ? 'y' : ''); thud(.05, true); }
-      if (d.user) {
-        if (a.auto) M.taps += dt * 6;
-        M.taps = Math.max(0, M.taps - dt * 1.4);
-        if (M.taps >= M.tapNeed) { rise(d); break; }
+      if (d.user) {                                                      // hold on and keep the marker in the green to climb up
+        const U = M.gu; U.t += dt;
+        U.m = U.amp * (Math.sin(U.t * 1.7) * .7 + Math.sin(U.t * 3.3 + 1) * .45) + U.off;
+        if (a.auto) { U.m = 0; U.hold = true; }
+        if (U.hold && Math.abs(U.m) < U.zone) U.prog += dt * .42; else U.prog -= dt * (U.hold ? .22 : .12);
+        U.prog = clamp(U.prog, 0, 1); d.gprog = U.prog;
+        if (U.prog >= 1) { rise(d); break; }
         renderGetup();
       } else if (M.count >= d.riseAt) { rise(d); break; }
+      else d.gprog = d.riseAt < 99 ? clamp((M.count + M.countT - 1) / (d.riseAt - 1), 0, 1) * .95 : Math.min(.3, M.count * .04);
       if (M.count >= 10) { $('#getup').hidden = true; banner('K.O.!', 'y'); finish(1 - M.downSide, 'KO'); }
       break;
     }
     case 'rise': M.pt -= dt; if (M.pt <= 0) { M.phase = 'fight'; banner(''); } break;
     case 'bell': M.pt -= dt; if (M.pt <= 0) {
-      const cut = M.f.findIndex(f => f.cut >= 3);
-      if (cut >= 0) { banner('DOCTOR STOPS IT', 'y'); finish(1 - cut, 'DOC'); }
+      const cut = M.f.findIndex(f => A(f, 'cut') >= 90);
+      if (cut >= 0 && !M.offer.spar) { banner('DOCTOR STOPS IT', 'y'); finish(1 - cut, 'DOC'); }
+      else if (M.offer.spar) { M.phase = 'end'; M.pt = .6; M.result = { winSide:-1, how:'SPAR' }; }
       else if (M.round >= M.rounds) decision(); else showBreak();
     } break;
     case 'end': M.pt -= dt; if (M.pt <= 0 && $('#over').hidden) { if (M.doReplay) startReplay(); else showEnd(); } break;
@@ -1238,7 +1593,7 @@ function update(dt){
   for (const f of M.f) animate(f, dt);
   moveRef(dt);
   // a rolling recording of the last two seconds, for the knockout replay
-  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage, walk:f.walk })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
   M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 2.2) M.buf.shift();
   if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
 }
@@ -1276,7 +1631,9 @@ function targetPose(f){
     case 'idle': if (M.robes) return [P.robe, 30];   // falls through when not in the robe
     default: {
       const t = M.time * 4 + f.side * 1.7, bob = Math.sin(t) * .8;
-      const p = copyPose(P.guard); p.cr += bob + (f.st < f.stMax * .2 ? 1.5 : 0); p.fg[1] += bob * .6; p.bg[1] += bob * .6; return [p, 12];
+      const p = copyPose(P.guard); p.cr += bob + (f.st < f.stMax * .2 ? 1.5 : 0); p.fg[1] += bob * .6; p.bg[1] += bob * .6;
+      if (f.rock > 55) { const w = Math.sin(M.time * 5 + f.side) * 2.5; p.lean += w; p.hx += w * .4; p.cr += 1.5; p.fg[1] += 4; p.bg[1] += 3; }
+      return [p, 12];
     }
   }
 }
@@ -1349,7 +1706,7 @@ function draw(){
     for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(4, 50), 2, 2); }
     M.flashes = Math.max(0, M.flashes - n);
   }
-  const sx = M.shake > 0 ? Math.round(rnd(-1.5, 1.5)) : 0, sy = M.shake > 0 ? Math.round(rnd(-1, 1)) : 0;
+  const amp = M.shake > .15 ? 2.5 : 1.5, sx = M.shake > 0 ? Math.round(rnd(-amp, amp)) : 0, sy = M.shake > 0 ? Math.round(rnd(-amp * .7, amp * .7)) : 0;
   g.setTransform(1, 0, 0, 1, sx, sy);
   // a man pinned on the ropes bends them
   for (const f of M.f) if (f.pinned && f.state !== 'down') {
@@ -1365,16 +1722,19 @@ function draw(){
   if (M.phase !== 'walkout' && M.phase !== 'tut') drawRef(g, ref.x, gy - 5, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage > 0 };
-    if (f.state === 'down') drawDown(g, f.x - dir * 4, gy, dir, f.src.look, o);
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar };
+    if (f.state === 'down' && f.gprog > .62) drawBoxer(g, f.x - dir * 2, gy, dir, POSE.knee, f.src.look, o);
+    else if (f.state === 'down') drawDown(g, f.x - dir * 4, gy, dir, f.src.look, { ...o, prop:f.gprog > .3 });
     else drawBoxer(g, f.x, gy, dir, f.pose, f.src.look, o);
     if (M.robes) drawRobe(g, f.x, gy, dir, f.src.look);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (M.card) drawCardGirl(g, M.card.x, gy + 8, M.card.n, M.time);
   for (const p of parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
+  // a big shot punches the camera in a touch
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(low, 0, 0, cv.width, cv.height);
+  const z = 1 + (M.zoom || 0), sw = LW / z, sh = LH / z;
+  ctx.drawImage(low, (LW - sw) / 2, (LH - sh) * .55, sw, sh, 0, 0, cv.width, cv.height);
 }
 function hud(){
   M.f.forEach((f, i) => {
@@ -1388,7 +1748,7 @@ function hud(){
   $('#htw').classList.toggle('on', me.rage > 0);
   $('#rd').textContent = `ROUND ${M.round} / ${M.rounds}`;
   const c = Math.ceil(M.clock); $('#clk').textContent = `${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')}`;
-  $('#eye').style.opacity = (clamp((me.swell - .3) / .7, 0, 1) * .85).toFixed(2);   // your swollen eye closes in on the view
+  $('#eye').style.opacity = (clamp((A(me, 'eye') / 100 - .3) / .7, 0, 1) * .85).toFixed(2);   // your swollen eye closes in on the view
 }
 function frame(now){
   requestAnimationFrame(frame);
@@ -1420,9 +1780,10 @@ function fx(text, side, cls){
 }
 function renderGetup(){
   const el = $('#getup'), d = M.f[M.downSide];
-  if (!d.user || M.phase !== 'count') { el.hidden = true; return; }
+  if (!d.user || M.phase !== 'count' || !M.gu) { el.hidden = true; return; }
+  const U = M.gu, z = U.zone, mk = clamp(U.m, -1, 1);
   el.hidden = false;
-  el.innerHTML = `TAP FAST TO GET UP<div class="m"><i style="width:${(clamp(M.taps / M.tapNeed, 0, 1) * 100).toFixed(1)}%"></i></div>`;
+  el.innerHTML = `${U.hold ? 'STEADY... KEEP IT IN THE GREEN' : 'HOLD YOUR FINGER DOWN'}<div class="gz"><b style="left:${(50 - z * 50).toFixed(1)}%;width:${(z * 100).toFixed(1)}%"></b><i style="left:${(50 + mk * 50).toFixed(1)}%"></i></div><div class="m"><i style="width:${(U.prog * 100).toFixed(1)}%"></i></div>`;
 }
 const CONTROLS = `<div class="ctrls">
   <div><b>Tap</b> his head / body</div><div>Jab there</div>
@@ -1431,23 +1792,38 @@ const CONTROLS = `<div class="ctrls">
   <div><b>Swipe &larr;</b></div><div>Slip back (not on the ropes)</div>
   <div><b>Swipe &darr;</b></div><div>Duck under head punches</div>
   <div><b>Hold</b> high / low</div><div>Block head / block body</div>
+  <div><b>Knocked down</b></div><div>Hold on and drag to keep the marker in the green</div>
 </div><div class="muted" style="font-size:12px">You walk forward on your own. Get hurt and keep landing: the <span class="yellow">heart</span> bar fills.</div>`;
 function showControls(first){
   $('#over').hidden = false;
   $('#over').innerHTML = `<div class="panel"><h2>HOW TO FIGHT</h2>${CONTROLS}<button class="btn go" data-f="${first ? 'tutok' : 'resume'}">${first ? 'Got it' : 'Back'}</button></div>`;
 }
+const STYLE_TIP = { brawler:'He loads up on hooks. Duck them and come back with your own.', speedster:'He\'s quick but light. Walk him to the ropes and dig to the body.', tank:'He soaks it up upstairs. Go to the body, the head will come.', counter:'He waits for you to miss. Don\'t lunge: jab, then go.' };
+function advice(){
+  const lv = G.trainer, [a, b] = M.f, tips = [];
+  if (lv >= 3) {
+    if (a.st < a.stMax * .4) tips.push('You\'re gassed. Jab and move, let the legs come back.');
+    if (A(a, 'cut') > 50) tips.push('Keep that cut away from him: hands high, slip back.');
+  }
+  if (lv >= 2) {
+    if (A(b, 'ribs') > 50 || A(b, 'liver') > 50) tips.push('His body is hurt. Dig hooks downstairs!');
+    if (A(b, 'eye') > 70) tips.push('His eye is closing. He can\'t see the hook coming.');
+    if (A(b, 'cut') > 50) tips.push('Work that cut. One more good shot and the doctor stops it.');
+    if (b.kd) tips.push('He\'s been down. He\'s scared of the uppercut now.');
+  }
+  if (lv >= 1) tips.push(STYLE_TIP[b.src.style] || 'Keep your hands up.');
+  return tips[0] || pick(['Keep your hands up, kid.', 'Breathe. Jab. You got this.', 'Don\'t stand there and trade with him.']);
+}
+const ailCol = f => ailList(f.ail).map(([k, v]) => `<div class="arow"><span>${AIL[k].name}</span><div class="abar"><i style="width:${v.toFixed(0)}%"></i></div><b class="t${tierOf(v)}">${AIL[k].tiers[tierOf(v)]}</b></div>`).join('') || '<div class="muted" style="font-size:12px">Nothing yet</div>';
 function showBreak(){
   M.phase = 'break';
-  const s = M.roundStats[M.roundStats.length - 1], [a, b] = M.f;
-  const face = f => f.cut >= 2 ? 'Bleeding' : f.swell > .6 ? 'Eye closing' : f.swell > .3 ? 'Swelling' : f.cut ? 'Small cut' : 'Fine';
+  const s = M.roundStats[M.roundStats.length - 1], [a, b] = M.f, T = TRAINERS[G.trainer];
   $('#over').hidden = false;
-  $('#over').innerHTML = `<div class="panel"><h2>END OF ROUND ${M.round}</h2>
-    <table><tr><th></th><th>You</th><th>${esc(b.src.name.split(' ').pop())}</th></tr>
-    <tr><td>Punches landed</td><td class="num">${s.me[0]} / ${s.me[1]}</td><td class="num">${s.them[0]} / ${s.them[1]}</td></tr>
-    <tr><td>Knockdowns</td><td class="num">${s.me[2]}</td><td class="num">${s.them[2]}</td></tr>
-    <tr><td>Health</td><td class="num">${Math.round(a.hp / a.hpMax * 100)}%</td><td class="num">${Math.round(b.hp / b.hpMax * 100)}%</td></tr>
-    <tr><td>Face</td><td>${face(a)}</td><td>${face(b)}</td></tr></table>
-    ${a.cut >= 2 ? '<div class="bad" style="font-size:13px">One more cut and the doctor stops it.</div>' : ''}
+  $('#over').innerHTML = `<div class="panel brk"><h2>END OF ROUND ${M.round}</h2>
+    <div class="brkcols"><div><div class="label">You &middot; landed ${s.me[0]}/${s.me[1]} &middot; ${Math.round(a.hp / a.hpMax * 100)}%</div>${ailCol(a)}</div>
+    <div><div class="label">${esc(b.src.name.split(' ').pop())} &middot; landed ${s.them[0]}/${s.them[1]} &middot; ${Math.round(b.hp / b.hpMax * 100)}%</div>${ailCol(b)}</div></div>
+    <div class="advice"><b>${esc(T.name.replace(/"/g, ''))}:</b> &ldquo;${advice()}&rdquo;</div>
+    ${A(a, 'cut') >= 70 ? '<div class="bad" style="font-size:13px">The doctor is watching that cut. Past a gash, he stops it.</div>' : ''}
     <button class="btn go" data-f="next">Round ${M.round + 1}</button></div>`;
 }
 function showEnd(){
@@ -1471,7 +1847,7 @@ $('#over').addEventListener('click', e => {
   const a = b.dataset.f;
   if (a === 'next') nextRound();
   else if (a === 'leave') leaveFight();
-  else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; startWalkout(); last = performance.now(); }
+  else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; if (M.offer.spar) sparIntro(); else startWalkout(); last = performance.now(); }
   else if (a === 'howto') showControls(false);
   else if (a === 'resume') { armed = null; M.paused = false; $('#over').hidden = true; last = performance.now(); }
   else if (a === 'sound') { SOUND = !SOUND; try { localStorage.setItem('retroboxing.sound', SOUND ? 'on' : 'off'); } catch {} showPause(); }
@@ -1490,7 +1866,7 @@ const game = $('#game');
 game.addEventListener('pointerdown', e => {
   if (!M || e.target.closest('button, #over')) return;
   ac();
-  if (M.phase === 'count' && M.f[M.downSide].user) { M.taps++; renderGetup(); return; }
+  if (M.phase === 'count' && M.f[M.downSide].user && M.gu) { Object.assign(M.gu, { hold:true, sx:e.clientX, base:M.gu.off, pid:e.pointerId }); try { game.setPointerCapture(e.pointerId); } catch {} return; }
   if (M.phase === 'walkout') { skipWalkout(); return; }
   if (M.phase === 'replay') { endReplay(); return; }
   if (M.paused) return;
@@ -1501,6 +1877,7 @@ game.addEventListener('pointerdown', e => {
   touches.set(e.pointerId, t);
 });
 game.addEventListener('pointermove', e => {
+  if (M && M.gu && M.gu.hold && e.pointerId === M.gu.pid) { M.gu.off = M.gu.base + (e.clientX - M.gu.sx) / (cssW * .18); return; }
   const t = touches.get(e.pointerId); if (!t || !M) return;
   t.lx = e.clientX; t.ly = e.clientY;
   if (t.block) { setGuard(t.ly); return; }
@@ -1513,6 +1890,7 @@ game.addEventListener('pointermove', e => {
   else if (dy < 0) punch(me, 'upper', 'head'); else duck(me);
 });
 function endTouch(e){
+  if (M && M.gu && e.pointerId === M.gu.pid) M.gu.hold = false;
   const t = touches.get(e.pointerId); if (!t) return;
   clearTimeout(t.timer); touches.delete(e.pointerId);
   if (!M) return;
@@ -1527,7 +1905,7 @@ const KEYS = { KeyJ:['jab', 'head'], KeyN:['jab', 'body'], KeyK:['hook', 'head']
   KeyA:['slip'], ArrowLeft:['slip'], KeyS:['duck'], ArrowDown:['duck'], Space:['block', 'high'], ShiftLeft:['block', 'low'], ShiftRight:['block', 'low'] };
 addEventListener('keydown', e => {
   if (!M) return; const k = KEYS[e.code];
-  if (M.phase === 'count' && M.f[M.downSide].user && !e.repeat) { M.taps++; renderGetup(); }
+  if (M.phase === 'count' && M.f[M.downSide].user && M.gu) { if (e.code === 'Space') M.gu.hold = true; if (e.code === 'ArrowLeft') M.gu.off -= .12; if (e.code === 'ArrowRight') M.gu.off += .12; e.preventDefault(); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') { if (!M.paused) showPause(); return; }
   if (!k || M.paused) return;
   e.preventDefault(); if (e.repeat) return;
@@ -1535,13 +1913,10 @@ addEventListener('keydown', e => {
   if (k[0] === 'block') { me.blockHeld = true; me.guard = k[1]; }
   else if (k[0] === 'slip') slip(me); else if (k[0] === 'duck') duck(me); else punch(me, k[0], k[1]);
 });
-addEventListener('keyup', e => { const k = KEYS[e.code]; if (k && k[0] === 'block' && M) M.f[0].blockHeld = false; });
+addEventListener('keyup', e => { if (M && M.gu && e.code === 'Space') M.gu.hold = false; const k = KEYS[e.code]; if (k && k[0] === 'block' && M) M.f[0].blockHeld = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden && M && !M.paused && M.phase === 'fight') showPause(); });
 
-/* ================= training camp minigames ================= */
-// one per rating; a better grade gives more points, and high ratings are harder to raise
-const GRADE_PTS = { S:4, A:3, B:2, C:1, F:0 };
-const SESSIONS_PER_FIGHT = 2, SESSIONS_MAX = 6;
+/* ================= training days: the drills ================= */
 let MG = null;
 const mcv = $('#mcv'), mctx = mcv.getContext('2d'), mlow = document.createElement('canvas'), mg = mlow.getContext('2d');
 let MW = 240;
@@ -1549,39 +1924,40 @@ const MR = (x, y, w, h, c) => { mg.fillStyle = c; mg.fillRect(Math.round(x), Mat
 const mgy = () => Math.round(LH * .86);
 
 function gymBg(){
-  MR(0, 0, MW, LH, '#5a2f2a');
-  for (let y = 0; y < LH * .78; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? '#6b3a2e' : '#74402f');
+  const lvl = G ? G.gym : 0;
+  const wall = ['#5a2f2a', '#3d4a5e', '#2f3a4a', '#262a3a'][lvl], brick = ['#6b3a2e', '#4a5870', '#38465a', '#2e3446'][lvl], floor = ['#8a5a34', '#9a6a3a', '#7a7a86', '#4a4a5a'][lvl];
+  MR(0, 0, MW, LH, wall);
+  if (lvl < 2) for (let y = 0; y < LH * .78; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? brick : shade(brick, 1.08));
+  else { for (let x = 0; x < MW; x += 24) MR(x, 0, 1, LH * .78, shade(wall, 1.2)); MR(0, LH * .5, MW, 2, '#e24b3b'); }
   const wx = Math.round(MW * .62);
   MR(wx, 10, 40, 30, '#2c2670'); MR(wx + 2, 12, 36, 26, '#ffcf8a'); MR(wx + 19, 12, 2, 26, '#2c2670'); MR(wx + 2, 24, 36, 2, '#2c2670');   // window, morning light
   MR(Math.round(MW * .12), 14, 22, 30, '#e8e2cc'); MR(Math.round(MW * .12) + 3, 18, 16, 10, '#e24b3b'); MR(Math.round(MW * .12) + 3, 31, 16, 2, '#1d1d1d'); MR(Math.round(MW * .12) + 3, 35, 10, 2, '#1d1d1d');   // old fight poster
   const fy = Math.round(LH * .78);
-  MR(0, fy, MW, LH - fy, '#8a5a34');
-  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, '#74482a');
-}
-function drawChicken(x, y, dir, t, caught){
-  const R = (a, b, w, h, c) => MR(dir > 0 ? x + a : x - a - w, y + b, w, h, c), flap = Math.sin(t * 30) > 0 ? -1 : 0;
-  R(-4, -5, 7, 4, '#f4f4f4'); R(-5, -6, 3, 2, '#f4f4f4');                  // body, tail
-  R(-2, -6 + flap, 4, 2, '#dcdcdc');                                        // wing
-  R(2, -9, 3, 4, '#f4f4f4'); R(3, -10, 2, 1, '#e24b3b'); R(5, -8, 1, 1, '#ff9a2b'); R(3, -8, 1, 1, '#141414');
-  R(4, -6, 1, 1, '#e24b3b');                                                // wattle
-  const st = Math.sin(t * 40) > 0 ? 1 : 0;
-  R(-2 + st, -1, 1, 2, '#ff9a2b'); R(1 - st, -1, 1, 2, '#ff9a2b');
-  if (caught) R(-1, -14, 3, 3, '#ffd23f');
+  MR(0, fy, MW, LH - fy, floor);
+  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, shade(floor, .85));
 }
 const SWEATS = '#8d8d96';
 function trainee(x, y, dir, pose, walk, sweats){
-  const me = G.fighters.me, look = sweats ? { ...me.look, skin:me.look.skin, trunks:SWEATS, gloves:'#f2f2f2' } : me.look;
+  const me = G.fighters.me, look = sweats ? { ...me.look, trunks:SWEATS, gloves:'#f2f2f2' } : me.look;
   drawBoxer(mg, x, y, dir, pose, look, { walk });
   if (sweats) {                                                             // grey sweats and a hood over the boxer
     const R = (a, b, w, h, c) => MR(dir > 0 ? x + a : x - a - w, y + b, w, h, c), L = pose.lean, C = pose.cr;
     R(-7 + L, -40 + C, 14, 15, SWEATS); R(-6 + L * .5, -33 + C, 12, 8, SWEATS); R(-7 + L, -40 + C, 14, 1, '#7a7a84');
-    R(-10 + L * 1.15 + pose.hx, -44 + C + pose.hy, 5, 7, SWEATS);           // hood down the back
+    R(-10 + L * 1.15 + pose.hx, -44 + C + pose.hy, 5, 7, SWEATS);
   }
+}
+function lyingBoxer(cx, gy, pressed){
+  const me = G.fighters.me, skin = me.look.skin;
+  MR(cx - 2, gy - 6, 14, 4, skin); MR(cx + 6, gy - 11, 4, 6, skin); MR(cx + 10, gy - 6, 4, 4, '#f2f2f2');
+  MR(cx - 12, gy - 7, 11, 6, me.look.trunks);
+  MR(cx - 26, gy - 8 - (pressed ? 1 : 0), 15, 7, skin);
+  MR(cx - 36, gy - 10, 10, 9, skin); if (me.look.hair !== 'none') MR(cx - 36, gy - 10, 3, 9, me.look.hair);
+  MR(cx - 31, gy - 7, 2, 1, '#141414');
 }
 
 const MINIS = {
-  pow: {
-    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect.', dur:30,
+  bag: {
+    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect. Ten big shots.', dur:30,
     init:() => ({ swings:0, max:10, mark:0, dir:1, speed:.9, zc:rnd(.35, .65), zw:.2, pw:.05, a:0, v:0, hitT:0 }),
     update(S, dt){
       S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; }
@@ -1600,141 +1976,124 @@ const MINIS = {
     draw(S){
       gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
       const bx = cx + 6 + S.a * 9;
-      for (let i = 0; i < 18; i += 2) MR(cx + 6 + S.a * 9 * i / 18, i, 1, 1, '#9a9a9a');      // chain
+      for (let i = 0; i < 18; i += 2) MR(cx + 6 + S.a * 9 * i / 18, i, 1, 1, '#9a9a9a');
       MR(bx - 1, 17, 4, 3, '#555');
       MR(bx - 7, 20, 16, 44, '#b8352a'); MR(bx - 7, 20, 16, 3, '#8a1f2a'); MR(bx - 7, 61, 16, 3, '#8a1f2a'); MR(bx + 5, 23, 2, 38, '#d24a3b');
       trainee(cx - 25, gy, 1, S.hitT > 0 ? (S.swings % 2 ? POSE.hookH : POSE.jabH) : POSE.guard, 0, false);
-      // the timing bar
       const x0 = cx - 60, w = 120, y = LH - 11;
       MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
       MR(x0 + (S.zc - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (S.zc - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
       MR(x0 + S.mark * w - 1, y - 3, 2, 12, '#ffffff');
     },
     grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
-    hud:S => `Swing ${Math.min(S.swings + 1, S.max)} / ${S.max}`,
+    hud:S => `Shot ${Math.min(S.swings + 1, S.max)} / ${S.max}`,
   },
-  spd: {
-    name:'Chicken chase', how:'Catch the chicken! Tap right on it. It gets faster every time.', dur:20,
-    init:() => ({ x:MW * .7, y:LH * .8, vx:-40, vy:8, turn:.5, bolt:0, bx:MW * .3, by:LH * .85, walk:0, got:0 }),
-    update(S, dt){
-      const sp = (42 + MG.score * 7) * (S.bolt > 0 ? 2 : 1);
-      S.turn -= dt; S.bolt = Math.max(0, S.bolt - dt); S.got = Math.max(0, S.got - dt);
-      if (S.turn <= 0) { const a = rnd(0, 6.28); S.vx = Math.cos(a); S.vy = Math.sin(a) * .5; S.turn = rnd(.25, .8); }
-      const n = Math.hypot(S.vx, S.vy) || 1; S.x += S.vx / n * sp * dt; S.y += S.vy / n * sp * .5 * dt;
-      if (S.x < 14 || S.x > MW - 14) S.vx *= -1; if (S.y < LH * .66 || S.y > LH - 6) S.vy *= -1;
-      S.x = clamp(S.x, 14, MW - 14); S.y = clamp(S.y, LH * .66, LH - 6);
-      const dx = S.x - S.bx, dy = S.y - S.by, d = Math.hypot(dx, dy);       // you run after it
-      if (d > 14) { const m = Math.min(d - 14, 70 * dt); S.bx += dx / d * m; S.by += dy / d * m * .6; S.walk += m * .45; }
-      S.by = clamp(S.by, LH * .7, LH - 4);
+  speed: {
+    name:'Speed bag', how:'Gloves slide toward the line. Tap the moment each one reaches it. Keep the rhythm going.', dur:22,
+    init:() => {
+      const notes = []; let t = 1.2, gap = .62;
+      for (let i = 0; i < 26; i++) { notes.push({ t, hit:null }); t += gap; gap = Math.max(.32, gap * .975) * (Math.random() < .15 ? 1.6 : 1); }
+      return { notes, i:0, combo:0, bag:0, bv:0, fist:0 };
     },
-    tap(S, x, y){
-      if (Math.hypot(x - S.x, y - (S.y - 6)) < 11) {
-        MG.score++; S.got = .5; thud(.3, true); miniPop('GOT IT!', 'y');
-        S.x = Math.random() < .5 ? 16 : MW - 16; S.y = rnd(LH * .7, LH - 8); S.bolt = .3;
-      } else if (Math.hypot(x - S.x, y - S.y) < 30) { S.bolt = .45; S.vx = S.x - x; S.vy = (S.y - y) * .5; swish(); }
+    update(S, dt){
+      S.bv += (-S.bag * 260 - S.bv * 6) * dt; S.bag += S.bv * dt; S.fist = Math.max(0, S.fist - dt);
+      for (const n of S.notes) if (n.hit === null && MG.time - n.t > .16) { n.hit = 'miss'; S.combo = 0; miniPop('MISS', 'r'); }
+      if (S.notes.every(n => n.hit !== null)) return true;
+    },
+    tap(S){
+      const n = S.notes.find(n => n.hit === null && Math.abs(MG.time - n.t) < .16);
+      S.fist = .12;
+      if (!n) { S.combo = 0; return; }
+      const d = Math.abs(MG.time - n.t);
+      if (d < .06) { n.hit = 'p'; MG.score += 3; S.combo++; miniPop(S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT', 'y'); }
+      else { n.hit = 'g'; MG.score += 1; S.combo++; miniPop('GOOD', ''); }
+      S.bv += S.bv >= 0 ? -9 : 9; thud(.15, true);
     },
     draw(S){
-      MR(0, 0, MW, LH, '#f7b38a'); MR(0, 0, MW, 16, '#e98a6e'); MR(0, 16, MW, 12, '#f09a7a');            // dawn sky
-      for (let x = 0; x < MW; x += 18) MR(x, 30 + (x * 7) % 14, 14, 40, '#5a3a5e');                    // the city behind
-      MR(0, LH * .6, MW, LH * .4, '#9a7a4a');                                                            // dirt yard
-      for (let x = 0; x < MW; x += 8) { MR(x, LH * .55, 2, 12, '#e8e2cc'); }                            // fence
-      MR(0, LH * .57, MW, 2, '#e8e2cc'); MR(0, LH * .62, MW, 2, '#e8e2cc');
-      MR(MW * .08, LH * .4, 26, 22, '#b8352a'); MR(MW * .08 - 2, LH * .38, 30, 4, '#6b2618'); MR(MW * .08 + 9, LH * .5, 8, 9, '#3d140b');   // coop
-      const people = [[S.by, () => trainee(S.bx, S.by, S.x > S.bx ? 1 : -1, POSE.guard, S.walk, true)], [S.y, () => drawChicken(S.x, S.y, S.vx > 0 ? 1 : -1, MG.time, S.got > 0)]];
-      people.sort((a, b) => a[0] - b[0]).forEach(p => p[1]());
+      gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
+      MR(cx - 22, 18, 44, 4, '#5a3a1e'); MR(cx - 2, 22, 4, 3, '#555');      // the platform
+      const sx = cx + S.bag * 2.4;
+      MR(sx - 4, 25, 8, 3, '#b8352a'); MR(sx - 5, 28, 10, 7, '#b8352a'); MR(sx - 4, 35, 8, 3, '#8a1f2a'); MR(sx + 2, 28, 2, 6, '#d24a3b');
+      const p = copyPose(POSE.guard); p.fg = [18 + (S.fist > 0 ? 3 : 0), -66 + (S.fist > 0 ? -2 : 2)]; p.bg = [16 + (S.fist > 0 ? 0 : 3), -63]; p.fe = [10, -55]; p.be = [8, -53]; p.hx = 1;
+      trainee(cx - 20, gy, 1, p, 0, false);
+      // the rhythm lane
+      const y = LH - 12, x0 = 26, w = MW - 40, hitX = x0 + 14, speed = 70;
+      MR(x0 - 2, y - 2, w + 4, 10, '#000'); MR(x0, y, w, 6, '#2c2670'); MR(hitX - 1, y - 4, 3, 14, '#ffd23f');
+      for (const n of S.notes) {
+        if (n.hit === 'p' || n.hit === 'g') continue;
+        const x = hitX + (n.t - MG.time) * speed;
+        if (x < x0 - 4 || x > x0 + w) continue;
+        MR(x - 3, y - 1, 6, 6, n.hit === 'miss' ? '#555' : '#e24b3b'); MR(x - 3, y + 4, 6, 1, '#8a1f2a');
+      }
     },
-    grade:s => s >= 12 ? 'S' : s >= 9 ? 'A' : s >= 6 ? 'B' : s >= 3 ? 'C' : 'F',
-    hud:() => `Caught ${MG.score}`,
+    grade:s => s >= 66 ? 'S' : s >= 50 ? 'A' : s >= 34 ? 'B' : s >= 18 ? 'C' : 'F',
+    hud:S => S.combo > 2 ? `Combo ${S.combo}` : 'Speed bag',
   },
-  sta: {
-    name:'The stairs', how:'Tap left, right, left, right as fast as you can. The same side twice and you stumble. Get to the top!', dur:15,
-    init:() => ({ step:0, total:60, last:0, stumble:0, top:null, walk:0 }),
+  run: {
+    name:'Roadwork', how:'Up the stairs: tap left, right, left, right. The same side twice and you stumble. Make the top before time runs out.', dur:16,
+    init:() => ({ step:0, total:60, last:0, stumble:0, top:null, walk:0, disp:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
-      if (S.top !== null && MG.time - S.top > 2.6) return true;
+      const d = S.step - S.disp;                                             // you actually climb, one step at a time
+      if (d > 0) { const m = Math.min(d, (6 + d * 4) * dt); S.disp += m; S.walk += m * 1.6; }
+      const SX = 7, SY = 4.5, px = S.disp * SX, py = -S.disp * SY;
+      const tx = Math.max(-40, px - MW * .42), ty = py - LH * .8;           // keep his feet low on the screen as he climbs
+      S.camX += (tx - S.camX) * (1 - Math.exp(-dt * 1.6)); S.camY += (ty - S.camY) * (1 - Math.exp(-dt * 1.6));
+      if (S.top !== null && MG.time - S.top > 2.8) return true;
     },
     tap(S, x, y, side){
       if (S.top !== null || S.stumble > 0) return;
       if (side === S.last) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }
-      S.last = side; S.step++; S.walk += 2.2;
+      S.last = side; S.step++;
       if (S.step >= S.total) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
     },
     draw(S){
       const bands = ['#2c2670', '#5a3a7e', '#a24b7e', '#e2705b', '#f7a86a', '#ffd28a'];
       bands.forEach((c, i) => MR(0, i * LH / 6, MW, LH / 6 + 1, c));
-      if (S.top !== null) { MR(MW * .7 - 8, LH * .45 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 8; i++) MR(MW * .7 + Math.cos(i * .8 + MG.time) * 22, LH * .45 + Math.sin(i * .8 + MG.time) * 22, 2, 2, '#fff3b8'); }
-      for (let x = 0; x < MW; x += 15) MR(x, LH * .55 + (x * 13) % 18, 12, LH, '#3a2850');              // skyline
-      // the staircase, the camera following you up
-      const SX = 6, SY = 3, wx = i => i * SX, wy = i => -i * SY;
-      const px = wx(Math.min(S.step, S.total)), py = wy(Math.min(S.step, S.total));
-      const camX = px - MW * .38, camY = py - LH * .72;
-      for (let i = -12; i <= S.total + 30; i++) {
-        const x = wx(i) - camX, y = wy(Math.min(i, S.total)) - camY;
+      if (S.top !== null) { MR(MW * .7 - 8, LH * .3 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 8; i++) MR(MW * .7 + Math.cos(i * .8 + MG.time) * 22, LH * .3 + Math.sin(i * .8 + MG.time) * 22, 2, 2, '#fff3b8'); }
+      for (let x = 0; x < MW; x += 15) MR(x - S.camX * .15 % 15, LH * .55 + (x * 13) % 18, 12, LH, '#3a2850');     // skyline, drifting slowly
+      const SX = 7, SY = 4.5, cX = S.camX, cY = S.camY;
+      for (let i = -14; i <= S.total + 40; i++) {
+        const x = i * SX - cX, y = -Math.min(i, S.total) * SY - cY;
         if (x < -SX || x > MW) continue;
         MR(x, y, SX, LH - y, i > S.total ? '#d8d0bc' : '#c9c2b0'); MR(x, y, SX, 1, '#efe8d4');
       }
-      const bx = wx(S.total + 10) - camX, by = wy(S.total) - camY;           // the building at the top
+      const bx = (S.total + 10) * SX - cX, by = -S.total * SY - cY;          // the museum at the top
       MR(bx, by - 70, 90, 70, '#e8e2cc'); MR(bx - 4, by - 76, 98, 8, '#f4efe0');
       for (let c = 0; c < 6; c++) MR(bx + 6 + c * 14, by - 66, 5, 66, '#d4ccb4');
-      const pose = S.top !== null ? POSE.win : S.stumble > 0 ? POSE.hurt : POSE.guard;
-      trainee(px - camX + 3, py - camY, 1, pose, S.walk, true);
-      // which side to tap next
+      const pose = S.top !== null && MG.time - S.top > .4 ? POSE.win : S.stumble > 0 ? POSE.hurt : POSE.guard;
+      trainee(S.disp * SX - cX + 3, -S.disp * SY - cY, 1, pose, S.walk, true);
       const nx = S.last === 1 ? 0 : 1;
-      MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, S.top !== null ? 'rgba(0,0,0,0)' : 'rgba(255,255,255,.35)');
+      if (S.top === null) { MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)'); }
     },
     grade:s => s >= 75 ? 'S' : s >= 60 ? 'A' : s >= 45 ? 'B' : s >= 28 ? 'C' : 'F',
-    score:S => S.step + (S.top !== null ? Math.round((15 - S.top) * 5) : 0),
+    score:S => S.step + (S.top !== null ? Math.round((16 - S.top) * 5) : 0),
     hud:S => `Step ${S.step} / ${S.total}`,
   },
-  chin: {
-    name:'Medicine ball', how:'Tap the moment the ball lands on your stomach to tighten up. Too early and you flinch.', dur:40,
-    init:() => ({ drops:0, max:10, ball:null, wait:1, flinch:false, ouch:0 }),
+  weights: {
+    name:'Weight room', how:'Bench press. Tap fast to drive the bar up to the line. Each rep gets heavier.', dur:20,
+    init:() => ({ h:0, v:0, reps:0, lower:0, weight:1 }),
     update(S, dt){
-      S.ouch = Math.max(0, S.ouch - dt);
-      if (!S.ball) {
-        S.wait -= dt;
-        if (S.drops >= S.max) return S.wait <= 0 ? true : undefined;
-        if (S.wait <= 0) { S.ball = { y:0, v:0, g:150 + S.drops * 22, hold:rnd(.2, 1.1) }; S.flinch = false; }
-        return;
-      }
-      const B = S.ball;
-      if (B.hold > 0) { B.hold -= dt; return; }
-      B.v += B.g * dt; B.y += B.v * dt;
-      if (B.y >= 34) {                                                       // it lands
-        if (!B.done) { if (!S.flinch) { miniPop('OUCH', 'r'); S.ouch = .4; thud(.8, false); } }
-        S.ball = null; S.drops++; S.wait = rnd(.6, 1);
-      }
+      if (S.lower > 0) { S.lower -= dt; S.h = Math.max(0, S.h - dt * 2.5); return; }
+      S.v -= (2.2 + S.reps * .25) * dt; S.h += S.v * dt;
+      if (S.h <= 0) { S.h = 0; S.v = Math.max(0, S.v); }
+      if (S.h >= 1) { S.reps++; MG.score = S.reps; S.lower = .45; S.v = 0; thud(.3, true); miniPop(S.reps % 5 === 0 ? `${S.reps} REPS!` : 'REP', S.reps % 5 === 0 ? 'y' : ''); }
     },
-    tap(S){
-      const B = S.ball; if (!B || B.done || S.flinch) return;
-      const d = 34 - B.y;
-      if (B.hold > 0 || d > 14) { S.flinch = true; miniPop('FLINCHED', 'r'); return; }
-      B.done = true;
-      if (d < 5) { MG.score += 3; miniPop('ROCK SOLID!', 'y'); thud(.4, true); }
-      else { MG.score += 1; miniPop('GOOD', ''); thud(.4, true); }
-    },
+    tap(S){ if (S.lower <= 0) S.v += .42 / (1 + S.reps * .06); },
     draw(S){
-      gymBg(); const gy = mgy(), cx = Math.round(MW / 2), me = G.fighters.me, skin = me.look.skin;
-      // the trainer, standing behind the mat
-      { const tx = cx - 24, ty = gy - 9;
-        MR(tx - 4, ty - 17, 3, 16, '#3a3a44'); MR(tx + 1, ty - 17, 3, 16, '#3a3a44');
-        MR(tx - 6, ty - 35, 12, 19, '#2f3a5e'); MR(tx - 4, ty - 45, 8, 9, '#e1ac80'); MR(tx - 5, ty - 47, 10, 3, '#3a3a44'); MR(tx - 3, ty - 49, 6, 2, '#3a3a44');
-        MR(tx + 1, ty - 41, 1, 1, '#141414');
-        const up = !S.ball || S.ball.hold > 0; MR(tx + 5, ty - (up ? 42 : 34), 3, up ? 10 : 12, '#2f3a5e');
-      }
-      // you, flat on the mat doing crunches
-      MR(cx - 34, gy - 2, 60, 3, '#2c2670');
-      MR(cx - 2, gy - 6, 14, 4, skin); MR(cx + 6, gy - 11, 4, 6, skin); MR(cx + 10, gy - 6, 4, 4, '#f2f2f2');
-      MR(cx - 12, gy - 7, 11, 6, me.look.trunks);
-      MR(cx - 26 + (S.ouch > 0 ? 0 : 1), gy - 8 - (S.ball && S.ball.done ? 1 : 0), 15, 7, skin);
-      MR(cx - 36, gy - 10, 10, 9, skin); if (me.look.hair !== 'none') MR(cx - 36, gy - 10, 3, 9, me.look.hair);
-      MR(cx - 31, gy - 7, 2, 1, '#141414');
-      const by = S.ball ? gy - 46 + S.ball.y : gy - 46;
-      if (S.ball || S.drops < S.max) { const x = cx - 18; MR(x + 1, by - 8, 6, 8, '#9a4a26'); MR(x, by - 7, 8, 6, '#9a4a26'); MR(x + 2, by - 7, 2, 2, '#c87a4a'); }
-      MR(cx - 20, gy - 9, 12, 1, 'rgba(255,210,63,.6)');                     // where it lands
+      gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
+      MR(cx - 36, gy - 12, 46, 4, '#3a3a44'); MR(cx - 30, gy - 8, 3, 8, '#555'); MR(cx + 2, gy - 8, 3, 8, '#555');   // the bench
+      MR(cx - 26, gy - 34, 3, 22, '#777'); MR(cx - 14, gy - 34, 3, 22, '#777');                                 // the rack
+      lyingBoxer(cx, gy - 9, S.h > .1);
+      const by = gy - 16 - S.h * 16, me = G.fighters.me;
+      MR(cx - 21, by + 2, 3, gy - 14 - by, me.look.skin);                    // arms up to the bar
+      MR(cx - 34, by - 1, 30, 2, '#c8c8d0');                                 // the bar and plates
+      MR(cx - 38, by - 6, 4, 12, '#1d1d1d'); MR(cx - 8, by - 6, 4, 12, '#1d1d1d');
+      if (S.reps > 3) { MR(cx - 42, by - 5, 3, 10, '#e24b3b'); MR(cx - 4, by - 5, 3, 10, '#e24b3b'); }
+      MR(cx + 40, gy - 50, 6, 40, '#000'); MR(cx + 41, gy - 11 - S.h * 38, 4, S.h * 38, '#44c45d'); MR(cx + 38, gy - 50, 10, 2, '#ffd23f');   // the lift meter
     },
-    grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
-    hud:S => `Ball ${Math.min(S.drops + 1, S.max)} / ${S.max}`,
+    grade:s => s >= 12 ? 'S' : s >= 9 ? 'A' : s >= 6 ? 'B' : s >= 3 ? 'C' : 'F',
+    hud:S => `Reps ${S.reps}`,
   },
 };
 function mresize(){
@@ -1744,11 +2103,11 @@ function mresize(){
 }
 addEventListener('resize', () => { if (MG) mresize(); });
 function startMini(k){
-  if (!G || (G.sessions || 0) <= 0) return;
+  if (!G || G.fight && G.fight.day === G.day) return;
   MG = { k, D:MINIS[k], phase:'intro', time:0, score:0, S:MINIS[k].init() };
   $('#mini').hidden = false; $('#ui').hidden = true; mresize();
   $('#mTitle').textContent = MG.D.name.toUpperCase();
-  miniCard(`<h2>${MG.D.name.toUpperCase()}</h2><div class="muted">${RNAME[k]} training</div><div style="font-size:15px">${MG.D.how}</div><button class="btn go" data-m="go">Start</button>`);
+  miniCard(`<h2>${MG.D.name.toUpperCase()}</h2><div class="muted">${fmtDate(G.day)} &middot; ${Object.keys(TRAIN[k].gain).map(r => RNAME[r]).join(', ')}</div><div style="font-size:15px">${MG.D.how}</div><div class="row" style="justify-content:center"><button class="btn" data-m="back">Back</button><button class="btn go" data-m="go">Start</button></div>`);
 }
 function miniCard(html){ const o = $('#mOver'); o.hidden = false; o.innerHTML = `<div class="panel">${html}</div>`; }
 function miniPop(text, cls){
@@ -1761,16 +2120,14 @@ function miniUpdate(dt){
   const end = MG.D.update(MG.S, dt);
   if (end || MG.time >= MG.D.dur) finishMini();
 }
+const gainLines = gains => Object.entries(gains).map(([r, v]) => `<span class="good">${RNAME[r]} +${v.toFixed(1)}</span>`).join(' &middot; ');
 function finishMini(){
   MG.phase = 'done';
-  const k = MG.k, me = G.fighters.me, score = MG.D.score ? MG.D.score(MG.S) : MG.score, gr = MG.D.grade(score);
-  let pts = GRADE_PTS[gr];
-  if (pts) pts = Math.max(1, Math.round(pts * (1 - (me.rat[k] - 40) / 120)));   // harder to improve at the top
-  const before = me.rat[k]; me.rat[k] = Math.min(99, me.rat[k] + pts);
-  G.sessions--; save();
+  const k = MG.k, score = MG.D.score ? MG.D.score(MG.S) : MG.score, gr = MG.D.grade(score);
+  const r = trainDay(k, GRADE_Q[gr]);
   miniCard(`<h2>GRADE <span class="${gr === 'F' ? 'bad' : 'yellow'}">${gr}</span></h2>
-    <div class="px">${RNAME[k]} ${before} &rarr; <span class="${pts ? 'good' : ''}">${me.rat[k]}</span></div>
-    <div class="muted num">Score ${score}</div><button class="btn go" data-m="done">Back to camp</button>`);
+    <div>${gainLines(r.gains)}</div>
+    <div class="muted num">Fatigue ${r.fat[0].toFixed(0)} &rarr; ${r.fat[1].toFixed(0)}</div><button class="btn go" data-m="done">Next day</button>`);
 }
 function miniDraw(){
   if (!MG) return;
@@ -1787,10 +2144,11 @@ $('#mini').addEventListener('pointerdown', e => {
   const x = e.clientX * MW / innerWidth, y = e.clientY * LH / innerHeight, side = e.clientX < innerWidth / 2 ? -1 : 1;
   MG.D.tap(MG.S, x, y, side);
 });
+addEventListener('keydown', e => { if (MG && MG.phase === 'play' && !e.repeat && (e.code === 'Space' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) { e.preventDefault(); MG.D.tap(MG.S, 0, 0, e.code === 'ArrowLeft' ? -1 : 1); } });
 $('#mOver').addEventListener('click', e => {
   const b = e.target.closest('[data-m]'); if (!b || !MG) return;
   if (b.dataset.m === 'go') { $('#mOver').hidden = true; MG.phase = 'play'; MG.time = 0; bell(1); }
-  else if (b.dataset.m === 'done') { MG = null; $('#mini').hidden = true; $('#ui').hidden = false; screen = 'train'; render(); }
+  else if (b.dataset.m === 'back' || b.dataset.m === 'done') { MG = null; $('#mini').hidden = true; $('#ui').hidden = false; screen = b.dataset.m === 'back' ? 'train' : 'hub'; render(); }
 });
 $('#mQuit').addEventListener('click', () => { if (MG && MG.phase === 'play') finishMini(); });
 
@@ -1799,11 +2157,29 @@ const ui = $('#ui');
 function bar(title, left = '<button class="btn sm" data-a="hub">Back</button>'){
   return `<div class="bar"><div>${left}</div><div class="title">${title}</div><div class="box num">${money(G.cash)}</div></div>`;
 }
-let draft = null, storyStep = 0;
+let draft = null, storyStep = 0, restPick = 'sleep', treatPick = new Set(), pending = null, callMsg = null, calPick = null;
+const fl = v => Math.floor(v);
 function render(){
   ui.dataset.screen = screen;
   ui.innerHTML = (VIEWS[screen] || VIEWS.title)();
   if (screen === 'create') { const i = $('#nmIn'); i && i.addEventListener('input', () => { draft.name = i.value.toUpperCase().slice(0, 16); }); const n = $('#nkIn'); n && n.addEventListener('input', () => { draft.nick = n.value.slice(0, 14); }); const w = $('#twIn'); w && w.addEventListener('input', () => { draft.town = w.value.slice(0, 16); }); }
+}
+const ailChip = ([k, v]) => `<span class="ail t${tierOf(v)}">${AIL[k].name}: ${AIL[k].tiers[tierOf(v)]}</span>`;
+const ailRows = a => ailList(a).map(([k, v]) => `<div class="arow"><span>${AIL[k].name}</span><div class="abar"><i style="width:${v.toFixed(0)}%"></i></div><b class="t${tierOf(v)}">${AIL[k].tiers[tierOf(v)]}</b></div>`).join('') || '<div class="muted" style="font-size:13px">Nothing. Fresh.</div>';
+const daysTo = d => d - G.day;
+// the month page on the gym wall
+function calendarHTML(){
+  const t = dateOf(G.day), y = t.getUTCFullYear(), m = t.getUTCMonth();
+  const first = Date.UTC(y, m, 1), startDay = Math.round((first - BASE_DAY) / 864e5), lead = new Date(first).getUTCDay();
+  const len = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const titles = new Set(G.card.filter(c => c.title).map(c => c.day));
+  let cells = DOW.map(d => `<div class="dh">${d[0]}</div>`).join('');
+  for (let i = 0; i < lead; i++) cells += '<div></div>';
+  for (let d = 1; d <= len; d++) {
+    const day = startDay + d - 1, cls = [day < G.day ? 'past' : '', day === G.day ? 'today' : '', G.fight && G.fight.day === day ? 'fight' : '', titles.has(day) ? 'tf' : '', G.fighters.me.bday.m === m && G.fighters.me.bday.d === d ? 'bd' : ''].join(' ');
+    cells += `<div class="cd ${cls}"><span>${d}</span></div>`;
+  }
+  return `<div class="cal"><div class="rings"><i></i><i></i></div><div class="mh">${MONTH[m].toUpperCase()} <span>${y}</span></div><div class="grid">${cells}</div></div>`;
 }
 const VIEWS = {
   title(){
@@ -1822,7 +2198,6 @@ const VIEWS = {
   },
   create(){
     const d = draft, sw = (key, list) => `<div class="sw">${list.map(c => `<button data-a="look" data-k="${key}" data-v="${c}" class="${d.look[key] === c ? 'on' : ''}" style="background:${c === 'none' ? 'repeating-linear-gradient(45deg,#555 0 4px,#333 4px 8px)' : c}" aria-label="${key} ${c}"></button>`).join('')}</div>`;
-    const me = { id:'draft', look:d.look };
     return `<div class="bar"><div><button class="btn sm" data-a="title">Back</button></div><div class="title">New boxer</div><div></div></div>
       <div class="create"><div class="preview"><img class="pt" src="${portrait({ id:'draft' + JSON.stringify(d.look), look:d.look }, 44, 60)}" width="132" height="180" alt=""></div>
       <div class="panel">
@@ -1839,96 +2214,151 @@ const VIEWS = {
     const me = G.fighters.me, i = rankOf('me');
     if (G.over) return VIEWS.over();
     if (G.story && G.story.length) { screen = 'story'; ui.dataset.screen = 'story'; return VIEWS.story(); }
-    const rats = RK.map(k => `<div class="rat"><span class="label">${RNAME[k]}</span><div class="hbar"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div><b>${me.rat[k]}</b></div>`).join('');
-    return `${bar(me.nick ? '&ldquo;' + esc(me.nick) + '&rdquo;' : 'Retro Boxing', '<button class="btn sm" data-a="title">Menu</button>')}
-      <div class="hub"><div class="panel"><div class="me"><div class="face">${face(me, 150)}</div><div>
-        <h2>${esc(me.name)}</h2>
-        <div class="facts"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Rank</span><b class="num">${rankLabel('me')}</b><span>Age</span><b class="num">${Math.floor(me.age)}</b></div>
-        ${i === 0 ? `<div class="belt">WORLD CHAMPION${G.defenses ? ' &middot; ' + G.defenses + ' defense' + (G.defenses > 1 ? 's' : '') : ''}</div>` : ''}
-      </div></div><div class="rats">${rats}</div></div>
-      <div class="menu"><button class="btn go wide" data-a="offers">Next fight</button>
-        <button class="btn" data-a="train">Training</button><button class="btn" data-a="rankings">Rankings</button>
-        <button class="btn" data-a="log">Fight log</button><button class="btn" data-a="retire">${armed === 'retire' ? 'Sure? Retire' : 'Retire'}</button>
-        <div class="nextup wide">${i < 0 ? `Win ${Math.max(1, 2 - (G.nrWins || 0))} more to get ranked, or beat a ranked man.` : i === 0 ? 'Defend your belt.' : i === 1 ? 'You are the number one contender: title shot ready.' : 'Beat a fighter ranked above you to take his spot.'}</div>
-      </div></div>`;
+    const F = G.fight, o = F && G.fighters[F.id], fightDay = F && F.day === G.day;
+    const mailN = G.mail.length;
+    const notes = (G.notes || []).length ? `<div class="notes">${G.notes.map(n => `<div>${esc(n)}</div>`).join('')}<button class="btn sm" data-a="clearnotes">OK</button></div>` : '';
+    const next = F ? (fightDay ? `<b class="yellow">FIGHT NIGHT</b> vs ${esc(o.name)}` : `<b>${daysTo(F.day)} day${daysTo(F.day) > 1 ? 's' : ''}</b> to ${esc(o.name)} &middot; ${fmtDate(F.day)}`) : 'No fight booked. Check your mail or call someone out.';
+    const ails = ailList(me.ail);
+    const acts = fightDay
+      ? `<button class="btn go wide big" data-a="tape">Fight night!</button>${hurt() && !F.postponed ? '<button class="btn wide" data-a="postpone">Postpone a week</button>' : ''}`
+      : `<button class="btn go big" data-a="train">Train</button><button class="btn go big" data-a="rest">Rest</button>`;
+    return `<div class="bar slim"><div><button class="btn sm" data-a="title">Menu</button></div><div class="title">${fmtDate(G.day, true)}</div><div class="box num">${money(G.cash)}</div></div>${notes}
+      <div class="hub2"><div class="left">${calendarHTML()}<div class="next">${next}</div></div>
+      <div class="right">
+        <div class="mecard"><div class="face">${face(me, 70)}</div><div class="grow">
+          <div class="nm">${esc(me.name)} ${i === 0 ? '<span class="beltchip">CHAMP</span>' : ''}</div>
+          <div class="muted num" style="font-size:13px">${rec(me)} (${me.ko} KO) &middot; ${rankLabel('me')} &middot; age ${me.age}</div>
+          <div class="fatrow"><span class="label">Fatigue</span><div class="hbar"><i style="width:${G.fat.toFixed(0)}%;background:${barCol(100 - G.fat)}"></i></div></div>
+        </div></div>
+        <div class="ails">${ails.length ? ails.slice(0, 4).map(ailChip).join('') : '<span class="muted" style="font-size:12px">No injuries.</span>'}</div>
+        <div class="acts">${acts}
+          <button class="btn" data-a="mail">Mail${mailN ? ` <span class="badge2">${mailN}</span>` : ''}</button><button class="btn" data-a="rankings">Rankings</button>
+          <button class="btn" data-a="schedule">Schedule</button><button class="btn" data-a="team">Team</button>
+          <button class="btn" data-a="me">Ratings</button><button class="btn" data-a="log">Log</button>
+        </div></div></div>`;
   },
-  offers(){
-    if (!G.offers) { makeOffers(); save(); }
-    const cards = G.offers.map((o, k) => {
-      const f = G.fighters[o.id], S = STYLES[f.style];
-      return `<button class="offer ${o.title ? 'title' : ''} ${o.grudge ? 'grudge' : ''}" data-a="pickoff" data-k="${k}">
-        <div class="top"><span class="rk">${rankShort(o.id)}</span><span class="tag ${o.grudge ? 'grudge' : ''}">${o.grudge ? (o.rematch ? 'Rematch' : 'Grudge') : S.name}</span>${face(f, 104)}</div>
-        <div class="bot"><div class="nm">${esc(f.name)}</div>
-          <div class="ln"><span>Record</span><b class="num">${rec(f)}</b></div>
-          <div class="ln"><span>Overall</span><b class="num">${ovr(f)}</b></div>
-          <div class="ln"><span>Rounds</span><b class="num">${o.rounds}</b></div>
-          <div class="ln"><span>Purse</span><b class="num yellow">${money(o.purse)}</b></div>
-          ${o.title ? '<div class="label yellow" style="margin-top:3px">Title fight</div>' : o.grudge ? `<div class="label bad" style="margin-top:3px">&ldquo;${esc(f.nick)}&rdquo;</div>` : ''}</div></button>`;
+  me(){
+    const me = G.fighters.me;
+    const rows = RK.map(k => `<div class="rat"><span class="label">${RNAME[k]}</span><div class="hbar"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div><b>${fl(me.rat[k])}</b></div><div class="rdesc">${RDESC[k]}</div>`).join('');
+    return `${bar('Your boxer')}<div class="hub"><div class="panel"><div class="me"><div class="face">${face(me, 130)}</div><div>
+      <h2>${esc(me.name)}</h2><div class="nick">${me.nick ? '&ldquo;' + esc(me.nick) + '&rdquo; &middot; ' : ''}${esc(me.town)}</div>
+      <div class="facts"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Rank</span><b class="num">${rankLabel('me')}</b><span>Age</span><b class="num">${me.age} &middot; bday ${MON[me.bday.m]} ${me.bday.d}</b></div></div></div>
+      <div class="rats">${rows}</div></div>
+      <div class="panel"><div class="label" style="margin-bottom:6px">Injuries</div>${ailRows(me.ail)}
+      <div class="row" style="margin-top:10px;gap:6px"><button class="btn sm red" data-a="retire">${armed === 'retire' ? 'Sure? Retire' : 'Retire'}</button></div></div></div>`;
+  },
+  train(){
+    const me = G.fighters.me, tr = TRAINERS[G.trainer];
+    const cards = TRAIN_ORDER.map(k => {
+      const T = TRAIN[k], locked = G.gym < T.gym;
+      const gains = Object.entries(T.gain).map(([r, v]) => `<span>${RNAME[r]} ${'+'.repeat(v >= 1 ? 3 : v >= .6 ? 2 : 1)}</span>`).join('');
+      return `<button class="dcard ${locked ? 'lock' : ''}" data-a="${locked ? 'team' : 'drill'}" data-k="${k}">
+        <div class="nm">${T.name}</div><div class="ds">${T.desc}</div><div class="gn">${gains}</div>
+        <div class="ft">${locked ? 'Needs ' + GYMS[T.gym].name : 'Fatigue +' + Math.round(T.fat * (1 - tr.fat))}</div></button>`;
     }).join('');
-    return `${bar('Pick a fight')}<div class="offers">${cards}</div>`;
+    const warn = G.fat > 60 ? '<span class="bad">You are worn out: gains are cut. A rest day would help.</span>' : `Trainer: ${tr.name} &middot; ${GYMS[G.gym].name}`;
+    return `${bar('Train today')}<div class="row between" style="margin-bottom:8px;font-size:13px"><span>${warn}</span><span class="fatmini"><span class="label">Fatigue</span> <b class="num">${G.fat.toFixed(0)}</b></span></div><div class="dcards">${cards}</div>`;
+  },
+  rest(){
+    const me = G.fighters.me, A = me.ail;
+    const acts = Object.entries(REST).filter(([, R]) => !R.needFight || G.fight).map(([k, R]) => `<button class="rcard ${restPick === k ? 'on' : ''}" data-a="restpick" data-k="${k}"><div class="nm">${R.name}</div><div class="ds">${R.desc}</div><div class="ft">Fatigue -${R.fat}${k === 'tape' && G.fight ? ` &middot; studied ${G.fight.tape || 0}/3` : ''}</div></button>`).join('');
+    const useful = t => { const T = TREAT[t]; return T.mult || T.fat || Object.keys(T.fix || {}).some(k => A[k] >= 1); };
+    const treats = Object.entries(TREAT).filter(([t]) => useful(t)).map(([t, T]) => `<button class="trow2 ${treatPick.has(t) ? 'on' : ''}" data-a="treat" data-k="${t}" ${G.cash < T.cost && !treatPick.has(t) ? 'disabled' : ''}>
+      <span class="ck">${treatPick.has(t) ? '&#10003;' : ''}</span><span class="grow"><b>${T.name}</b> <span class="muted">${T.desc}</span></span><b class="num yellow">${money(T.cost)}</b></button>`).join('');
+    const cost = [...treatPick].reduce((s, t) => s + TREAT[t].cost, 0);
+    return `${bar('Rest day')}<div class="restgrid"><div><div class="label">How you spend it</div><div class="rcards">${acts}</div>
+      <div class="label" style="margin-top:8px">Injuries</div><div class="mini-ails">${ailRows(A)}</div></div>
+      <div><div class="label">Treatments</div><div class="treats">${treats || '<div class="muted" style="font-size:13px">Nothing to treat.</div>'}</div>
+      <div class="row between" style="margin-top:8px"><span class="num">${cost ? 'Cost ' + money(cost) : 'Free'}</span><button class="btn go" data-a="dorest" ${cost > G.cash ? 'disabled' : ''}>Rest the day</button></div></div></div>`;
+  },
+  mail(){
+    const items = G.mail.map((m, k) => {
+      if (m.type === 'news') return `<div class="mrow news"><div class="grow">${esc(m.text)}</div><span class="muted num">${fmtDate(m.day)}</span><button class="btn sm" data-a="dismiss" data-k="${k}">OK</button></div>`;
+      const f = G.fighters[m.id]; if (!f) return '';
+      return `<div class="mrow ${m.grudge ? 'grudge' : ''} ${m.title ? 'title' : ''}"><div class="face">${face(f, 60)}</div><div class="grow">
+        <div class="nm">${esc(f.name)} <span class="muted num">${rankShort(m.id)} &middot; ${rec(f)} &middot; OVR ${ovr(f)}</span> ${m.title ? '<span class="beltchip">TITLE</span>' : m.grudge ? `<span class="ail t3">${m.rematch ? 'REMATCH' : 'GRUDGE'}</span>` : ''}</div>
+        <div class="ds">&ldquo;${esc(m.msg)}&rdquo;</div><div class="muted num" style="font-size:12px">${m.rounds} rounds &middot; purse <b class="yellow">${money(m.purse)}</b> &middot; answer by ${fmtDate(m.exp)}</div></div>
+        <div class="col"><button class="btn sm go" data-a="accept" data-k="${k}" ${G.fight ? 'disabled' : ''}>Accept</button><button class="btn sm" data-a="decline" data-k="${k}">Decline</button></div></div>`;
+    }).join('');
+    return `${bar('Mail')}<div class="mail">${items || '<div class="panel muted">No mail. Challenges come in every few days, or call someone out from the rankings.</div>'}</div>`;
+  },
+  dates(){
+    const P = pending, f = G.fighters[P.id];
+    const opts = DATE_OPTS.map(n => `<button class="dopt" data-a="pickdate" data-n="${n}"><div class="nm">${n / 7} weeks</div><div class="num">${fmtDate(G.day + n)}</div><div class="muted">${n - 1} days to train</div></button>`).join('');
+    return `${bar('Pick the date', '<button class="btn sm" data-a="hub">Cancel</button>')}<div class="panel" style="margin-bottom:10px;text-align:center"><b>${esc(f.name)}</b> agreed. ${P.rounds} rounds, purse <b class="yellow num">${money(P.purse)}</b>${P.title ? ' &middot; <span class="yellow">for the title</span>' : ''}.</div><div class="dopts">${opts}</div>`;
+  },
+  rankings(){
+    const rows = G.ladder.map((id, i) => {
+      const f = G.fighters[id];
+      return `<tr class="${id === 'me' ? 'meRow' : i === 0 ? 'champ' : ''} ${id !== 'me' ? 'tap' : ''}" ${id !== 'me' ? `data-a="pickfighter" data-k="${id}"` : ''}><td class="num">${i === 0 ? 'C' : i}</td><td class="l">${esc(f.name)}${i === 0 ? ' &#9733;' : ''}${booked(id) && id !== 'me' ? ' <span class="muted">(booked)</span>' : ''}</td><td class="l muted">${f.me ? 'You' : STYLES[f.style].name}</td><td class="num">${rec(f)}</td><td class="num">${f.ko}</td><td class="num">${ovr(f)}</td><td class="num">${f.age}</td></tr>`;
+    }).join('');
+    const me = G.fighters.me;
+    const out = rankOf('me') < 0 ? `<tr class="meRow"><td>NR</td><td class="l">${esc(me.name)}</td><td class="l muted">You</td><td class="num">${rec(me)}</td><td class="num">${me.ko}</td><td class="num">${ovr(me)}</td><td class="num">${me.age}</td></tr>` : '';
+    const sheet = calPick ? (() => { const f = G.fighters[calPick]; return `<div class="sheet"><div class="face">${face(f, 60)}</div><div class="grow"><div class="nm">${esc(f.name)} <span class="muted num">${rankShort(calPick)} &middot; ${rec(f)} &middot; OVR ${ovr(f)}</span></div><div class="ds">${callMsg ? callMsg : 'Call him out?'}</div></div><div class="col">${callMsg ? '' : '<button class="btn sm go" data-a="callout">Challenge</button>'}<button class="btn sm" data-a="closesheet">Close</button></div></div>`; })() : '';
+    return `${bar('Rankings')}${sheet}<div class="panel"><div class="muted" style="font-size:12px;margin-bottom:4px">Tap a fighter to call him out.</div><table><tr><th>#</th><th class="l">Boxer</th><th class="l">Style</th><th>Record</th><th>KO</th><th>OVR</th><th>Age</th></tr>${rows}${out}</table></div>`;
+  },
+  schedule(){
+    const all = [...G.card.map(c => ({ ...c })), ...(G.fight ? [{ a:'me', b:G.fight.id, day:G.fight.day, title:G.fight.title, mine:true }] : [])].sort((x, y) => x.day - y.day);
+    const rows = all.map(c => `<tr class="${c.mine ? 'meRow' : ''}"><td class="l num">${fmtDate(c.day)}</td><td class="l">${esc(G.fighters[c.a].name)} <span class="muted num">${rankShort(c.a)}</span></td><td>vs</td><td class="l">${esc(G.fighters[c.b].name)} <span class="muted num">${rankShort(c.b)}</span></td><td>${c.title ? '<span class="beltchip">TITLE</span>' : ''}</td></tr>`).join('');
+    return `${bar('Fight schedule')}<div class="panel"><table><tr><th class="l">Date</th><th class="l"></th><th></th><th class="l"></th><th></th></tr>${rows}</table></div>`;
+  },
+  team(){
+    const gyms = GYMS.map((Gm, k) => `<div class="tm ${k === G.gym ? 'on' : ''}"><div class="grow"><b>${Gm.name}</b><div class="ds">${Gm.desc}</div></div>${k === G.gym ? '<span class="label">Yours</span>' : k < G.gym ? '' : `<button class="btn sm go" data-a="buygym" data-k="${k}" ${G.cash < Gm.cost || k !== G.gym + 1 ? 'disabled' : ''}>${money(Gm.cost)}</button>`}</div>`).join('');
+    const trs = TRAINERS.map((T, k) => `<div class="tm ${k === G.trainer ? 'on' : ''}"><div class="grow"><b>${T.name}</b><div class="ds">${T.desc}</div></div>${k === G.trainer ? '<span class="label">Hired</span>' : `<button class="btn sm ${k ? 'go' : ''}" data-a="hire" data-k="${k}" ${G.cash < T.fee ? 'disabled' : ''}>${T.fee ? money(T.fee) + '/mo' : 'Free'}</button>`}</div>`).join('');
+    return `${bar('Team')}<div class="teamgrid"><div class="panel"><div class="label">Gym (one-time)</div>${gyms}</div><div class="panel"><div class="label">Trainer (paid on the 1st, first month now)</div>${trs}</div></div>`;
   },
   tape(){
-    const o = G.offers[sel], me = G.fighters.me, f = G.fighters[o.id];
-    const row = k => `<div class="tt"><span class="v num">${me.rat[k]}</span><div class="bl"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div><span class="k">${RNAME[k]}</span><div class="br"><i style="width:${f.rat[k]}%;background:${barCol(f.rat[k])}"></i></div><span class="v r num">${f.rat[k]}</span></div>`;
+    const o = G.fight, me = G.fighters.me, f = G.fighters[o.id];
+    const v = x => fl(x);
+    const row = k => `<div class="tt"><span class="v num">${v(me.rat[k])}</span><div class="bl"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div><span class="k">${RNAME[k]}</span><div class="br"><i style="width:${f.rat[k]}%;background:${barCol(f.rat[k])}"></i></div><span class="v r num">${v(f.rat[k])}</span></div>`;
     const line = (a, k, b) => `<div class="tline"><b class="num">${a}</b><span>${k}</span><b class="num">${b}</b></div>`;
-    return `${bar(o.title ? 'Title fight' : 'Tale of the tape', '<button class="btn sm" data-a="offers">Back</button>')}
-      <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div></div>
+    const sharp = G.restedOn === G.day - 1 && G.fat <= 25;
+    return `${bar(o.title ? 'Title fight' : 'Tale of the tape')}
+      <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div>${sharp ? '<div class="label good">Sharp: rested and ready</div>' : G.fat > 40 ? '<div class="label bad">Tired</div>' : ''}</div>
       <div class="panel">${RK.map(row).join('')}
-        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(Math.floor(me.age), 'Age', Math.floor(f.age))}
+        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
       <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>
         <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>`;
   },
   story(){
     const b = G.story[0], k = clamp(storyStep, 0, b.lines.length - 1), [who, text] = b.lines[k];
-    const rv = who !== 'news' ? RIVALS[who] : null, f = rv ? G.fighters[G.rivals[who].id] : G.fighters.me;
-    const last = k >= b.lines.length - 1;
+    const opp = who.startsWith('opp:') ? G.fighters[who.slice(4)] : null;
+    const rv = RIVALS[who] || null, f = rv ? G.fighters[G.rivals[who].id] : opp || G.fighters.me;
+    const speaker = rv ? `&ldquo;${esc(rv.nick)}&rdquo; ${esc(rv.name)}` : opp ? esc(opp.name) : '&nbsp;';
+    const last = k >= b.lines.length - 1, talk = rv || opp;
     return `<div class="story"><div class="face">${f ? face(f, 170) : ''}</div><div>
-      <div class="who">${rv ? `&ldquo;${esc(rv.nick)}&rdquo; ${esc(rv.name)}` : '&nbsp;'}</div>
-      <div class="say ${rv ? '' : 'news'}">${rv ? '&ldquo;' + text + '&rdquo;' : text}</div>
+      <div class="who">${speaker}</div>
+      <div class="say ${talk ? '' : 'news'}">${talk ? '&ldquo;' + text + '&rdquo;' : text}</div>
       <div class="row between" style="margin-top:12px"><div class="dots">${b.lines.map((_, j) => `<i class="${j <= k ? 'on' : ''}"></i>`).join('')}</div>
-      <button class="btn go" data-a="storynext">${last ? (b.who && !G.rivals[b.who].beaten && G.rivals[b.who].lost === 0 && b.who !== 'golden' ? 'Bring it on' : 'Continue') : 'Next'}</button></div></div></div>`;
+      <button class="btn go" data-a="storynext">${last ? 'Continue' : 'Next'}</button></div></div></div>`;
   },
-  train(){
-    const me = G.fighters.me, n = G.sessions || 0;
-    const cards = RK.map(k => {
-      const v = me.rat[k], p = priceOf(v), max = v >= 99;
-      return `<div class="tcard"><div class="row between"><span class="nm">${RNAME[k]}</span><b>${v}</b></div>
-        <div class="hbar"><i style="width:${v}%;background:${barCol(v)}"></i></div>
-        <div class="ds">${RDESC[k]}</div>
-        <button class="btn go" data-a="mini" data-k="${k}" ${n <= 0 || max ? 'disabled' : ''}>${MINIS[k].name}</button>
-        <button class="btn sm" data-a="tr" data-k="${k}" data-n="1" ${max || G.cash < p ? 'disabled' : ''}>Coach +1 <span class="num">${money(p)}</span></button></div>`;
-    }).join('');
-    const dots = Array.from({ length:SESSIONS_MAX }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-    return `${bar('Training camp')}<div class="sess"><span class="label">Sessions</span><span>${dots}</span><span class="muted">${n ? 'Each drill uses one.' : 'Win or lose, every fight earns ' + SESSIONS_PER_FIGHT + ' more.'}</span></div><div class="tcards">${cards}</div>`;
-  },
-  rankings(){
-    const rows = G.ladder.map((id, i) => {
-      const f = G.fighters[id];
-      return `<tr class="${id === 'me' ? 'meRow' : i === 0 ? 'champ' : ''}"><td class="num">${i === 0 ? 'C' : i}</td><td class="l">${esc(f.name)}${i === 0 ? ' &#9733;' : ''}</td><td class="l muted">${f.me ? 'You' : STYLES[f.style].name}</td><td class="num">${rec(f)}</td><td class="num">${f.ko}</td><td class="num">${ovr(f)}</td><td class="num">${Math.floor(f.age)}</td></tr>`;
-    }).join('');
-    const out = rankOf('me') < 0 ? `<tr class="meRow"><td>NR</td><td class="l">${esc(G.fighters.me.name)}</td><td class="l muted">You</td><td class="num">${rec(G.fighters.me)}</td><td class="num">${G.fighters.me.ko}</td><td class="num">${ovr(G.fighters.me)}</td><td class="num">${Math.floor(G.fighters.me.age)}</td></tr>` : '';
-    return `${bar('Rankings')}<div class="panel"><table><tr><th>#</th><th class="l">Boxer</th><th class="l">Style</th><th>Record</th><th>KO</th><th>OVR</th><th>Age</th></tr>${rows}${out}</table></div>`;
+  spardone(){
+    const S = G.lastSpar, ails = ailList(G.fighters.me.ail);
+    return `<div class="res"><h1>SPARRING</h1><div class="how">You landed ${S.landed}, took ${S.taken}</div><div>${gainLines(S.gains)}</div>
+      <div class="muted num">Fatigue ${S.fat[0].toFixed(0)} &rarr; ${S.fat[1].toFixed(0)}</div>${ails.length ? `<div class="ails" style="justify-content:center">${ails.map(ailChip).join('')}</div>` : ''}
+      <button class="btn go" data-a="hub">Next day</button></div>`;
   },
   log(){
-    const rows = G.log.map(l => `<tr><td class="${l.res === 'W' ? 'good' : l.res === 'L' ? 'bad' : ''}">${l.res}</td><td class="l">${esc(l.opp)} <span class="muted num">${l.oppRank}</span>${l.title ? ' <span class="yellow">&#9733;</span>' : ''}</td><td class="l">${HOW[l.how]}</td><td class="num">${l.rd}</td></tr>`).join('');
-    return `${bar('Fight log')}<div class="panel">${G.log.length ? `<table><tr><th></th><th class="l">Opponent</th><th class="l">How</th><th>Rd</th></tr>${rows}</table>` : '<div class="muted">No fights yet.</div>'}</div>`;
+    const rows = G.log.map(l => `<tr><td class="${l.res === 'W' ? 'good' : l.res === 'L' ? 'bad' : ''}">${l.res}</td><td class="l num">${l.day !== undefined ? fmtDate(l.day) : ''}</td><td class="l">${esc(l.opp)} <span class="muted num">${l.oppRank}</span>${l.title ? ' <span class="yellow">&#9733;</span>' : ''}</td><td class="l">${HOW[l.how]}</td><td class="num">${l.rd}</td></tr>`).join('');
+    return `${bar('Fight log')}<div class="panel">${G.log.length ? `<table><tr><th></th><th class="l">Date</th><th class="l">Opponent</th><th class="l">How</th><th>Rd</th></tr>${rows}</table>` : '<div class="muted">No fights yet.</div>'}</div>`;
   },
   result(){
     const R = G.last, me = G.fighters.me;
     const word = R.draw ? 'DRAW' : R.win ? 'YOU WIN' : 'YOU LOSE';
     const rk = i => i < 0 ? 'Unranked' : i === 0 ? 'Champion' : '#' + i;
-    const aged = R.aged ? `<div class="bad" style="font-size:14px">Turned ${R.age}: ${RK.filter(k => R.aged[k]).map(k => RNAME[k] + ' -' + R.aged[k]).join(', ') || 'no change'}</div>` : '';
     const title = R.title && R.win ? `<div class="belt" style="padding:4px 14px">${R.wasRank === 0 ? 'TITLE DEFENDED' : 'NEW WORLD CHAMPION'}</div>` : '';
     const P = R.paper ? `<div class="paper"><div class="mast"><span>THE DAILY JAB</span><span>${esc(townOf(me)).toUpperCase()} EDITION</span></div><div class="head">${R.paper.h}</div><div class="deck">${R.paper.d}</div></div>` : '';
+    const ails = ailList(me.ail);
     return `<div class="res"><h1 class="${R.win ? 'yellow' : ''}">${word}</h1>${P}
       <div class="how">${HOW[R.how]}${R.ko ? ' &middot; round ' + R.rd : ''}${R.totals ? ' &middot; ' + R.totals.map(t => t[0] + '-' + t[1]).join(', ') : ''}</div>${title}
       <div class="lines"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Purse</span><b class="num yellow">+${money(R.pay)}${R.win || R.draw ? '' : ' (loser\'s half)'}</b><span>Rank</span><b class="num">${rk(R.wasRank)} &rarr; ${rk(R.nowRank)}</b></div>
-      ${aged}<button class="btn go" data-a="hub">Continue</button></div>`;
+      ${ails.length ? `<div class="ails" style="justify-content:center">${ails.map(ailChip).join('')}</div>` : ''}
+      <button class="btn go" data-a="hub">Continue</button></div>`;
   },
   over(){
     const me = G.fighters.me;
-    return `<div class="res"><h1>CAREER OVER</h1><div class="how">${esc(me.name)} hangs up the gloves at ${Math.floor(me.age)}</div>
+    return `<div class="res"><h1>CAREER OVER</h1><div class="how">${esc(me.name)} hangs up the gloves at ${me.age}</div>
       ${face(me, 110)}
       <div class="lines"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Best rank</span><b>${G.best === null ? 'Unranked' : G.best === 0 ? 'World champion' : '#' + G.best}</b><span>Title wins</span><b class="num">${G.titles}</b><span>Defenses</span><b class="num">${G.defenses}</b></div>
       <button class="btn go" data-a="title">Back to menu</button></div>`;
@@ -1936,26 +2366,37 @@ const VIEWS = {
 };
 ui.addEventListener('click', e => {
   const b = e.target.closest('[data-a]'); if (!b) return;
-  const a = b.dataset.a, n = +b.dataset.n;
+  const a = b.dataset.a, n = +b.dataset.n, k = b.dataset.k;
   if (a !== 'del' && a !== 'retire') armed = null;
   switch (a) {
     case 'title': SLOT = null; G = null; screen = 'title'; break;
     case 'newslot': SLOT = n; draft = { name:'', nick:'', town:'', look:{ skin:SKINS[1], hair:HAIRS[0], trunks:KITS[0], gloves:GLOVES[0] } }; screen = 'create'; break;
     case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } else { migrate(); checkStory(); save(); } break;
     case 'del': e.stopPropagation(); if (armed === 'del' + n) { resetSlot(n); armed = null; } else armed = 'del' + n; break;
-    case 'look': draft.look[b.dataset.k] = b.dataset.v; break;
+    case 'look': draft.look[k] = b.dataset.v; break;
     case 'start': { const nm = (draft.name || '').trim() || 'ROOKIE'; newCareer(nm, (draft.nick || '').trim(), { ...draft.look }, (draft.town || '').trim()); save(); screen = 'hub'; break; }
-    case 'hub': screen = 'hub'; break;
-    case 'offers': screen = 'offers'; break;
-    case 'pickoff': sel = +b.dataset.k; screen = 'tape'; break;
-    case 'fight': ac(); startFight(G.offers[sel]); return;
-    case 'train': screen = 'train'; break;
-    case 'tr': train(b.dataset.k, n); return;
-    case 'mini': startMini(b.dataset.k); return;
-    case 'rankings': screen = 'rankings'; break;
-    case 'log': screen = 'log'; break;
-    case 'storynext': { const b = G.story[0]; if (storyStep < b.lines.length - 1) storyStep++; else { G.story.shift(); storyStep = 0; save(); screen = 'hub'; } break; }
-    case 'retire': if (armed === 'retire') { armed = null; G.over = true; save(); } else armed = 'retire'; break;
+    case 'hub': screen = 'hub'; calPick = null; callMsg = null; break;
+    case 'clearnotes': G.notes = []; save(); break;
+    case 'me': case 'train': case 'mail': case 'rankings': case 'schedule': case 'team': case 'log': screen = a; calPick = null; callMsg = null; break;
+    case 'rest': screen = 'rest'; restPick = 'sleep'; treatPick = new Set(); break;
+    case 'restpick': restPick = k; break;
+    case 'treat': if (treatPick.has(k)) treatPick.delete(k); else treatPick.add(k); break;
+    case 'dorest': if (restDay(restPick, [...treatPick])) { screen = 'hub'; } break;
+    case 'drill': if (k === 'spar') { ac(); startSpar(); return; } startMini(k); return;
+    case 'tape': screen = 'tape'; break;
+    case 'fight': ac(); startFight(G.fight); return;
+    case 'postpone': postpone(); screen = 'hub'; break;
+    case 'accept': { const m = G.mail[+k]; pending = { id:m.id, title:m.title, grudge:m.grudge, rematch:m.rematch, purse:m.purse, rounds:m.rounds }; screen = 'dates'; break; }
+    case 'decline': declineMail(+k); break;
+    case 'dismiss': G.mail.splice(+k, 1); save(); break;
+    case 'pickdate': bookFight(pending, n); pending = null; screen = 'hub'; break;
+    case 'pickfighter': calPick = k; callMsg = null; break;
+    case 'closesheet': calPick = null; callMsg = null; break;
+    case 'callout': { const r = callOut(calPick); if (r.ok) { pending = r.deal; calPick = null; screen = 'dates'; } else callMsg = r.msg; break; }
+    case 'buygym': { const Gm = GYMS[+k]; if (G.cash >= Gm.cost && +k === G.gym + 1) { G.cash -= Gm.cost; G.gym = +k; save(); } break; }
+    case 'hire': { const T = TRAINERS[+k]; if (G.cash >= T.fee) { G.cash -= T.fee; G.trainer = +k; save(); } break; }
+    case 'storynext': { const s = G.story[0]; if (storyStep < s.lines.length - 1) storyStep++; else { G.story.shift(); storyStep = 0; save(); screen = 'hub'; } break; }
+    case 'retire': if (armed === 'retire') { armed = null; G.over = true; save(); screen = 'hub'; } else armed = 'retire'; break;
   }
   render();
 });
