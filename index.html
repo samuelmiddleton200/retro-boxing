@@ -236,16 +236,14 @@ tr.champ td{color:#fff3b8}
 .fx{position:absolute;transform:translate(-50%,-100%);font-family:var(--px);font-weight:700;font-size:15px;text-shadow:0 2px 0 #000;white-space:nowrap;animation:rise .8s ease-out forwards}
 .fx.y{color:var(--yellow)} .fx.r{color:#ff7a6b} .fx.b{color:var(--sky)}
 @keyframes rise{0%{opacity:0;margin-top:6px}15%{opacity:1}100%{opacity:0;margin-top:-26px}}
-.cb{position:absolute;width:var(--cb);height:var(--cb);border:3px solid #fff;border-radius:12px;background:rgba(25,21,74,.78);font-family:var(--px);font-weight:700;font-size:12px;display:grid;place-items:center;box-shadow:0 4px 0 #000;touch-action:none;padding:0;line-height:1.05}
-.cb.on{transform:translateY(3px);box-shadow:0 1px 0 #000;background:rgba(77,184,255,.55)}
-.cb small{display:block;font-size:9px;opacity:.6;font-weight:400}
-.cb.pu{background:rgba(226,75,59,.7)}
-.cb.pu.on{background:rgba(255,210,63,.75);color:#241a00}
-#bBlock{left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom))}
-#bDodge{left:calc(max(14px,env(safe-area-inset-left)) + var(--cb) + 12px);bottom:max(14px,env(safe-area-inset-bottom))}
-#bJab{right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom))}
-#bHook{right:calc(max(14px,env(safe-area-inset-right)) + var(--cb) + 12px);bottom:max(14px,env(safe-area-inset-bottom))}
-#bUpper{right:max(14px,env(safe-area-inset-right));bottom:calc(max(14px,env(safe-area-inset-bottom)) + var(--cb) + 12px)}
+.htbar{display:flex;align-items:center;gap:4px;margin-top:3px}
+.htbar span{color:#ff5e6e;font-size:12px;line-height:1;text-shadow:0 1px 0 #000}
+.htbar div{flex:1;max-width:120px;height:7px;border:2px solid #fff;background:#000;display:flex}
+.htbar i{display:block;height:100%;background:#ff5e6e}
+.htbar.on i{background:var(--yellow)} .htbar.on span{color:var(--yellow)}
+#eye{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse 70% 80% at 62% 50%,transparent 45%,rgba(40,10,50,.95) 100%)}
+.ctrls{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;text-align:left;font-size:14px}
+.ctrls b{font-family:var(--px);font-size:12px;color:var(--yellow)}
 #getup{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);text-align:center;pointer-events:none;font-family:var(--px);font-size:16px;text-shadow:0 2px 0 #000}
 #getup .m{width:220px;height:16px;border:3px solid #fff;background:#000;margin:6px auto 0}
 #getup .m i{display:block;height:100%;background:var(--green)}
@@ -261,7 +259,6 @@ tr.champ td{color:#fff3b8}
 
 /* --- phone landscape --- */
 @media (max-height:500px){
-  :root{--cb:60px}
   #ui{padding-block:6px 8px}
   .bar{margin-bottom:6px}
   .title{font-size:20px}
@@ -296,8 +293,9 @@ tr.champ td{color:#fff3b8}
 <div id="ui"></div>
 <div id="game" hidden>
   <canvas id="cv"></canvas>
+  <div id="eye"></div>
   <div id="hud">
-    <div class="hb"><div class="hn" id="n0"></div><div class="hpbar"><i id="hp0"></i></div><div class="stbar"><i id="st0"></i></div><div class="kds" id="kd0"></div></div>
+    <div class="hb"><div class="hn" id="n0"></div><div class="hpbar"><i id="hp0"></i></div><div class="stbar"><i id="st0"></i></div><div class="htbar" id="htw"><span>&#9829;</span><div><i id="ht"></i></div></div><div class="kds" id="kd0"></div></div>
     <div class="clock"><div class="rd" id="rd">ROUND 1</div><div class="t" id="clk">3:00</div></div>
     <div class="hb r"><div class="hn" id="n1"></div><div class="hpbar"><i id="hp1"></i></div><div class="stbar"><i id="st1"></i></div><div class="kds" id="kd1"></div></div>
   </div>
@@ -305,11 +303,6 @@ tr.champ td{color:#fff3b8}
   <div id="pops"></div>
   <div id="banner"></div>
   <div id="getup" hidden></div>
-  <button class="cb" id="bBlock">BLOCK<small>SPACE</small></button>
-  <button class="cb" id="bDodge">DODGE<small>A</small></button>
-  <button class="cb pu" id="bJab">JAB<small>J</small></button>
-  <button class="cb pu" id="bHook">HOOK<small>K</small></button>
-  <button class="cb pu" id="bUpper">UPPER<small>L</small></button>
   <div id="over" hidden></div>
 </div>
 <div id="rotate">Turn your phone sideways</div>
@@ -508,17 +501,30 @@ function shade(hex, f){
   const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => clamp(Math.round(v * f), 0, 255));
   return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
+function mix(a, b, t){
+  const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+  const c = [16, 8, 0].map(s => Math.round(lerp((A >> s) & 255, (B >> s) & 255, clamp(t, 0, 1))));
+  return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+}
+// glove (fg/bg) and elbow (fe/be) spots for the front and back arm, body lean, crouch, head offset
 const POSE = {
   guard: { lean:0,  cr:0,  hx:0,  hy:0,  fg:[11,-44], fe:[8,-33],  bg:[6,-47],  be:[1,-33] },
   block: { lean:-1, cr:2,  hx:-1, hy:1,  fg:[9,-49],  fe:[8,-37],  bg:[8,-43],  be:[4,-32] },
+  blockL:{ lean:0,  cr:3,  hx:0,  hy:0,  fg:[11,-34], fe:[6,-30],  bg:[7,-31],  be:[1,-29] },
   jabW:  { lean:-1, cr:0,  hx:0,  hy:0,  fg:[7,-43],  fe:[4,-34],  bg:[6,-47],  be:[1,-33] },
   jabH:  { lean:3,  cr:0,  hx:1,  hy:0,  fg:[26,-46], fe:[17,-43], bg:[5,-47],  be:[0,-34] },
+  jabBW: { lean:-1, cr:4,  hx:0,  hy:0,  fg:[7,-36],  fe:[3,-31],  bg:[6,-46],  be:[1,-33] },
+  jabBH: { lean:4,  cr:5,  hx:1,  hy:0,  fg:[26,-31], fe:[17,-33], bg:[6,-46],  be:[1,-33] },
   hookW: { lean:-3, cr:1,  hx:-1, hy:0,  fg:[3,-41],  fe:[-1,-37], bg:[6,-47],  be:[1,-33] },
   hookH: { lean:4,  cr:0,  hx:1,  hy:0,  fg:[27,-47], fe:[18,-49], bg:[5,-46],  be:[0,-33] },
+  hookBW:{ lean:-3, cr:5,  hx:-1, hy:0,  fg:[2,-32],  fe:[-2,-30], bg:[6,-46],  be:[1,-33] },
+  hookBH:{ lean:4,  cr:5,  hx:1,  hy:0,  fg:[26,-31], fe:[18,-28], bg:[6,-45],  be:[1,-33] },
   upW:   { lean:-1, cr:4,  hx:0,  hy:0,  fg:[10,-45], fe:[7,-34],  bg:[3,-27],  be:[-2,-31] },
   upH:   { lean:4,  cr:-2, hx:1,  hy:-1, fg:[9,-44],  fe:[6,-34],  bg:[25,-51], be:[16,-41] },
-  dodge: { lean:-8, cr:4,  hx:-2, hy:1,  fg:[5,-41],  fe:[3,-32],  bg:[1,-44],  be:[-3,-32] },
+  slip:  { lean:-8, cr:4,  hx:-2, hy:1,  fg:[5,-41],  fe:[3,-32],  bg:[1,-44],  be:[-3,-32] },
+  duck:  { lean:3,  cr:10, hx:1,  hy:1,  fg:[11,-43], fe:[7,-33],  bg:[7,-45],  be:[2,-33] },
   hurt:  { lean:-4, cr:1,  hx:-3, hy:-1, fg:[9,-39],  fe:[6,-31],  bg:[3,-41],  be:[-1,-31] },
+  hurtB: { lean:3,  cr:5,  hx:1,  hy:1,  fg:[8,-35],  fe:[5,-30],  bg:[4,-33],  be:[0,-30] },
   win:   { lean:0,  cr:-1, hx:0,  hy:-1, fg:[9,-64],  fe:[8,-52],  bg:[-3,-64], be:[-5,-52] },
 };
 const PK = ['lean','cr','hx','hy'], PV = ['fg','fe','bg','be'];
@@ -529,16 +535,18 @@ function blendPose(a, b, t){
   for (const k of PV) o[k] = [lerp(a[k][0], b[k][0], t), lerp(a[k][1], b[k][1], t)];
   return o;
 }
-// draws a boxer facing `dir` (1 right, -1 left) with his feet at (ox, gy)
-function drawBoxer(g, ox, gy, dir, p, look){
-  const skin = look.skin, skinB = shade(skin, .82), hair = look.hair, glove = look.gloves, gloveB = shade(glove, .78), trunks = look.trunks;
+// draws a boxer facing `dir` (1 right, -1 left) with his feet at (ox, gy).
+// o: { walk (step phase), swell 0-1, cut 0-3, body (0-1 share of health lost to the body), rage }
+function drawBoxer(g, ox, gy, dir, p, look, o = {}){
+  const skin = look.skin, skinB = shade(skin, .82), hair = look.hair, trunks = look.trunks;
+  const glove = o.rage ? mix(look.gloves, '#ffd23f', .55) : look.gloves, gloveB = shade(glove, .78);
   const band = (trunks === '#f4f4f4' || trunks === '#ffd23f') ? '#1d1d1d' : '#f4f4f4';
   const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
   const B = (x0, y0, x1, y1, w, c) => {
     const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
     for (let i = 0; i <= n; i++) { const t = i / n; R(x0 + (x1 - x0) * t - w / 2, y0 + (y1 - y0) * t - w / 2, w, w, c); }
   };
-  const L = p.lean, C = p.cr;
+  const L = p.lean, C = p.cr, step = o.walk ? Math.sin(o.walk) * 2 : 0;
   const arm = (s, e, gl, col, gcol) => {
     B(s[0], s[1], e[0] + L, e[1] + C, 4, col);
     B(e[0] + L, e[1] + C, gl[0] + L, gl[1] + C, 4, col);
@@ -547,25 +555,35 @@ function drawBoxer(g, ox, gy, dir, p, look){
   };
   R(-13, -1, 26, 2, 'rgba(0,0,0,.28)');                                   // shadow
   arm([-4 + L, -38 + C], p.be, p.bg, skinB, gloveB);                      // back arm, behind the body
-  B(-3, -16 + C, -7, -3, 4, skinB);                                        // back leg
-  B(3, -16 + C, 7, -3, 4, skin);                                           // front leg
-  R(-10, -3, 6, 3, '#f2f2f2'); R(-10, -1, 6, 1, '#9a9a9a');                // shoes
-  R(4, -3, 6, 3, '#f2f2f2'); R(4, -1, 6, 1, '#9a9a9a');
+  B(-3, -16 + C, -7 - step, -3, 4, skinB);                                 // back leg
+  B(3, -16 + C, 7 + step, -3, 4, skin);                                    // front leg
+  R(-10 - step, -3, 6, 3, '#f2f2f2'); R(-10 - step, -1, 6, 1, '#9a9a9a');  // shoes
+  R(4 + step, -3, 6, 3, '#f2f2f2'); R(4 + step, -1, 6, 1, '#9a9a9a');
   R(-7 + L * .3, -26 + C, 14, 12, trunks);                                 // trunks
   R(-7 + L * .3, -26 + C, 14, 2, band);
   R(-6 + L * .5, -33 + C, 12, 8, skin);                                    // body
   R(-7 + L, -40 + C, 14, 8, skin);
+  if (o.body > .12) R(1 + L * .5, -31 + C, 4, 3, mix(skin, '#b0404a', .25 + o.body));          // bruised ribs
+  if (o.body > .3) R(-3 + L * .5, -29 + C, 3, 2, mix(skin, '#8a2f5a', .2 + o.body));
   R(-2 + L * 1.1, -43 + C, 4, 3, skin);                                    // neck
-  const hx = L * 1.15 + p.hx, hy = C + p.hy;
+  const hx = L * 1.15 + p.hx, hy = C + p.hy, sw = o.swell || 0;
   R(-5 + hx, -53 + hy, 10, 10, skin);                                      // head
   if (hair !== 'none') { R(-5 + hx, -53 + hy, 10, 3, hair); R(-5 + hx, -50 + hy, 3, 3, hair); }
-  R(2 + hx, -50 + hy, 3, 1, hair !== 'none' ? hair : shade(skin, .6));     // brow
-  R(3 + hx, -49 + hy, 1, 2, '#141414');                                    // eye
   R(-1 + hx, -48 + hy, 2, 2, skinB);                                       // ear
+  // the eye on our side swells shut as the head shots pile up
+  if (sw > .12) R(1 + hx, -51 + hy, 4, 3, mix(skin, '#7a3f86', sw * .9));
+  if (sw > .4) R(1 + hx, -52 + hy, 5, 5, mix(skin, '#6a2f7a', sw * .85));
+  if (sw > .7) R(5 + hx, -51 + hy, 1, 3, mix(skin, '#5a2068', sw * .8));    // puffs out past the face
+  R(2 + hx, -50 + hy, 3, 1, sw > .4 ? mix(skin, '#5a2068', sw) : hair !== 'none' ? hair : shade(skin, .6));     // brow
+  if (sw > .7) R(2 + hx, -48 + hy, 2, 1, '#141414');                       // eye shut to a slit
+  else R(3 + hx, -49 + hy, 1, sw > .45 ? 1 : 2, '#141414');                // eye
+  if (o.cut >= 1) R(4 + hx, -51 + hy, 1, 2, '#c41e1e');                    // cut over the eye
+  if (o.cut >= 2) { R(4 + hx, -49 + hy, 1, 3, '#c41e1e'); R(3 + hx, -46 + hy, 1, 2, '#a01818'); }
+  if (o.cut >= 3) { R(2 + hx, -45 + hy, 2, 1, '#a01818'); R(2 + L, -37 + C, 1, 2, '#a01818'); R(-1 + L, -34 + C, 1, 1, '#a01818'); }
   arm([4 + L, -38 + C], p.fe, p.fg, skin, glove);                          // front arm
 }
 // flat on his back, head away from the other man
-function drawDown(g, ox, gy, dir, look){
+function drawDown(g, ox, gy, dir, look, o = {}){
   const skin = look.skin, hair = look.hair;
   const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
   R(-38, -1, 52, 2, 'rgba(0,0,0,.28)');
@@ -575,12 +593,14 @@ function drawDown(g, ox, gy, dir, look){
   R(-27, -7, 15, 6, skin);                                                   // body
   R(-37, -9, 10, 9, skin);                                                   // head
   if (hair !== 'none') R(-37, -9, 3, 9, hair);
+  if (o.swell > .12) R(-32, -8, 3, 3, mix(skin, '#7a3f86', o.swell));
   R(-31, -6, 2, 1, '#141414');
+  if (o.cut >= 1) R(-30, -8, 1, 2, '#c41e1e');
   R(-25, -11, 9, 3, skin); R(-18, -14, 6, 6, look.gloves);                  // arms flopped out
   R(-23, -2, 9, 2, shade(skin, .82)); R(-16, -3, 6, 5, shade(look.gloves, .78));
 }
 const portraits = new Map();
-function portrait(f, w = 44, h = 34, scale = 2){
+function portrait(f, w = 44, h = 34){
   const key = `${f.id}|${JSON.stringify(f.look)}|${w}x${h}`;
   if (portraits.has(key)) return portraits.get(key);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -624,115 +644,197 @@ function swish(){
 }
 
 /* ================= the fight ================= */
-// all times in seconds at Speed 50; the computer's wind-ups are longer so you can read them
+// all times in seconds at Speed 50; the computer's wind-ups are longer so you can read them.
+// reach is in ring pixels between the two boxers' feet
 const FT = {
-  jab:   { wind:.2,  hit:.09, rec:.16, dmg:4.5, cost:5,  block:.15, stun:.18 },
-  hook:  { wind:.34, hit:.11, rec:.28, dmg:9.5, cost:11, block:.25, stun:.3 },
-  upper: { wind:.46, hit:.12, rec:.36, dmg:14,  cost:16, block:.55, stun:.42 },
+  jab:   { wind:.2,  hit:.09, rec:.16, dmg:4.5, cost:5,  stun:.18, push:3, reach:40 },
+  hook:  { wind:.34, hit:.11, rec:.28, dmg:9.5, cost:11, stun:.3,  push:6, reach:37 },
+  upper: { wind:.46, hit:.12, rec:.36, dmg:14,  cost:16, stun:.42, push:7, reach:35 },
 };
+const GUARD = { jab:.15, hook:.25, upper:.55 };              // share of a punch that gets through a guard at the right height
 const AI_TELL = { jab:1.35, hook:1.55, upper:1.55 };
-const DODGE_T = .42, DODGE_CD = .3, DODGE_COST = 4, OPEN_T = .6;
+const SLIP_T = .42, SLIP_BACK = 10, DUCK_T = .45, EVADE_CD = .3, EVADE_COST = 4, OPEN_T = .6;
+const WALK = 16, CLOSE = 32, MIN_GAP = 24, ROPE_IN = 13;
+const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6;
 const ROUND_SECS = 180, CLOCK_X = 4;                       // a 3:00 round lasts 45 real seconds
-const LH = 120, DIST = 34;
+const LH = 120;
 let M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
 const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('canvas'), g = low.getContext('2d');
 
 function mkF(src, side, user){
   const r = src.rat;
   return { src, side, user, r, hpMax:70 + r.chin * .6, hp:70 + r.chin * .6, stMax:50 + r.sta * .7, st:50 + r.sta * .7, regen:6 + r.sta * .1,
-    pm:.6 + r.pow / 100, sm:1.25 - .5 * r.spd / 100, state:'idle', t:0, dur:0, pt:null, pid:0, weak:false, whiff:false, blockHeld:false,
-    dodgeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0, dx:0, pose:copyPose(POSE.guard), flash:0, blockT:0,
+    pm:.6 + r.pow / 100, sm:1.25 - .5 * r.spd / 100, walkV:WALK * (.8 + r.spd / 250), state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0,
+    weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
+    x:0, walk:0, pinned:false, swell:0, cut:0, body:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
     ai:{ next:rnd(.9, 1.6), seen:0, react:0, reacted:false, punished:0, blockUntil:0 } };
 }
+const away = f => f.side === 0 ? -1 : 1;                   // the direction of his own ropes
+const gapOf = () => M.f[1].x - M.f[0].x;
 let punchSeq = 0;
-function punch(f, type){
+function punch(f, type, tgt){
   if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block')) return false;
-  const P = FT[type];
-  f.weak = f.st < P.cost; f.st = Math.max(0, f.st - P.cost);
-  f.state = 'wind'; f.t = 0; f.pt = type; f.pid = ++punchSeq; f.whiff = false;
-  f.dur = P.wind * f.sm * (f.weak ? 1.3 : 1) * (f.user ? 1 : AI_TELL[type]);
+  const P = FT[type], cost = f.rage > 0 ? 0 : P.cost;
+  f.weak = f.st < cost; f.st = Math.max(0, f.st - cost);
+  f.state = 'wind'; f.t = 0; f.pt = type; f.tgt = type === 'upper' ? 'head' : (tgt || 'head'); f.pid = ++punchSeq; f.whiff = false;
+  // a swollen eye shortens how long you get to see his punch coming
+  const tell = f.user ? 1 : Math.max(1, AI_TELL[type] - .45 * M.f[0].swell);
+  f.dur = P.wind * f.sm * (f.weak ? 1.3 : 1) * (f.rage > 0 ? .8 : 1) * tell;
   f.thrown++; f.rThrown++;
   return true;
 }
-function dodge(f){
-  if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block') || f.dodgeCD > 0 || f.st < DODGE_COST) return false;
-  f.st -= DODGE_COST; f.state = 'dodge'; f.t = 0; f.dur = DODGE_T;
+function slip(f){
+  if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block') || f.evadeCD > 0 || f.st < EVADE_COST) return false;
+  if (f.pinned) { if (f.user) fx('ON THE ROPES', f.side, 'r'); return false; }
+  f.st -= EVADE_COST; f.state = 'slip'; f.t = 0; f.dur = SLIP_T;
   return true;
 }
+function duck(f){
+  if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block') || f.evadeCD > 0 || f.st < EVADE_COST) return false;
+  f.st -= EVADE_COST; f.state = 'duck'; f.t = 0; f.dur = DUCK_T;
+  return true;
+}
+function push(f, amt){
+  f.x = clamp(f.x + away(f) * amt, M.lo, M.hi);
+}
 function resolve(a, d){
-  const P = FT[a.pt];
+  const P = FT[a.pt], head = a.tgt === 'head';
   if (d.state === 'down') return;
-  const hitX = (a.side === 0 ? M.ox[0] + 28 : M.ox[1] - 28), hitY = M.gy - 46 + (a.pt === 'upper' ? -3 : 0);
-  if (d.state === 'dodge') { a.whiff = true; swish(); fx(d.user ? 'DODGED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
-  let dmg = P.dmg * a.pm * (a.weak ? .5 : 1), tag = '';
-  if (d.state === 'block') {
-    dmg *= P.block; d.st = Math.max(0, d.st - P.cost * .6); thud(.2, true);
+  const hitX = (a.x + d.x) / 2 + (a.side === 0 ? 7 : -7), hitY = M.gy - (head ? 47 : 31);
+  if (Math.abs(d.x - a.x) > P.reach) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
+  if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
+  if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
+  let dmg = P.dmg * a.pm * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
+  const guarded = d.state === 'block' && (d.guard === 'high') === head;
+  if (guarded) {
+    dmg *= GUARD[a.pt] * (1 + Math.min(.6, d.body * 1.5));            // a beaten-up body can't hold the guard up as well
+    d.st = Math.max(0, d.st - P.cost * .6); thud(.2, true); push(d, 1.5);
     sparks(hitX, hitY, 3, '#bfe6ff');
-    if (d.st <= 0) { d.state = 'stun'; d.t = 0; d.dur = .55; fx('GUARD BROKEN', d.side, 'r'); }
+    if (d.st <= 0) { d.state = 'stun'; d.t = 0; d.dur = .55; d.hurtLow = !head; fx('GUARD BROKEN', d.side, 'r'); }
   } else {
-    if (d.state === 'wind') { dmg *= 1.4; tag = 'COUNTER!'; }
+    if (d.state === 'duck' && a.pt === 'upper') { dmg *= 1.4; tag = 'COUNTER!'; }
+    else if (d.state === 'wind') { dmg *= 1.4; tag = 'COUNTER!'; }
     else if (d.whiff && d.state === 'rec') { dmg *= 1.6; tag = 'COUNTER!'; }
-    d.state = 'stun'; d.t = 0; d.dur = STUNfor(a.pt, tag); d.whiff = false; d.blockT = 0;
+    if (!head) dmg *= BODY_DMG;
+    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (tag ? 1.35 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
+    push(d, P.push * (tag ? 1.5 : 1) * (a.rage > 0 ? 1.4 : 1));
     a.landed++; a.rLanded++;
+    if (head) {
+      d.swell = Math.min(1, d.swell + dmg / d.hpMax * 1.25);
+      if (a.pt !== 'jab' && d.swell > .25 && d.cut < 3 && Math.random() < .1 + (tag ? .1 : 0)) { d.cut++; fx(d.cut === 3 ? 'BAD CUT!' : 'CUT!', d.side, 'r'); }
+    } else {
+      d.st = Math.max(0, d.st - dmg * BODY_DRAIN);
+      d.body = Math.min(1, d.body + dmg / d.hpMax);
+    }
+    if (a.user && a.hp < a.hpMax * .4) addHeart(.07);
     const big = a.pt !== 'jab' || tag;
     thud(a.pt === 'jab' ? .2 : a.pt === 'hook' ? .6 : 1, false);
     sparks(hitX, hitY, big ? 9 : 4, big ? '#ffd23f' : '#ffffff');
+    if (d.cut && head) sparks(hitX, hitY + 2, 3, '#c41e1e');
     M.shake = big ? .18 : .07;
-    if (big) { M.flashes += 8; d.flash = .12; }
+    if (big) M.flashes += 8;
     if (tag) fx(tag, a.side, 'y');
+    else if (!head && d.user === false && Math.random() < .3) fx('BODY', d.side, '');
   }
   d.hp -= dmg; a.rDmg += dmg;
   if (d.hp <= 0) knockdown(d, a);
 }
-const STUNfor = (pt, tag) => FT[pt].stun * (tag ? 1.35 : 1);
+function addHeart(n){
+  const me = M.f[0];
+  if (me.rage > 0) return;
+  M.heart = Math.min(1, M.heart + n);
+  if (M.heart >= 1) {
+    M.heart = 0; me.rage = RAGE_T;
+    banner('HEART!', 'y'); setTimeout(() => { if (M && M.phase === 'fight') banner(''); }, 900);
+    chant(); M.flashes += 30;
+  }
+}
+function chant(){
+  if (!M) return;
+  const n = (M.f[0].src.nick || M.f[0].src.name.split(' ')[0]).toUpperCase();
+  [0, 450, 900].forEach(ms => setTimeout(() => { if (M) fxAt(n + '!', rnd(.15, .85), rnd(.1, .3), 'y'); }, ms));
+}
 
 function step(f, o, dt){
-  f.t += dt; f.dodgeCD = Math.max(0, f.dodgeCD - dt); f.flash = Math.max(0, f.flash - dt);
+  f.t += dt; f.evadeCD = Math.max(0, f.evadeCD - dt);
+  if (f.rage > 0) f.rage = Math.max(0, f.rage - dt);
   switch (f.state) {
     case 'wind': if (f.t >= f.dur) { f.state = 'hit'; f.t = 0; f.dur = FT[f.pt].hit; resolve(f, o); } break;
     case 'hit': if (f.t >= f.dur) { f.state = 'rec'; f.t = 0; f.dur = FT[f.pt].rec * f.sm + (f.whiff ? OPEN_T : 0); } break;
     case 'rec': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.whiff = false; } break;
-    case 'dodge': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.dodgeCD = DODGE_CD; } break;
+    case 'slip': case 'duck': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.evadeCD = EVADE_CD; } break;
     case 'stun': if (f.t >= f.dur) f.state = f.blockHeld ? 'block' : 'idle'; break;
     case 'block': if (!f.blockHeld) f.state = 'idle'; break;
     case 'idle': if (f.blockHeld) f.state = 'block'; break;
   }
   f.blockT = f.state === 'block' ? f.blockT + dt : 0;
-  if (f.state === 'idle' || f.state === 'block' || f.state === 'rec') f.st = Math.min(f.stMax, f.st + f.regen * dt * (f.state === 'block' ? .5 : 1));
+  const regen = f.regen * (1 - Math.min(.5, f.body * 1.2));            // body shots slow the second wind
+  if (f.state === 'idle' || f.state === 'block' || f.state === 'rec') f.st = Math.min(f.stMax, f.st + regen * dt * (f.state === 'block' ? .5 : 1));
+}
+// footwork: both men walk in until they're in range; a slip carries you back a step
+function move(f, o, dt){
+  const ox = f.x;
+  if (f.state === 'slip' && f.t < SLIP_T * .5) f.x += away(f) * SLIP_BACK / (SLIP_T * .5) * dt;
+  else if (f.state === 'idle' || f.state === 'block' || f.state === 'rec') {
+    const gap = Math.abs(o.x - f.x);
+    if (gap > CLOSE) f.x -= away(f) * Math.min(gap - CLOSE, f.walkV * (f.state === 'block' ? .5 : 1) * dt);
+  }
+  f.x = clamp(f.x, M.lo, M.hi);
+  if (Math.abs(o.x - f.x) < MIN_GAP) f.x = o.x + away(f) * MIN_GAP;
+  f.x = clamp(f.x, M.lo, M.hi);
+  f.pinned = f.side === 0 ? f.x <= M.lo + .5 : f.x >= M.hi - .5;
+  const moved = Math.abs(f.x - ox);
+  if (moved > .01) f.walk += moved * .45;
 }
 
-// the computer's brain: reacts to your wind-ups, punishes your misses, otherwise throws on a rhythm
+// the computer's brain: reads your wind-ups, punishes your misses, otherwise throws on a rhythm
+const STYLE_BODY = { brawler:.4, speedster:.2, tank:.35, counter:.25 };
 function aiThink(f, o, dt){
-  const S = STYLES[f.src.style] || STYLES.counter, A = f.ai, sk = clamp(skillOf(f.src) + S.react, 0, 1);
+  const S = STYLES[f.src.style] || STYLES.counter, A = f.ai;
+  const sk = clamp(skillOf(f.src) + S.react, 0, 1) * (1 - .5 * f.swell);
   if (f.blockHeld && M.time > A.blockUntil) f.blockHeld = false;
   if (o.state === 'wind' && A.seen !== o.pid) { A.seen = o.pid; A.react = rnd(.11, .24) + (1 - sk) * .06; A.reacted = false; }
   if (o.state === 'wind' && A.seen === o.pid && !A.reacted && o.t >= A.react) {
     A.reacted = true;
-    if ((f.state === 'idle' || f.state === 'block') && Math.random() < .1 + sk * .65) {
-      if (Math.random() < S.dodge && f.dodgeCD <= 0) dodge(f);
-      else { f.blockHeld = true; A.blockUntil = M.time + rnd(.35, .7); }
-    } else if (o.pt === 'upper' && f.state === 'idle' && Math.random() < sk * .35) punch(f, 'jab');
+    const ok = f.state === 'idle' || f.state === 'block', head = o.tgt === 'head';
+    if (ok && Math.random() < .1 + sk * .65) {
+      if (Math.random() < S.dodge && f.evadeCD <= 0) {
+        if (head && o.pt !== 'upper' && (f.pinned || Math.random() < .45)) duck(f);
+        else if (!f.pinned) slip(f);
+        else { f.blockHeld = true; f.guard = 'high'; A.blockUntil = M.time + .5; }
+      } else {
+        f.blockHeld = true; A.blockUntil = M.time + rnd(.35, .7);
+        f.guard = (head ? 'high' : 'low');
+        if (Math.random() < (1 - sk) * .3) f.guard = head ? 'low' : 'high';                  // guessed wrong
+      }
+    } else if (o.pt === 'upper' && f.state === 'idle' && Math.random() < sk * .35) punch(f, 'jab', 'head');
   }
+  const inRange = t => Math.abs(o.x - f.x) <= FT[t].reach - 1;
+  const pickTgt = () => Math.random() < (STYLE_BODY[f.src.style] || .3) + (o.state === 'block' && o.guard === 'high' ? .35 : 0) ? 'body' : 'head';
   if (o.whiff && o.state === 'rec' && A.punished !== o.pid) {
     A.punished = o.pid;
-    if (Math.random() < .2 + sk * .7) { f.blockHeld = false; if (f.state === 'block') f.state = 'idle'; punch(f, Math.random() < .5 ? 'hook' : 'upper'); }
+    if (Math.random() < .2 + sk * .7) {
+      f.blockHeld = false; if (f.state === 'block') f.state = 'idle';
+      const t = Math.random() < .5 ? 'hook' : 'upper'; if (inRange(t)) punch(f, t, pickTgt());
+    }
   }
-  if (o.state === 'stun' && f.state === 'idle' && Math.random() < dt * 2.5 * (.4 + sk)) punch(f, Math.random() < .6 ? 'jab' : 'hook');
+  if (o.state === 'stun' && f.state === 'idle' && Math.random() < dt * 2.5 * (.4 + sk)) { const t = Math.random() < .6 ? 'jab' : 'hook'; if (inRange(t)) punch(f, t, pickTgt()); }
   A.next -= dt;
   if (A.next <= 0 && (f.state === 'idle' || f.state === 'block') && !f.blockHeld) {
     const tired = f.st < f.stMax * .22;
-    if (tired && Math.random() < .6) { f.blockHeld = true; A.blockUntil = M.time + rnd(.6, 1.2); A.next = rnd(.6, 1.1); return; }
-    let w = { ...S.w };
+    if ((tired || (f.pinned && f.hp < f.hpMax * .35)) && Math.random() < .6) { f.blockHeld = true; f.guard = Math.random() < .7 ? 'high' : 'low'; A.blockUntil = M.time + rnd(.6, 1.2); A.next = rnd(.6, 1.1); return; }
+    const w = { ...S.w };
     if (o.blockT > .7) { w.upper += .5; w.jab *= .5; }                     // you've been sitting behind the gloves
-    let x = Math.random() * (w.jab + w.hook + w.upper);
+    const x = Math.random() * (w.jab + w.hook + w.upper);
     const t = x < w.jab ? 'jab' : x < w.jab + w.hook ? 'hook' : 'upper';
-    punch(f, t);
+    if (!inRange(t)) { A.next = .12; return; }                            // walk in first
+    punch(f, t, pickTgt());
     A.next = (Math.random() < .3 ? rnd(.15, .3) : rnd(.6, 1.6) / S.agg * (1.3 - sk * .45));
   }
 }
 
 function knockdown(d, a){
-  d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false;
+  d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false; d.rage = 0;
   a.state = 'idle'; a.blockHeld = false;
   M.shake = .3; M.flashes += 25;
   if (d.kdR >= 3) { banner('T.K.O.!', 'y'); thud(1, false); return finish(a.side, 'TKO'); }
@@ -751,13 +853,13 @@ function rise(d){
   d.st = Math.max(d.st, d.stMax * .5);
   M.phase = 'rise'; M.pt = 1.1; banner('FIGHT!', '');
   $('#getup').hidden = true;
+  if (d.user) addHeart(.4);                                                  // the crowd loves a man who gets up
 }
 function finish(winSide, how){
   M.phase = 'end'; M.pt = 2.6; M.result = { winSide, how };
   const W = M.f[winSide], Lo = M.f[1 - winSide];
-  if (W) { W.state = 'win'; W.blockHeld = false; }
-  if (Lo && how === 'KO') Lo.state = 'down';
-  if (Lo && how === 'TKO') Lo.state = 'down';
+  if (W) { W.state = 'win'; W.blockHeld = false; W.rage = 0; }
+  if (Lo && (how === 'KO' || how === 'TKO')) Lo.state = 'down';
   bell(3);
 }
 
@@ -776,7 +878,7 @@ function scoreRound(){
 function endRound(){
   scoreRound(); bell(1);
   M.phase = 'bell'; M.pt = 1.2;
-  for (const f of M.f) { f.blockHeld = false; if (f.state !== 'down') f.state = 'idle'; }
+  for (const f of M.f) { f.blockHeld = false; f.rage = 0; if (f.state !== 'down') f.state = 'idle'; }
   banner(M.round >= M.rounds ? 'FINAL BELL' : 'END OF ROUND ' + M.round, '');
 }
 function decision(){
@@ -790,32 +892,40 @@ function decision(){
   if (winSide < 0) { M.phase = 'end'; M.pt = 1.8; M.result = { winSide:-1, how }; bell(3); }
   else finish(winSide, how);
 }
-const HOW = { KO:'Knockout', TKO:'Technical knockout', UD:'Unanimous decision', SD:'Split decision', MD:'Majority decision', DRAW:'Draw', RTD:'Quit on the stool' };
+const HOW = { KO:'Knockout', TKO:'Technical knockout', DOC:'Doctor stops it (cut)', UD:'Unanimous decision', SD:'Split decision', MD:'Majority decision', DRAW:'Draw', RTD:'Quit on the stool' };
 
+function placeFighters(){
+  const cx = Math.round(LW / 2);
+  M.f[0].x = cx - 17; M.f[1].x = cx + 17;
+}
 function startFight(offer){
   const me = G.fighters.me, o = G.fighters[offer.id];
   M = { offer, opp:o.id, oppRank:rankShort(o.id), rounds:offer.rounds, round:1, clock:ROUND_SECS, phase:'intro', pt:1.6, time:0,
-    f:[mkF(me, 0, true), mkF(o, 1, false)], cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0 };
+    f:[mkF(me, 0, true), mkF(o, 1, false)], cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0 };
   $('#game').hidden = false; $('#ui').hidden = true; $('#over').hidden = true; $('#getup').hidden = true;
   $('#n0').textContent = me.name; $('#n1').textContent = o.name;
-  resize(); banner('ROUND 1', 'y'); bell(1); hud();
+  resize(); placeFighters(); hud();
   last = performance.now();
+  if (!G.tutDone) { M.phase = 'tut'; showControls(true); }
+  else { banner('ROUND 1', 'y'); bell(1); }
 }
 function nextRound(){
   M.round++; M.clock = ROUND_SECS; M.phase = 'intro'; M.pt = 1.4;
   for (const f of M.f) {
     f.hp = Math.min(f.hpMax, f.hp + (f.hpMax - f.hp) * (.3 + f.r.chin / 500)); f.st = f.stMax;
-    f.kdR = 0; f.rThrown = 0; f.rLanded = 0; f.rDmg = 0; f.state = 'idle'; f.dx = 0; f.whiff = false; f.ai.next = rnd(.9, 1.6);
+    f.swell = Math.max(0, f.swell - .06); f.body *= .6;
+    f.kdR = 0; f.rThrown = 0; f.rLanded = 0; f.rDmg = 0; f.state = 'idle'; f.whiff = false; f.ai.next = rnd(.9, 1.6);
   }
+  placeFighters();
   $('#over').hidden = true; banner('ROUND ' + M.round, 'y'); bell(1);
 }
 function quitFight(){
-  M.result = { winSide:1, how:'RTD' }; M.rd = M.round; leaveFight();
+  M.result = { winSide:1, how:'RTD' }; leaveFight();
 }
 function leaveFight(){
   const res = M.result, R = { opp:M.opp, oppRank:M.oppRank, purse:M.offer.purse, title:M.offer.title, rd:M.round,
-    win:res.winSide === 0, draw:res.winSide < 0, ko:res.how === 'KO' || res.how === 'TKO' || res.how === 'RTD', how:res.how, totals:M.totals || null };
-  M = null;
+    win:res.winSide === 0, draw:res.winSide < 0, ko:['KO', 'TKO', 'RTD', 'DOC'].includes(res.how), how:res.how, totals:M.totals || null };
+  M = null; touches.clear();
   $('#game').hidden = true; $('#ui').hidden = false;
   applyResult(R);
   screen = 'result'; render();
@@ -830,18 +940,20 @@ function update(dt){
   for (const p of M.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; p.life -= dt; }
   M.parts = M.parts.filter(p => p.life > 0);
   switch (M.phase) {
-    case 'intro': M.pt -= dt; if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight') banner(''); }, 600); } break;
+    case 'intro': M.pt -= dt; if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
     case 'fight':
       M.clock -= dt * CLOCK_X;
       if (b.state !== 'down') aiThink(b, a, dt);
       if (a.auto && a.state !== 'down') aiThink(a, b, dt);
       step(a, b, dt); if (M.phase === 'fight') step(b, a, dt);
+      if (M.phase === 'fight') { move(a, b, dt); move(b, a, dt); }
+      if (a.hp < a.hpMax * .3) addHeart(dt * .012);
       if (M.phase === 'fight' && M.clock <= 0) { M.clock = 0; endRound(); }
       break;
     case 'count': {
       M.countT += dt;
       const d = M.f[M.downSide], up = M.f[1 - M.downSide];
-      up.dx = lerp(up.dx, -12, 1 - Math.exp(-dt * 3));
+      up.x = clamp(up.x + away(up) * 14 * dt * (M.count < 2 ? 1 : 0), M.lo, M.hi);   // off to a neutral corner
       if (M.countT >= 1) { M.countT -= 1; M.count++; banner(String(M.count), M.count >= 8 ? 'y' : ''); thud(.05, true); }
       if (d.user) {
         if (a.auto) M.taps += dt * 6;
@@ -852,22 +964,27 @@ function update(dt){
       if (M.count >= 10) { $('#getup').hidden = true; banner('K.O.!', 'y'); finish(1 - M.downSide, 'KO'); }
       break;
     }
-    case 'rise': M.pt -= dt; for (const f of M.f) f.dx = lerp(f.dx, 0, 1 - Math.exp(-dt * 5)); if (M.pt <= 0) { M.phase = 'fight'; banner(''); } break;
-    case 'bell': M.pt -= dt; if (M.pt <= 0) { if (M.round >= M.rounds) decision(); else showBreak(); } break;
+    case 'rise': M.pt -= dt; if (M.pt <= 0) { M.phase = 'fight'; banner(''); } break;
+    case 'bell': M.pt -= dt; if (M.pt <= 0) {
+      const cut = M.f.findIndex(f => f.cut >= 3);
+      if (cut >= 0) { banner('DOCTOR STOPS IT', 'y'); finish(1 - cut, 'DOC'); }
+      else if (M.round >= M.rounds) decision(); else showBreak();
+    } break;
     case 'end': M.pt -= dt; if (M.pt <= 0 && $('#over').hidden) showEnd(); break;
   }
   for (const f of M.f) animate(f, dt);
 }
 function targetPose(f){
-  const st = f.state, P = POSE;
-  const pt = f.pt === 'jab' ? ['jabW', 'jabH'] : f.pt === 'hook' ? ['hookW', 'hookH'] : ['upW', 'upH'];
+  const st = f.state, P = POSE, body = f.tgt === 'body';
+  const pt = f.pt === 'jab' ? (body ? ['jabBW', 'jabBH'] : ['jabW', 'jabH']) : f.pt === 'hook' ? (body ? ['hookBW', 'hookBH'] : ['hookW', 'hookH']) : ['upW', 'upH'];
   switch (st) {
     case 'wind': return [P[pt[0]], 18];
     case 'hit': return [P[pt[1]], 60];
     case 'rec': return [f.t < f.dur * .4 && !f.whiff ? P[pt[1]] : P.guard, f.whiff ? 6 : 14];
-    case 'block': return [P.block, 30];
-    case 'dodge': return [P.dodge, 30];
-    case 'stun': return [P.hurt, 40];
+    case 'block': return [f.guard === 'low' ? P.blockL : P.block, 30];
+    case 'slip': return [P.slip, 30];
+    case 'duck': return [P.duck, 34];
+    case 'stun': return [f.hurtLow ? P.hurtB : P.hurt, 40];
     case 'win': return [P.win, 10];
     default: {
       const t = M.time * 4 + f.side * 1.7, bob = Math.sin(t) * .8;
@@ -883,20 +1000,26 @@ function sparks(x, y, n, col){
   for (let i = 0; i < n; i++) M.parts.push({ x, y, vx:rnd(-70, 70), vy:rnd(-90, 10), life:rnd(.18, .38), col });
 }
 
+function ringHalf(){ return Math.min(98, Math.round(LW / 2) - 14); }
 function resize(){
   cssW = innerWidth; cssH = innerHeight;
   const dpr = Math.min(3, devicePixelRatio || 1);
   cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
   LW = Math.max(160, Math.round(LH * cssW / cssH));
   low.width = LW; low.height = LH;
-  if (M) { M.gy = Math.round(LH * .86); const cx = Math.round(LW / 2); M.ox = [cx - DIST / 2, cx + DIST / 2]; }
+  if (M) {
+    M.gy = Math.round(LH * .86);
+    const cx = Math.round(LW / 2), half = ringHalf();
+    M.lo = cx - half + ROPE_IN; M.hi = cx + half - ROPE_IN;
+    for (const f of M.f) f.x = clamp(f.x, M.lo, M.hi);
+  }
   buildBg();
 }
 addEventListener('resize', () => { if (M) resize(); });
 function buildBg(){
   bgCanvas = document.createElement('canvas'); bgCanvas.width = LW; bgCanvas.height = LH;
   const b = bgCanvas.getContext('2d'), R = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
-  const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = Math.min(98, Math.round(LW / 2) - 14);
+  const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
   R(0, 0, LW, LH, '#100d2e');
   // crowd: rows of heads and shoulders, darker further back
   let seed = 7; const rr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -920,28 +1043,30 @@ function buildBg(){
   R(cx - half - 12, top + 18, (half + 12) * 2, 2, '#f4f4f4');
   for (const x of [cx - half - 2, cx + half - 2]) { R(x, 48, 5, top - 46, '#d9d9e8'); R(x, 46, 5, 4, '#e24b3b'); }   // corner posts
   [['#e24b3b', gy - 52], ['#f4f4f4', gy - 38], ['#3f7be0', gy - 24]].forEach(([c, y]) => R(cx - half + 3, y, half * 2 - 5, 2, c));
-  // ring lights glow on the canvas
-  R(cx - 40, top + 3, 80, 1, '#ddd7c3'); R(cx - 60, top + 8, 120, 1, '#c8c2ac');
+  R(cx - 40, top + 3, 80, 1, '#ddd7c3'); R(cx - 60, top + 8, 120, 1, '#c8c2ac');   // ring lights on the canvas
 }
 function draw(){
   const gy = M.gy;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.drawImage(bgCanvas, 0, 0);
-  // camera flashes in the crowd
-  if (M.flashes > 0 || Math.random() < .04) {
+  if (M.flashes > 0 || Math.random() < .04) {                              // camera flashes in the crowd
     const n = Math.min(4, Math.ceil(M.flashes) || 1);
     for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(4, 50), 2, 2); }
     M.flashes = Math.max(0, M.flashes - n);
   }
   const sx = M.shake > 0 ? Math.round(rnd(-1.5, 1.5)) : 0, sy = M.shake > 0 ? Math.round(rnd(-1, 1)) : 0;
   g.setTransform(1, 0, 0, 1, sx, sy);
-  // whoever is punching is drawn in front
-  const order = M.f[1].state === 'wind' || M.f[1].state === 'hit' ? [0, 1] : [1, 0];
+  // a man pinned on the ropes bends them
+  for (const f of M.f) if (f.pinned && f.state !== 'down') {
+    const x = f.side === 0 ? M.lo - ROPE_IN + 3 : M.hi + ROPE_IN - 5;
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x, gy - 54, 2, 34);
+  }
+  const order = M.f[1].state === 'wind' || M.f[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = M.f[i], dir = i === 0 ? 1 : -1;
-    const x = M.ox[i] + dir * f.dx;
-    if (f.state === 'down') drawDown(g, x - dir * 4, gy, dir, f.src.look);
-    else drawBoxer(g, x, gy, dir, f.pose, f.src.look);
+    const f = M.f[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage > 0 };
+    if (f.state === 'down') drawDown(g, f.x - dir * 4, gy, dir, f.src.look, o);
+    else drawBoxer(g, f.x, gy, dir, f.pose, f.src.look, o);
+    if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   for (const p of M.parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
   ctx.imageSmoothingEnabled = false;
@@ -954,8 +1079,12 @@ function hud(){
     $('#st' + i).style.width = (st * 100).toFixed(1) + '%';
     $('#kd' + i).textContent = f.kd ? 'DOWN x' + f.kd : '';
   });
+  const me = M.f[0];
+  $('#ht').style.width = (me.rage > 0 ? me.rage / RAGE_T * 100 : M.heart * 100).toFixed(1) + '%';
+  $('#htw').classList.toggle('on', me.rage > 0);
   $('#rd').textContent = `ROUND ${M.round} / ${M.rounds}`;
   const c = Math.ceil(M.clock); $('#clk').textContent = `${Math.floor(c / 60)}:${String(c % 60).padStart(2, '0')}`;
+  $('#eye').style.opacity = (clamp((me.swell - .3) / .7, 0, 1) * .85).toFixed(2);   // your swollen eye closes in on the view
 }
 function frame(now){
   requestAnimationFrame(frame);
@@ -968,16 +1097,21 @@ function frame(now){
 requestAnimationFrame(frame);
 
 /* ---- fight overlays ---- */
-let bannerTimer = 0;
 function banner(text, cls){
   const b = $('#banner'); b.textContent = text; b.className = cls || '';
   if (text) { void b.offsetWidth; b.classList.add('pop'); }
 }
-function fx(text, side, cls){
-  const f = M.f[side], x = (M.ox[side] + (side === 0 ? 1 : -1) * f.dx) * cssW / LW, y = (M.gy - 58) * cssH / LH;
+function fxAt(text, fx01, fy01, cls){
   const d = document.createElement('div'); d.className = 'fx ' + (cls || ''); d.textContent = text;
-  d.style.left = x + 'px'; d.style.top = y + 'px';
+  d.style.left = (fx01 * cssW) + 'px'; d.style.top = (fy01 * cssH) + 'px';
   $('#pops').appendChild(d); setTimeout(() => d.remove(), 850);
+}
+const popLive = [[], []];                                                    // stack words that pop up close together
+function fx(text, side, cls){
+  const f = M.f[side], now = performance.now(), L = popLive[side];
+  while (L.length && L[0] < now - 700) L.shift();
+  fxAt(text, f.x / LW, (M.gy - 58) / LH - L.length * 18 / cssH, cls);
+  L.push(now);
 }
 function renderGetup(){
   const el = $('#getup'), d = M.f[M.downSide];
@@ -985,16 +1119,30 @@ function renderGetup(){
   el.hidden = false;
   el.innerHTML = `TAP FAST TO GET UP<div class="m"><i style="width:${(clamp(M.taps / M.tapNeed, 0, 1) * 100).toFixed(1)}%"></i></div>`;
 }
+const CONTROLS = `<div class="ctrls">
+  <div><b>Tap</b> his head / body</div><div>Jab there</div>
+  <div><b>Swipe &rarr;</b></div><div>Hook (head or body: where you start)</div>
+  <div><b>Swipe &uarr;</b></div><div>Uppercut</div>
+  <div><b>Swipe &larr;</b></div><div>Slip back (not on the ropes)</div>
+  <div><b>Swipe &darr;</b></div><div>Duck under head punches</div>
+  <div><b>Hold</b> high / low</div><div>Block head / block body</div>
+</div><div class="muted" style="font-size:12px">You walk forward on your own. Get hurt and keep landing: the <span class="yellow">heart</span> bar fills.</div>`;
+function showControls(first){
+  $('#over').hidden = false;
+  $('#over').innerHTML = `<div class="panel"><h2>HOW TO FIGHT</h2>${CONTROLS}<button class="btn go" data-f="${first ? 'tutok' : 'resume'}">${first ? 'Got it' : 'Back'}</button></div>`;
+}
 function showBreak(){
   M.phase = 'break';
-  const s = M.roundStats[M.roundStats.length - 1];
+  const s = M.roundStats[M.roundStats.length - 1], [a, b] = M.f;
+  const face = f => f.cut >= 2 ? 'Bleeding' : f.swell > .6 ? 'Eye closing' : f.swell > .3 ? 'Swelling' : f.cut ? 'Small cut' : 'Fine';
   $('#over').hidden = false;
   $('#over').innerHTML = `<div class="panel"><h2>END OF ROUND ${M.round}</h2>
-    <table><tr><th></th><th>You</th><th>${esc(M.f[1].src.name.split(' ').pop())}</th></tr>
+    <table><tr><th></th><th>You</th><th>${esc(b.src.name.split(' ').pop())}</th></tr>
     <tr><td>Punches landed</td><td class="num">${s.me[0]} / ${s.me[1]}</td><td class="num">${s.them[0]} / ${s.them[1]}</td></tr>
     <tr><td>Knockdowns</td><td class="num">${s.me[2]}</td><td class="num">${s.them[2]}</td></tr>
-    <tr><td>Health</td><td class="num">${Math.round(M.f[0].hp / M.f[0].hpMax * 100)}%</td><td class="num">${Math.round(M.f[1].hp / M.f[1].hpMax * 100)}%</td></tr></table>
-    <div class="muted" style="font-size:13px">Your corner patches you up between rounds.</div>
+    <tr><td>Health</td><td class="num">${Math.round(a.hp / a.hpMax * 100)}%</td><td class="num">${Math.round(b.hp / b.hpMax * 100)}%</td></tr>
+    <tr><td>Face</td><td>${face(a)}</td><td>${face(b)}</td></tr></table>
+    ${a.cut >= 2 ? '<div class="bad" style="font-size:13px">One more cut and the doctor stops it.</div>' : ''}
     <button class="btn go" data-f="next">Round ${M.round + 1}</button></div>`;
 }
 function showEnd(){
@@ -1002,7 +1150,7 @@ function showEnd(){
   const cards = M.totals ? `<div class="muted num" style="font-size:14px">Judges: ${M.totals.map(t => t[0] + '-' + t[1]).join(', ')}</div>` : '';
   $('#over').hidden = false;
   $('#over').innerHTML = `<div class="panel"><h2 class="${won ? 'yellow' : ''}">${draw ? 'DRAW' : won ? 'YOU WIN' : 'YOU LOSE'}</h2>
-    <div class="px">${HOW[r.how]}${r.how === 'KO' || r.how === 'TKO' ? ' &middot; round ' + M.round : ''}</div>${cards}
+    <div class="px">${HOW[r.how]}${['KO', 'TKO', 'DOC'].includes(r.how) ? ' &middot; round ' + M.round : ''}</div>${cards}
     <button class="btn go" data-f="leave">Continue</button></div>`;
 }
 function showPause(){
@@ -1010,7 +1158,7 @@ function showPause(){
   $('#over').hidden = false;
   $('#over').innerHTML = `<div class="panel"><h2>PAUSED</h2>
     <button class="btn go" data-f="resume">Resume</button>
-    <button class="btn" data-f="sound">Sound: ${SOUND ? 'On' : 'Off'}</button>
+    <div class="row"><button class="btn grow" data-f="howto">Controls</button><button class="btn grow" data-f="sound">Sound: ${SOUND ? 'On' : 'Off'}</button></div>
     <button class="btn red" data-f="quit">${armed === 'quit' ? 'Tap again: you lose' : 'Quit fight'}</button></div>`;
 }
 $('#over').addEventListener('click', e => {
@@ -1018,38 +1166,69 @@ $('#over').addEventListener('click', e => {
   const a = b.dataset.f;
   if (a === 'next') nextRound();
   else if (a === 'leave') leaveFight();
+  else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; M.phase = 'intro'; M.pt = 1.4; banner('ROUND 1', 'y'); bell(1); last = performance.now(); }
+  else if (a === 'howto') showControls(false);
   else if (a === 'resume') { armed = null; M.paused = false; $('#over').hidden = true; last = performance.now(); }
   else if (a === 'sound') { SOUND = !SOUND; try { localStorage.setItem('retroboxing.sound', SOUND ? 'on' : 'off'); } catch {} showPause(); }
   else if (a === 'quit') { if (armed === 'quit') { armed = null; quitFight(); } else { armed = 'quit'; showPause(); } }
 });
 $('#pauseBtn').addEventListener('click', () => { if (M && !M.paused && $('#over').hidden) { armed = null; showPause(); } });
 
-/* ---- controls ---- */
-const ACT = { bJab:'jab', bHook:'hook', bUpper:'upper', bDodge:'dodge', bBlock:'block' };
-function act(name, down){
-  if (!M || M.paused) return;
-  const me = M.f[0];
-  if (name === 'block') { me.blockHeld = down; return; }
-  if (!down) return;
-  if (name === 'dodge') dodge(me); else punch(me, name);
-}
-for (const [id, name] of Object.entries(ACT)) {
-  const el = document.getElementById(id);
-  el.addEventListener('pointerdown', e => { e.preventDefault(); ac(); el.classList.add('on'); act(name, true); });
-  const up = () => { el.classList.remove('on'); act(name, false); };
-  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up);
-  el.addEventListener('contextmenu', e => e.preventDefault());
-}
-$('#game').addEventListener('pointerdown', () => { if (M && M.phase === 'count' && M.f[M.downSide].user) { M.taps++; renderGetup(); } });
-const KEYS = { KeyJ:'jab', KeyK:'hook', KeyL:'upper', KeyA:'dodge', ArrowDown:'dodge', Space:'block', KeyS:'block' };
-addEventListener('keydown', e => {
-  if (!M) return; const n = KEYS[e.code];
-  if (M.phase === 'count' && M.f[M.downSide].user && !e.repeat) { M.taps++; renderGetup(); }
-  if (n) { e.preventDefault(); if (!e.repeat) act(n, true); }
-  if (e.code === 'Escape' || e.code === 'KeyP') { if (!M.paused) showPause(); }
+/* ---- controls: taps and swipes anywhere on the ring ---- */
+// head or body: above or below his shoulders on the screen
+const tgtAt = clientY => clientY * LH / cssH < M.gy - 37 ? 'head' : 'body';
+const HOLD_MS = 170, SWIPE_PX = 24;
+const touches = new Map();
+function blocking(){ return [...touches.values()].some(t => t.block); }
+function setGuard(y){ const me = M.f[0]; me.blockHeld = true; me.guard = tgtAt(y) === 'head' ? 'high' : 'low'; }
+const game = $('#game');
+game.addEventListener('pointerdown', e => {
+  if (!M || e.target.closest('button, #over')) return;
+  ac();
+  if (M.phase === 'count' && M.f[M.downSide].user) { M.taps++; renderGetup(); return; }
+  if (M.paused) return;
+  e.preventDefault();
+  try { game.setPointerCapture(e.pointerId); } catch {}
+  const t = { x:e.clientX, y:e.clientY, lx:e.clientX, ly:e.clientY, done:false, block:false };
+  t.timer = setTimeout(() => { if (M && !t.done) { t.block = true; setGuard(t.ly); } }, HOLD_MS);
+  touches.set(e.pointerId, t);
 });
-addEventListener('keyup', e => { const n = KEYS[e.code]; if (n && M) act(n, false); });
-if (!matchMedia('(hover:hover) and (pointer:fine)').matches) $('#game').classList.add('nohover');
+game.addEventListener('pointermove', e => {
+  const t = touches.get(e.pointerId); if (!t || !M) return;
+  t.lx = e.clientX; t.ly = e.clientY;
+  if (t.block) { setGuard(t.ly); return; }
+  if (t.done) return;
+  const dx = e.clientX - t.x, dy = e.clientY - t.y;
+  if (Math.hypot(dx, dy) < SWIPE_PX) return;
+  t.done = true; clearTimeout(t.timer);
+  const me = M.f[0];
+  if (Math.abs(dx) > Math.abs(dy)) { if (dx > 0) punch(me, 'hook', tgtAt(t.y)); else slip(me); }
+  else if (dy < 0) punch(me, 'upper', 'head'); else duck(me);
+});
+function endTouch(e){
+  const t = touches.get(e.pointerId); if (!t) return;
+  clearTimeout(t.timer); touches.delete(e.pointerId);
+  if (!M) return;
+  if (t.block) { if (!blocking()) M.f[0].blockHeld = false; return; }
+  if (!t.done && e.type === 'pointerup') punch(M.f[0], 'jab', tgtAt(t.y));
+}
+game.addEventListener('pointerup', endTouch);
+game.addEventListener('pointercancel', endTouch);
+game.addEventListener('contextmenu', e => e.preventDefault());
+// keyboard: J / N jab head / body, K / M hook head / body, I uppercut, A slip, S duck, Space block high, Shift block low
+const KEYS = { KeyJ:['jab', 'head'], KeyN:['jab', 'body'], KeyK:['hook', 'head'], KeyM:['hook', 'body'], KeyI:['upper', 'head'], KeyL:['upper', 'head'],
+  KeyA:['slip'], ArrowLeft:['slip'], KeyS:['duck'], ArrowDown:['duck'], Space:['block', 'high'], ShiftLeft:['block', 'low'], ShiftRight:['block', 'low'] };
+addEventListener('keydown', e => {
+  if (!M) return; const k = KEYS[e.code];
+  if (M.phase === 'count' && M.f[M.downSide].user && !e.repeat) { M.taps++; renderGetup(); }
+  if (e.code === 'Escape' || e.code === 'KeyP') { if (!M.paused) showPause(); return; }
+  if (!k || M.paused) return;
+  e.preventDefault(); if (e.repeat) return;
+  const me = M.f[0];
+  if (k[0] === 'block') { me.blockHeld = true; me.guard = k[1]; }
+  else if (k[0] === 'slip') slip(me); else if (k[0] === 'duck') duck(me); else punch(me, k[0], k[1]);
+});
+addEventListener('keyup', e => { const k = KEYS[e.code]; if (k && k[0] === 'block' && M) M.f[0].blockHeld = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden && M && !M.paused && M.phase === 'fight') showPause(); });
 
 /* ================= menus ================= */
