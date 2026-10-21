@@ -233,6 +233,15 @@ tr.champ td{color:#fff3b8}
 #banner.pop{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(1.6);opacity:0}100%{transform:scale(1);opacity:1}}
 #pops{position:absolute;inset:0;pointer-events:none}
+#ann{position:absolute;left:0;right:0;top:22%;text-align:center;pointer-events:none;text-shadow:0 3px 0 #000}
+#ann .a1{font-family:var(--px);font-size:13px;color:var(--muted)}
+#ann .a2{font-family:var(--px);font-weight:700;font-size:clamp(22px,6vh,40px);color:var(--yellow);line-height:1.1;animation:pop .35s ease-out}
+#ann .a3{font-family:var(--px);font-size:12px;color:#fff}
+#ann .skip{font-size:10px;color:var(--muted);margin-top:8px;opacity:.7}
+#replay{position:absolute;inset:0;pointer-events:none;border-top:28px solid #000;border-bottom:28px solid #000}
+#replay b{position:absolute;left:max(16px,env(safe-area-inset-left));top:-22px;font-family:var(--px);font-size:14px;color:#fff}
+#replay i{position:absolute;left:calc(max(16px,env(safe-area-inset-left)) + 84px);top:-18px;width:9px;height:9px;border-radius:50%;background:var(--red);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
 .fx{position:absolute;transform:translate(-50%,-100%);font-family:var(--px);font-weight:700;font-size:15px;text-shadow:0 2px 0 #000;white-space:nowrap;animation:rise .8s ease-out forwards}
 .fx.y{color:var(--yellow)} .fx.r{color:#ff7a6b} .fx.b{color:var(--sky)}
 @keyframes rise{0%{opacity:0;margin-top:6px}15%{opacity:1}100%{opacity:0;margin-top:-26px}}
@@ -302,6 +311,8 @@ tr.champ td{color:#fff3b8}
   <button class="btn sm" id="pauseBtn" aria-label="Pause">II</button>
   <div id="pops"></div>
   <div id="banner"></div>
+  <div id="ann" hidden></div>
+  <div id="replay" hidden><i></i><b>REPLAY</b></div>
   <div id="getup" hidden></div>
   <div id="over" hidden></div>
 </div>
@@ -324,6 +335,8 @@ const RDESC = { pow:'Damage of every punch', spd:'Faster punches and recovery', 
 const FIRST = ['Marcus','Tony','Rico','Danny','Leon','Victor','Sal','Andre','Mickey','Ray','Eddie','Hector','Jamal','Viktor','Kenji','Omar','Frankie','Luis','Darnell','Ivan','Tommy','Dmitri','Carlos','Jesse','Nate','Malik','Sonny','Paulie','Felix','Rocco','Terrence','Abel','Junior','Dante','Gus','Ramon','Teddy','Bruno','Calvin','Moses'];
 const LAST = ['Reyes','Malone','Kowalski','Brooks','Vargas','Okafor','Petrov','Santos','Mendez','Hayes','Doyle','Castillo','Washington','Ito','Romero','Dunn','Novak','Jackson','Quinn','Ortega','Burke','Volkov','Graves','Diaz','Fontaine','Sullivan','Morales','Kane','Russo','Bishop','Carter','Lopez','Ward','Silva','Holloway','Murphy','Rivera','Stone','Pryor','Benitez'];
 const NICK = ['Iron','The Hammer','Kid','Bulldog','Lightning','Smokin\'','Hurricane','The Tank','Sugar','Mad Dog','Stone Fist','Rocket','The Truth','Slick','Hitman','Thunder','Bad News','Gentleman','Cobra','The Bull','Pretty Boy','El Toro','Machine','Butterbean','Showtime','Big Country','The Wall','Rattlesnake','Midnight','Doc'];
+const TOWNS = ['Philadelphia','Detroit','Brooklyn','Las Vegas','Chicago','Houston','Mexico City','Manila','London','Belfast','Kingston','Havana','Moscow','Kyiv','Tokyo','Accra','Lagos','San Juan','Los Angeles','Oakland','Newark','Cleveland','Glasgow','Dublin','Sydney','Panama City','Bogota','Tijuana','Atlanta','Memphis'];
+const townOf = f => f.town || (f.town = pick(TOWNS));
 const SKINS = ['#f3cfac','#e1ac80','#c68642','#93592b','#5e3a21'];
 const HAIRS = ['#1b1b1b','#5a3a1e','#c9a24a','#b5462e','#e8e8e8','none'];
 const KITS = ['#e24b3b','#3f7be0','#ffd23f','#44c45d','#f4f4f4','#1d1d1d','#a24be0','#ff8a2b'];
@@ -355,14 +368,14 @@ function genFighter(base, age){
   const style = pick(Object.keys(STYLES)), m = STYLES[style].mod, rat = {};
   for (const k of RK) rat[k] = clamp(Math.round(base + m[k] + rnd(-5, 5)), 15, 99);
   const f = { id:'f' + (G.nextId++), name:pick(FIRST) + ' ' + pick(LAST), nick:Math.random() < .6 ? pick(NICK) : '', style, rat,
-    age:age ?? ri(21, 33), w:0, l:0, d:0, ko:0, look:genLook() };
+    age:age ?? ri(21, 33), town:pick(TOWNS), w:0, l:0, d:0, ko:0, look:genLook() };
   G.fighters[f.id] = f;
   return f;
 }
 const skillOf = f => clamp((ovr(f) - 28) / 60, 0, 1);       // how well the computer reads you
-function newCareer(name, nick, look){
+function newCareer(name, nick, look, town){
   G = { v:1, nextId:1, week:0, cash:500, fighters:{}, ladder:[], pool:[], offers:null, log:[], best:null, nrWins:0, titles:0, defenses:0, over:false };
-  G.fighters.me = { id:'me', me:true, name, nick, style:'you', rat:{ pow:40, spd:40, sta:40, chin:40 }, age:21, w:0, l:0, d:0, ko:0, look };
+  G.fighters.me = { id:'me', me:true, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, chin:40 }, age:21, w:0, l:0, d:0, ko:0, look };
   for (let i = 0; i <= 30; i++) {                             // 0 is the champion, 1-30 the rankings
     const f = genFighter(87 - i * 1.5);
     f.w = ri(9, 15) + Math.round((30 - i) * .6); f.l = i === 0 ? ri(0, 1) : ri(0, 4) + (i > 15 ? ri(0, 3) : 0); f.d = Math.random() < .3 ? 1 : 0; f.ko = Math.round(f.w * rnd(.4, .75));
@@ -525,6 +538,7 @@ const POSE = {
   duck:  { lean:3,  cr:10, hx:1,  hy:1,  fg:[11,-43], fe:[7,-33],  bg:[7,-45],  be:[2,-33] },
   hurt:  { lean:-4, cr:1,  hx:-3, hy:-1, fg:[9,-39],  fe:[6,-31],  bg:[3,-41],  be:[-1,-31] },
   hurtB: { lean:3,  cr:5,  hx:1,  hy:1,  fg:[8,-35],  fe:[5,-30],  bg:[4,-33],  be:[0,-30] },
+  robe:  { lean:0,  cr:0,  hx:0,  hy:0,  fg:[5,-26], fe:[5,-34],  bg:[-3,-26], be:[-3,-34] },
   win:   { lean:0,  cr:-1, hx:0,  hy:-1, fg:[9,-64],  fe:[8,-52],  bg:[-3,-64], be:[-5,-52] },
 };
 const PK = ['lean','cr','hx','hy'], PV = ['fg','fe','bg','be'];
@@ -599,6 +613,44 @@ function drawDown(g, ox, gy, dir, look, o = {}){
   R(-25, -11, 9, 3, skin); R(-18, -14, 6, 6, look.gloves);                  // arms flopped out
   R(-23, -2, 9, 2, shade(skin, .82)); R(-16, -3, 6, 5, shade(look.gloves, .78));
 }
+// the walkout robe; the arms hang down inside it
+function drawRobe(g, ox, gy, dir, look){
+  const col = look.trunks === '#f4f4f4' ? '#d8d8d8' : look.trunks, trim = col === '#1d1d1d' ? '#ffd23f' : '#f4f4f4';
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
+  R(-10, -44, 6, 5, col);                                                    // hood down behind the neck
+  R(-9, -41, 18, 31, col); R(-10, -36, 20, 22, col);
+  R(-9, -41, 18, 2, trim); R(-10, -12, 20, 2, trim);
+  R(3, -39, 2, 27, shade(col, .72));                                         // where it closes at the front
+}
+function drawRef(g, ox, gy, dir, armUp){
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
+  R(-9, -1, 18, 2, 'rgba(0,0,0,.2)');
+  R(-4, -17, 3, 16, '#1d1d1d'); R(1, -17, 3, 16, '#1d1d1d');                // trousers
+  R(-5, -2, 4, 2, '#000'); R(1, -2, 5, 2, '#000');
+  R(-6, -35, 12, 19, '#f2f2f2'); R(-6, -18, 12, 2, '#1d1d1d');               // shirt and belt
+  R(-2, -35, 4, 2, '#111');                                                  // bow tie
+  R(-8, -34, 3, 13, '#e8e8e8'); R(-8, -22, 3, 3, '#e1ac80');
+  if (armUp) { R(5, -49, 3, 15, '#e8e8e8'); R(5, -52, 3, 3, '#e1ac80'); }
+  else { R(5, -34, 3, 13, '#e8e8e8'); R(5, -22, 3, 3, '#e1ac80'); }
+  R(-2, -37, 4, 2, '#e1ac80');
+  R(-4, -45, 8, 9, '#e1ac80'); R(-4, -45, 8, 2, '#a8a8a8'); R(-4, -43, 2, 3, '#a8a8a8');
+  R(1, -41, 1, 1, '#141414');
+}
+const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
+function drawCardGirl(g, ox, gy, n, t){
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(ox + x), Math.round(gy + y), w, h); };
+  const skin = '#e1ac80', st = Math.sin(t * 12) * 1.5;
+  R(-7, -1, 14, 2, 'rgba(0,0,0,.2)');
+  R(-3 - st, -14, 2, 12, skin); R(1 + st, -14, 2, 12, skin);                 // legs, walking
+  R(-4 - st, -3, 3, 2, '#e24b3b'); R(1 + st, -3, 3, 2, '#e24b3b');
+  R(-4, -29, 8, 16, '#e24b3b'); R(-4, -22, 8, 1, '#ffd23f');                 // sparkly red outfit
+  R(-6, -45, 2, 17, skin); R(4, -45, 2, 17, skin);                           // both arms up holding the card
+  R(-3, -37, 7, 8, skin); R(-4, -38, 9, 3, '#3b2414'); R(-4, -36, 2, 9, '#3b2414');
+  R(2, -34, 1, 1, '#141414');
+  const s = String(n), w = s.length * 8 - 2 + 8;
+  R(-w / 2, -58, w, 14, '#f4f4f4'); R(-w / 2, -58, w, 1, '#ffd23f');
+  [...s].forEach((d, k) => { const pat = DIGITS[+d]; for (let i = 0; i < 15; i++) if (pat[i] === '1') R(-w / 2 + 4 + k * 8 + (i % 3) * 2, -56 + Math.floor(i / 3) * 2, 2, 2, '#1d1d1d'); });
+}
 const portraits = new Map();
 function portrait(f, w = 44, h = 34){
   const key = `${f.id}|${JSON.stringify(f.look)}|${w}x${h}`;
@@ -635,6 +687,15 @@ function bell(times = 1){
     }
   }
 }
+function roar(level){
+  if (!SOUND) return; const a = ac(); if (!a) return;
+  const len = 1.6, b = a.createBuffer(1, Math.floor(a.sampleRate * len), a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) { const t = i / d.length; d[i] = (Math.random() * 2 - 1) * Math.min(1, t * 6) * (1 - t) ** 1.5; }
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 650; f.Q.value = .6;
+  const v = a.createGain(); v.gain.value = .12 + level * .2;
+  s.connect(f).connect(v).connect(a.destination); s.start();
+}
 function swish(){
   if (!SOUND) return; const a = ac(); if (!a) return;
   const b = a.createBuffer(1, Math.floor(a.sampleRate * .09), a.sampleRate), d = b.getChannelData(0);
@@ -658,7 +719,7 @@ const WALK = 16, CLOSE = 32, MIN_GAP = 24, ROPE_IN = 13;
 const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6;
 const ROUND_SECS = 180, CLOCK_X = 4;                       // a 3:00 round lasts 45 real seconds
 const LH = 120;
-let M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
+let CROWD = [], M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
 const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('canvas'), g = low.getContext('2d');
 
 function mkF(src, side, user){
@@ -732,7 +793,7 @@ function resolve(a, d){
     sparks(hitX, hitY, big ? 9 : 4, big ? '#ffd23f' : '#ffffff');
     if (d.cut && head) sparks(hitX, hitY + 2, 3, '#c41e1e');
     M.shake = big ? .18 : .07;
-    if (big) M.flashes += 8;
+    if (big) { M.flashes += 8; hype(tag ? .35 : .18); }
     if (tag) fx(tag, a.side, 'y');
     else if (!head && d.user === false && Math.random() < .3) fx('BODY', d.side, '');
   }
@@ -746,8 +807,12 @@ function addHeart(n){
   if (M.heart >= 1) {
     M.heart = 0; me.rage = RAGE_T;
     banner('HEART!', 'y'); setTimeout(() => { if (M && M.phase === 'fight') banner(''); }, 900);
-    chant(); M.flashes += 30;
+    chant(); M.flashes += 30; hype(.7);
   }
+}
+function hype(n){
+  const was = M.hype; M.hype = Math.min(1, M.hype + n);
+  if (M.hype > .55 && was <= .55) roar(M.hype);
 }
 function chant(){
   if (!M) return;
@@ -836,7 +901,8 @@ function aiThink(f, o, dt){
 function knockdown(d, a){
   d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false; d.rage = 0;
   a.state = 'idle'; a.blockHeld = false;
-  M.shake = .3; M.flashes += 25;
+  M.shake = .3; M.flashes += 25; hype(.9);
+  M.capture = { frames:M.buf.slice(), until:M.time + .9 };                 // keep this for the replay
   if (d.kdR >= 3) { banner('T.K.O.!', 'y'); thud(1, false); return finish(a.side, 'TKO'); }
   banner('DOWN!', 'y'); thud(1, false);
   M.phase = 'count'; M.count = 0; M.countT = 0; M.downSide = d.side;
@@ -859,8 +925,8 @@ function finish(winSide, how){
   M.phase = 'end'; M.pt = 2.6; M.result = { winSide, how };
   const W = M.f[winSide], Lo = M.f[1 - winSide];
   if (W) { W.state = 'win'; W.blockHeld = false; W.rage = 0; }
-  if (Lo && (how === 'KO' || how === 'TKO')) Lo.state = 'down';
-  bell(3);
+  if (Lo && (how === 'KO' || how === 'TKO')) { Lo.state = 'down'; M.doReplay = !!(M.capture && M.capture.frames.length > 20); }
+  bell(3); hype(1); roar(1);
 }
 
 function scoreRound(){
@@ -901,13 +967,49 @@ function placeFighters(){
 function startFight(offer){
   const me = G.fighters.me, o = G.fighters[offer.id];
   M = { offer, opp:o.id, oppRank:rankShort(o.id), rounds:offer.rounds, round:1, clock:ROUND_SECS, phase:'intro', pt:1.6, time:0,
-    f:[mkF(me, 0, true), mkF(o, 1, false)], cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0 };
+    f:[mkF(me, 0, true), mkF(o, 1, false)], cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0,
+    hype:0, ref:{ x:0, arm:0 }, buf:[], capture:null, robes:false, card:null };
   $('#game').hidden = false; $('#ui').hidden = true; $('#over').hidden = true; $('#getup').hidden = true;
   $('#n0').textContent = me.name; $('#n1').textContent = o.name;
   resize(); placeFighters(); hud();
   last = performance.now();
+  M.ref.x = Math.round(LW / 2);
   if (!G.tutDone) { M.phase = 'tut'; showControls(true); }
-  else { banner('ROUND 1', 'y'); bell(1); }
+  else startWalkout();
+}
+// both men walk out in their robes while the announcer calls their names
+function startWalkout(){
+  M.phase = 'walkout'; M.wt = 0; M.robes = true; M.annStep = -1;
+  M.f[0].x = M.lo - 50; M.f[1].x = M.hi + 50;
+  $('#ann').hidden = false; $('#ann').innerHTML = '';
+}
+function annLines(){
+  const [a, b] = M.f.map(f => f.src), o = M.offer;
+  const nm = f => (f.nick ? `&ldquo;${esc(f.nick)}&rdquo; ` : '') + esc(f.name);
+  return [
+    ['LADIES AND GENTLEMEN', o.title ? 'FOR THE WORLD TITLE' : 'WELCOME TO FIGHT NIGHT', `${o.rounds} ROUNDS OF BOXING`],
+    ['IN THE BLUE CORNER', nm(b), `${rec(b)} &middot; FROM ${esc(townOf(b)).toUpperCase()}`],
+    ['AND IN THE RED CORNER', nm(a), `${rec(a)} &middot; FROM ${esc(townOf(a)).toUpperCase()}`],
+    ['FIGHTERS', 'TOUCH GLOVES', ''],
+  ];
+}
+function walkout(dt){
+  M.wt += dt;
+  const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2);
+  const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; } };
+  if (t < 6.4) { toward(a, M.lo + 4, 34); toward(b, M.hi - 4, 34); }
+  else { M.robes = false; toward(a, cx - 17, 30); toward(b, cx + 17, 30); }
+  const step = t < 2.1 ? 0 : t < 4.3 ? 1 : t < 6.4 ? 2 : 3;
+  if (step !== M.annStep) {
+    M.annStep = step; const L = annLines()[step];
+    $('#ann').innerHTML = `<div class="a1">${L[0]}</div><div class="a2">${L[1]}</div><div class="a3">${L[2]}</div><div class="skip">tap to skip</div>`;
+    if (step === 1 || step === 2) { roar(step === 2 ? .9 : .5); M.hype = step === 2 ? .9 : .5; M.flashes += 20; }
+  }
+  if (t > 7.6) skipWalkout();
+}
+function skipWalkout(){
+  M.robes = false; $('#ann').hidden = true; placeFighters();
+  M.phase = 'intro'; M.pt = 1.4; banner('ROUND 1', 'y'); bell(1);
 }
 function nextRound(){
   M.round++; M.clock = ROUND_SECS; M.phase = 'intro'; M.pt = 1.4;
@@ -917,7 +1019,9 @@ function nextRound(){
     f.kdR = 0; f.rThrown = 0; f.rLanded = 0; f.rDmg = 0; f.state = 'idle'; f.whiff = false; f.ai.next = rnd(.9, 1.6);
   }
   placeFighters();
-  $('#over').hidden = true; banner('ROUND ' + M.round, 'y'); bell(1);
+  M.pt = 2.6; M.card = { x:M.lo - 40, n:M.round };
+  $('#over').hidden = true; bell(1); banner('');
+  setTimeout(() => { if (M && M.phase === 'intro') banner('ROUND ' + M.round, 'y'); }, 1500);
 }
 function quitFight(){
   M.result = { winSide:1, how:'RTD' }; leaveFight();
@@ -925,7 +1029,7 @@ function quitFight(){
 function leaveFight(){
   const res = M.result, R = { opp:M.opp, oppRank:M.oppRank, purse:M.offer.purse, title:M.offer.title, rd:M.round,
     win:res.winSide === 0, draw:res.winSide < 0, ko:['KO', 'TKO', 'RTD', 'DOC'].includes(res.how), how:res.how, totals:M.totals || null };
-  M = null; touches.clear();
+  M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true;
   $('#game').hidden = true; $('#ui').hidden = false;
   applyResult(R);
   screen = 'result'; render();
@@ -939,8 +1043,11 @@ function update(dt){
   M.shake = Math.max(0, M.shake - dt);
   for (const p of M.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; p.life -= dt; }
   M.parts = M.parts.filter(p => p.life > 0);
+  M.hype = Math.max(0, M.hype - dt * .22);
+  if (M.phase === 'replay') { M.rt += dt * .3; if (M.rt > M.rEnd) endReplay(); return; }
   switch (M.phase) {
-    case 'intro': M.pt -= dt; if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
+    case 'walkout': walkout(dt); break;
+    case 'intro': M.pt -= dt; if (M.card) { M.card.x += dt * (M.hi - M.lo + 80) / 2.4; if (M.card.x > M.hi + 40) M.card = null; } if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
     case 'fight':
       M.clock -= dt * CLOCK_X;
       if (b.state !== 'down') aiThink(b, a, dt);
@@ -954,7 +1061,7 @@ function update(dt){
       M.countT += dt;
       const d = M.f[M.downSide], up = M.f[1 - M.downSide];
       up.x = clamp(up.x + away(up) * 14 * dt * (M.count < 2 ? 1 : 0), M.lo, M.hi);   // off to a neutral corner
-      if (M.countT >= 1) { M.countT -= 1; M.count++; banner(String(M.count), M.count >= 8 ? 'y' : ''); thud(.05, true); }
+      if (M.countT >= 1) { M.countT -= 1; M.count++; M.ref.arm = .45; banner(String(M.count), M.count >= 8 ? 'y' : ''); thud(.05, true); }
       if (d.user) {
         if (a.auto) M.taps += dt * 6;
         M.taps = Math.max(0, M.taps - dt * 1.4);
@@ -970,9 +1077,33 @@ function update(dt){
       if (cut >= 0) { banner('DOCTOR STOPS IT', 'y'); finish(1 - cut, 'DOC'); }
       else if (M.round >= M.rounds) decision(); else showBreak();
     } break;
-    case 'end': M.pt -= dt; if (M.pt <= 0 && $('#over').hidden) showEnd(); break;
+    case 'end': M.pt -= dt; if (M.pt <= 0 && $('#over').hidden) { if (M.doReplay) startReplay(); else showEnd(); } break;
   }
   for (const f of M.f) animate(f, dt);
+  moveRef(dt);
+  // a rolling recording of the last two seconds, for the knockout replay
+  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage, walk:f.walk })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 2.2) M.buf.shift();
+  if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
+}
+function moveRef(dt){
+  const R = M.ref, [a, b] = M.f;
+  // he keeps off to one side, out of the punches, on whichever side has room
+  const mid = (a.x + b.x) / 2; let tx = mid + 40 > M.hi + 6 ? mid - 40 : mid + 40;
+  if (M.ref.side === undefined) M.ref.side = 1;
+  if (M.phase === 'count') { const d = M.f[M.downSide]; tx = d.x - away(d) * 6; }
+  else if (M.phase === 'end' && M.result && M.result.winSide >= 0) { const w = M.f[M.result.winSide]; tx = w.x + away(w) * -16; }
+  const d = tx - R.x; R.x += Math.sign(d) * Math.min(Math.abs(d), 26 * dt);
+  R.arm = Math.max(0, R.arm - dt);
+}
+function startReplay(){
+  M.phase = 'replay'; M.doReplay = false;
+  const fr = M.capture.frames; M.rFrames = fr; M.rt = 0; M.rEnd = fr[fr.length - 1].t - fr[0].t;
+  $('#replay').hidden = false; banner('');
+}
+function endReplay(){
+  $('#replay').hidden = true; M.phase = 'end'; M.pt = 0; M.rFrames = null;
+  banner(M.result.how === 'TKO' ? 'T.K.O.!' : 'K.O.!', 'y'); showEnd();
 }
 function targetPose(f){
   const st = f.state, P = POSE, body = f.tgt === 'body';
@@ -986,6 +1117,7 @@ function targetPose(f){
     case 'duck': return [P.duck, 34];
     case 'stun': return [f.hurtLow ? P.hurtB : P.hurt, 40];
     case 'win': return [P.win, 10];
+    case 'idle': if (M.robes) return [P.robe, 30];   // falls through when not in the robe
     default: {
       const t = M.time * 4 + f.side * 1.7, bob = Math.sin(t) * .8;
       const p = copyPose(P.guard); p.cr += bob + (f.st < f.stMax * .2 ? 1.5 : 0); p.fg[1] += bob * .6; p.bg[1] += bob * .6; return [p, 12];
@@ -1021,19 +1153,18 @@ function buildBg(){
   const b = bgCanvas.getContext('2d'), R = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
   const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
   R(0, 0, LW, LH, '#100d2e');
-  // crowd: rows of heads and shoulders, darker further back
+  // crowd: rows of heads and shoulders, darker further back (drawn every frame so they can jump)
   let seed = 7; const rr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const shirts = ['#3a3470', '#4a2f5e', '#2f4a6e', '#5e3a3a', '#3f5a48', '#55506e', '#6e5a3a', '#2a2a44'];
   const heads = ['#e1ac80', '#c68642', '#93592b', '#f3cfac', '#5e3a21'];
+  CROWD = [];
   for (let row = 0; row < 7; row++) {
     const y = 6 + row * 7, dim = .45 + row * .08;
     for (let x = -2 + (row % 2) * 3; x < LW; x += 6) {
       if (rr() < .08) continue;
-      R(x, y + 3, 5, 5, shade(shirts[Math.floor(rr() * shirts.length)], dim));
-      R(x + 1, y, 3, 3, shade(heads[Math.floor(rr() * heads.length)], dim));
+      CROWD.push({ x, y, shirt:shade(shirts[Math.floor(rr() * shirts.length)], dim), head:shade(heads[Math.floor(rr() * heads.length)], dim), ph:rr() * 6.28, arms:rr() < .3 });
     }
   }
-  R(0, 54, LW, 2, '#0b0926');
   // ring: posts, ropes, canvas, apron
   const top = gy - 10;
   R(0, top, LW, LH - top, '#0b0926');
@@ -1049,6 +1180,14 @@ function draw(){
   const gy = M.gy;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.drawImage(bgCanvas, 0, 0);
+  const hy = M.hype;
+  for (const c of CROWD) {
+    const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0;
+    g.fillStyle = c.shirt; g.fillRect(c.x, c.y + 3 - up, 5, Math.min(5, 54 - (c.y + 3 - up)));
+    g.fillStyle = c.head; g.fillRect(c.x + 1, c.y - up, 3, 3);
+    if (up && c.arms) g.fillRect(c.x - 1, c.y - 3, 1, 3), g.fillRect(c.x + 5, c.y - 3, 1, 3);
+  }
+  g.fillStyle = '#0b0926'; g.fillRect(0, 54, LW, 2);
   if (M.flashes > 0 || Math.random() < .04) {                              // camera flashes in the crowd
     const n = Math.min(4, Math.ceil(M.flashes) || 1);
     for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(4, 50), 2, 2); }
@@ -1061,14 +1200,23 @@ function draw(){
     const x = f.side === 0 ? M.lo - ROPE_IN + 3 : M.hi + ROPE_IN - 5;
     g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x, gy - 54, 2, 34);
   }
-  const order = M.f[1].state === 'wind' || M.f[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
+  // in a replay the people come from the recording, played back slowly
+  let view = M.f, parts = M.parts, ref = M.ref;
+  if (M.phase === 'replay' && M.rFrames) {
+    const t0 = M.rFrames[0].t + M.rt, fr = M.rFrames.find(x => x.t >= t0) || M.rFrames[M.rFrames.length - 1];
+    view = fr.f.map((v, i) => ({ ...v, src:M.f[i].src })); parts = fr.parts; ref = fr.ref;
+  }
+  if (M.phase !== 'walkout' && M.phase !== 'tut') drawRef(g, ref.x, gy - 5, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
+  const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = M.f[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage > 0 };
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, swell:f.swell, cut:f.cut, body:f.body, rage:f.rage > 0 };
     if (f.state === 'down') drawDown(g, f.x - dir * 4, gy, dir, f.src.look, o);
     else drawBoxer(g, f.x, gy, dir, f.pose, f.src.look, o);
+    if (M.robes) drawRobe(g, f.x, gy, dir, f.src.look);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
-  for (const p of M.parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
+  if (M.card) drawCardGirl(g, M.card.x, gy + 8, M.card.n, M.time);
+  for (const p of parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(low, 0, 0, cv.width, cv.height);
 }
@@ -1166,7 +1314,7 @@ $('#over').addEventListener('click', e => {
   const a = b.dataset.f;
   if (a === 'next') nextRound();
   else if (a === 'leave') leaveFight();
-  else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; M.phase = 'intro'; M.pt = 1.4; banner('ROUND 1', 'y'); bell(1); last = performance.now(); }
+  else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; startWalkout(); last = performance.now(); }
   else if (a === 'howto') showControls(false);
   else if (a === 'resume') { armed = null; M.paused = false; $('#over').hidden = true; last = performance.now(); }
   else if (a === 'sound') { SOUND = !SOUND; try { localStorage.setItem('retroboxing.sound', SOUND ? 'on' : 'off'); } catch {} showPause(); }
@@ -1186,6 +1334,8 @@ game.addEventListener('pointerdown', e => {
   if (!M || e.target.closest('button, #over')) return;
   ac();
   if (M.phase === 'count' && M.f[M.downSide].user) { M.taps++; renderGetup(); return; }
+  if (M.phase === 'walkout') { skipWalkout(); return; }
+  if (M.phase === 'replay') { endReplay(); return; }
   if (M.paused) return;
   e.preventDefault();
   try { game.setPointerCapture(e.pointerId); } catch {}
@@ -1240,7 +1390,7 @@ let draft = null;
 function render(){
   ui.dataset.screen = screen;
   ui.innerHTML = (VIEWS[screen] || VIEWS.title)();
-  if (screen === 'create') { const i = $('#nmIn'); i && i.addEventListener('input', () => { draft.name = i.value.toUpperCase().slice(0, 16); }); const n = $('#nkIn'); n && n.addEventListener('input', () => { draft.nick = n.value.slice(0, 14); }); }
+  if (screen === 'create') { const i = $('#nmIn'); i && i.addEventListener('input', () => { draft.name = i.value.toUpperCase().slice(0, 16); }); const n = $('#nkIn'); n && n.addEventListener('input', () => { draft.nick = n.value.slice(0, 14); }); const w = $('#twIn'); w && w.addEventListener('input', () => { draft.town = w.value.slice(0, 16); }); }
 }
 const VIEWS = {
   title(){
@@ -1264,7 +1414,7 @@ const VIEWS = {
       <div class="create"><div class="preview"><img class="pt" src="${portrait({ id:'draft' + JSON.stringify(d.look), look:d.look }, 44, 60)}" width="132" height="180" alt=""></div>
       <div class="panel">
         <div class="field"><span class="label">Name</span><input id="nmIn" maxlength="16" value="${esc(d.name)}" placeholder="YOUR NAME"></div>
-        <div class="field"><span class="label">Nickname</span><input id="nkIn" maxlength="14" value="${esc(d.nick)}" placeholder="optional" style="text-transform:none"></div>
+        <div class="field"><span class="label">Nick / Town</span><div class="row" style="gap:6px"><input id="nkIn" maxlength="14" value="${esc(d.nick)}" placeholder="nickname" style="text-transform:none"><input id="twIn" maxlength="16" value="${esc(d.town)}" placeholder="Philadelphia" style="text-transform:none"></div></div>
         <div class="field"><span class="label">Skin</span>${sw('skin', SKINS)}</div>
         <div class="field"><span class="label">Hair</span>${sw('hair', HAIRS)}</div>
         <div class="field"><span class="label">Trunks</span>${sw('trunks', KITS)}</div>
@@ -1363,11 +1513,11 @@ ui.addEventListener('click', e => {
   if (a !== 'del' && a !== 'retire') armed = null;
   switch (a) {
     case 'title': SLOT = null; G = null; screen = 'title'; break;
-    case 'newslot': SLOT = n; draft = { name:'', nick:'', look:{ skin:SKINS[1], hair:HAIRS[0], trunks:KITS[0], gloves:GLOVES[0] } }; screen = 'create'; break;
+    case 'newslot': SLOT = n; draft = { name:'', nick:'', town:'', look:{ skin:SKINS[1], hair:HAIRS[0], trunks:KITS[0], gloves:GLOVES[0] } }; screen = 'create'; break;
     case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } break;
     case 'del': e.stopPropagation(); if (armed === 'del' + n) { resetSlot(n); armed = null; } else armed = 'del' + n; break;
     case 'look': draft.look[b.dataset.k] = b.dataset.v; break;
-    case 'start': { const nm = (draft.name || '').trim() || 'ROOKIE'; newCareer(nm, (draft.nick || '').trim(), { ...draft.look }); save(); screen = 'hub'; break; }
+    case 'start': { const nm = (draft.name || '').trim() || 'ROOKIE'; newCareer(nm, (draft.nick || '').trim(), { ...draft.look }, (draft.town || '').trim()); save(); screen = 'hub'; break; }
     case 'hub': screen = 'hub'; break;
     case 'offers': screen = 'offers'; break;
     case 'pickoff': sel = +b.dataset.k; screen = 'tape'; break;
