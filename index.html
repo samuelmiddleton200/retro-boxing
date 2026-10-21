@@ -282,6 +282,27 @@ tr.champ td{color:#fff3b8}
 #over table td,#over table th{text-align:center}
 #over table td:first-child{text-align:left}
 .nohover small{display:none}
+#mini{position:fixed;inset:0;background:var(--navy);touch-action:none;overflow:hidden}
+#mini[hidden]{display:none}
+#mcv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.mhud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;gap:12px;padding:8px max(70px,calc(env(safe-area-inset-right) + 60px)) 0 max(14px,env(safe-area-inset-left));font-family:var(--px);font-size:13px;text-shadow:0 2px 0 #000;pointer-events:none}
+#mTime{color:var(--yellow);font-size:18px}
+#mQuit{position:absolute;top:8px;right:max(12px,env(safe-area-inset-right))}
+#mPops{position:absolute;inset:0;pointer-events:none}
+#mOver{position:absolute;inset:0;background:rgba(11,9,38,.72);display:grid;place-items:center;padding:12px}
+#mOver[hidden]{display:none}
+#mOver .panel{max-width:min(460px,92vw);text-align:center;display:grid;gap:8px}
+#mOver h2{font-family:var(--px);font-size:22px;margin:0}
+.tcards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tcard{border:3px solid var(--white);border-radius:6px;background:var(--blue-d);padding:8px;display:grid;gap:6px;align-content:start}
+.tcard .nm{font-family:var(--px);font-size:13px}
+.tcard b{font-family:var(--numf);font-size:18px}
+.tcard .ds{font-size:12px;color:var(--muted);min-height:2.5em;line-height:1.2}
+.tcard .btn.go{padding:10px 4px;font-size:12px}
+.tcard .btn.sm{font-size:11px;padding:5px 4px}
+.sess{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.sess i{display:inline-block;width:14px;height:14px;border-radius:3px;border:2px solid #fff;margin-right:3px;vertical-align:-2px}
+.sess i.on{background:var(--yellow)}
 #rotate{display:none;position:fixed;inset:0;background:var(--blue);z-index:50;align-items:center;justify-content:center;text-align:center;font-family:var(--px);font-size:18px;padding:30px}
 @media (orientation:portrait) and (max-width:700px){ #rotate{display:flex} }
 
@@ -339,6 +360,13 @@ tr.champ td{color:#fff3b8}
   <div id="replay" hidden><i></i><b>REPLAY</b></div>
   <div id="getup" hidden></div>
   <div id="over" hidden></div>
+</div>
+<div id="mini" hidden>
+  <canvas id="mcv"></canvas>
+  <div class="mhud"><span id="mTitle"></span><span id="mScore" class="num"></span><span id="mTime" class="num"></span></div>
+  <button class="btn sm" id="mQuit">End</button>
+  <div id="mPops"></div>
+  <div id="mOver" hidden></div>
 </div>
 <div id="rotate">Turn your phone sideways</div>
 
@@ -479,7 +507,7 @@ function genFighter(base, age){
 }
 const skillOf = f => clamp((ovr(f) - 28) / 60, 0, 1);       // how well the computer reads you
 function newCareer(name, nick, look, town){
-  G = { v:1, nextId:1, week:0, cash:500, fighters:{}, ladder:[], pool:[], offers:null, log:[], best:null, nrWins:0, titles:0, defenses:0, over:false };
+  G = { v:1, nextId:1, week:0, cash:500, sessions:3, fighters:{}, ladder:[], pool:[], offers:null, log:[], best:null, nrWins:0, titles:0, defenses:0, over:false };
   G.fighters.me = { id:'me', me:true, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, chin:40 }, age:21, w:0, l:0, d:0, ko:0, look };
   for (let i = 0; i <= 30; i++) {                             // 0 is the champion, 1-30 the rankings
     const f = genFighter(87 - i * 1.5);
@@ -491,6 +519,7 @@ function newCareer(name, nick, look, town){
   G.story = [{ who:null, lines:[['news', `${esc(G.fighters.me.town).toUpperCase()}. AGE 21. RECORD 0-0.`], ['news', 'Nobody in this town knows your name.'], ['news', 'Thirty men stand between you and the world title.'], ['news', 'Time to go to work.']] }];
 }
 function migrate(){
+  if (G.sessions === undefined) G.sessions = 3;
   if (!G.rivals) { addRivals(); G.story = G.story || []; }
 }
 const rankOf = id => G.ladder.indexOf(id);
@@ -604,6 +633,7 @@ function applyResult(R){
     if (oi >= 0 && wasRank >= 0 && oi < wasRank) dropMe(ri(1, 3)); else beat(o.id, 'me');
   }
   G.cash += pay;
+  G.sessions = Math.min(SESSIONS_MAX, (G.sessions || 0) + SESSIONS_PER_FIGHT);
   const nowRank = rankOf('me');
   if (nowRank >= 0 && (G.best === null || nowRank < G.best)) G.best = nowRank;
   // birthday: from 31 on, the body starts to slow down
@@ -1363,6 +1393,7 @@ function hud(){
 function frame(now){
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (MG) { miniUpdate(dt); if (MG) miniDraw(); }
   if (!M) return;
   if (!M.paused) update(dt);
   if (!M) return;
@@ -1507,6 +1538,262 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { const k = KEYS[e.code]; if (k && k[0] === 'block' && M) M.f[0].blockHeld = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden && M && !M.paused && M.phase === 'fight') showPause(); });
 
+/* ================= training camp minigames ================= */
+// one per rating; a better grade gives more points, and high ratings are harder to raise
+const GRADE_PTS = { S:4, A:3, B:2, C:1, F:0 };
+const SESSIONS_PER_FIGHT = 2, SESSIONS_MAX = 6;
+let MG = null;
+const mcv = $('#mcv'), mctx = mcv.getContext('2d'), mlow = document.createElement('canvas'), mg = mlow.getContext('2d');
+let MW = 240;
+const MR = (x, y, w, h, c) => { mg.fillStyle = c; mg.fillRect(Math.round(x), Math.round(y), w, h); };
+const mgy = () => Math.round(LH * .86);
+
+function gymBg(){
+  MR(0, 0, MW, LH, '#5a2f2a');
+  for (let y = 0; y < LH * .78; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? '#6b3a2e' : '#74402f');
+  const wx = Math.round(MW * .62);
+  MR(wx, 10, 40, 30, '#2c2670'); MR(wx + 2, 12, 36, 26, '#ffcf8a'); MR(wx + 19, 12, 2, 26, '#2c2670'); MR(wx + 2, 24, 36, 2, '#2c2670');   // window, morning light
+  MR(Math.round(MW * .12), 14, 22, 30, '#e8e2cc'); MR(Math.round(MW * .12) + 3, 18, 16, 10, '#e24b3b'); MR(Math.round(MW * .12) + 3, 31, 16, 2, '#1d1d1d'); MR(Math.round(MW * .12) + 3, 35, 10, 2, '#1d1d1d');   // old fight poster
+  const fy = Math.round(LH * .78);
+  MR(0, fy, MW, LH - fy, '#8a5a34');
+  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, '#74482a');
+}
+function drawChicken(x, y, dir, t, caught){
+  const R = (a, b, w, h, c) => MR(dir > 0 ? x + a : x - a - w, y + b, w, h, c), flap = Math.sin(t * 30) > 0 ? -1 : 0;
+  R(-4, -5, 7, 4, '#f4f4f4'); R(-5, -6, 3, 2, '#f4f4f4');                  // body, tail
+  R(-2, -6 + flap, 4, 2, '#dcdcdc');                                        // wing
+  R(2, -9, 3, 4, '#f4f4f4'); R(3, -10, 2, 1, '#e24b3b'); R(5, -8, 1, 1, '#ff9a2b'); R(3, -8, 1, 1, '#141414');
+  R(4, -6, 1, 1, '#e24b3b');                                                // wattle
+  const st = Math.sin(t * 40) > 0 ? 1 : 0;
+  R(-2 + st, -1, 1, 2, '#ff9a2b'); R(1 - st, -1, 1, 2, '#ff9a2b');
+  if (caught) R(-1, -14, 3, 3, '#ffd23f');
+}
+const SWEATS = '#8d8d96';
+function trainee(x, y, dir, pose, walk, sweats){
+  const me = G.fighters.me, look = sweats ? { ...me.look, skin:me.look.skin, trunks:SWEATS, gloves:'#f2f2f2' } : me.look;
+  drawBoxer(mg, x, y, dir, pose, look, { walk });
+  if (sweats) {                                                             // grey sweats and a hood over the boxer
+    const R = (a, b, w, h, c) => MR(dir > 0 ? x + a : x - a - w, y + b, w, h, c), L = pose.lean, C = pose.cr;
+    R(-7 + L, -40 + C, 14, 15, SWEATS); R(-6 + L * .5, -33 + C, 12, 8, SWEATS); R(-7 + L, -40 + C, 14, 1, '#7a7a84');
+    R(-10 + L * 1.15 + pose.hx, -44 + C + pose.hy, 5, 7, SWEATS);           // hood down the back
+  }
+}
+
+const MINIS = {
+  pow: {
+    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect.', dur:30,
+    init:() => ({ swings:0, max:10, mark:0, dir:1, speed:.9, zc:rnd(.35, .65), zw:.2, pw:.05, a:0, v:0, hitT:0 }),
+    update(S, dt){
+      S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; }
+      S.v += (-S.a * 26 - S.v * 1.4) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
+      if (S.swings >= S.max && S.hitT <= 0) return true;
+    },
+    tap(S){
+      if (S.swings >= S.max || S.hitT > .12) return;
+      S.swings++; S.hitT = .3;
+      const d = Math.abs(S.mark - S.zc);
+      if (d < S.pw) { MG.score += 3; S.v += 2.4; thud(1, false); miniPop('PERFECT!', 'y'); }
+      else if (d < S.zw / 2) { MG.score += 1; S.v += 1.3; thud(.5, false); miniPop('GOOD', ''); }
+      else { S.v += .3; thud(.1, true); miniPop('MISS', 'r'); }
+      S.speed *= 1.1; S.zc = rnd(.25, .75);
+    },
+    draw(S){
+      gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
+      const bx = cx + 6 + S.a * 9;
+      for (let i = 0; i < 18; i += 2) MR(cx + 6 + S.a * 9 * i / 18, i, 1, 1, '#9a9a9a');      // chain
+      MR(bx - 1, 17, 4, 3, '#555');
+      MR(bx - 7, 20, 16, 44, '#b8352a'); MR(bx - 7, 20, 16, 3, '#8a1f2a'); MR(bx - 7, 61, 16, 3, '#8a1f2a'); MR(bx + 5, 23, 2, 38, '#d24a3b');
+      trainee(cx - 25, gy, 1, S.hitT > 0 ? (S.swings % 2 ? POSE.hookH : POSE.jabH) : POSE.guard, 0, false);
+      // the timing bar
+      const x0 = cx - 60, w = 120, y = LH - 11;
+      MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
+      MR(x0 + (S.zc - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (S.zc - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
+      MR(x0 + S.mark * w - 1, y - 3, 2, 12, '#ffffff');
+    },
+    grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
+    hud:S => `Swing ${Math.min(S.swings + 1, S.max)} / ${S.max}`,
+  },
+  spd: {
+    name:'Chicken chase', how:'Catch the chicken! Tap right on it. It gets faster every time.', dur:20,
+    init:() => ({ x:MW * .7, y:LH * .8, vx:-40, vy:8, turn:.5, bolt:0, bx:MW * .3, by:LH * .85, walk:0, got:0 }),
+    update(S, dt){
+      const sp = (42 + MG.score * 7) * (S.bolt > 0 ? 2 : 1);
+      S.turn -= dt; S.bolt = Math.max(0, S.bolt - dt); S.got = Math.max(0, S.got - dt);
+      if (S.turn <= 0) { const a = rnd(0, 6.28); S.vx = Math.cos(a); S.vy = Math.sin(a) * .5; S.turn = rnd(.25, .8); }
+      const n = Math.hypot(S.vx, S.vy) || 1; S.x += S.vx / n * sp * dt; S.y += S.vy / n * sp * .5 * dt;
+      if (S.x < 14 || S.x > MW - 14) S.vx *= -1; if (S.y < LH * .66 || S.y > LH - 6) S.vy *= -1;
+      S.x = clamp(S.x, 14, MW - 14); S.y = clamp(S.y, LH * .66, LH - 6);
+      const dx = S.x - S.bx, dy = S.y - S.by, d = Math.hypot(dx, dy);       // you run after it
+      if (d > 14) { const m = Math.min(d - 14, 70 * dt); S.bx += dx / d * m; S.by += dy / d * m * .6; S.walk += m * .45; }
+      S.by = clamp(S.by, LH * .7, LH - 4);
+    },
+    tap(S, x, y){
+      if (Math.hypot(x - S.x, y - (S.y - 6)) < 11) {
+        MG.score++; S.got = .5; thud(.3, true); miniPop('GOT IT!', 'y');
+        S.x = Math.random() < .5 ? 16 : MW - 16; S.y = rnd(LH * .7, LH - 8); S.bolt = .3;
+      } else if (Math.hypot(x - S.x, y - S.y) < 30) { S.bolt = .45; S.vx = S.x - x; S.vy = (S.y - y) * .5; swish(); }
+    },
+    draw(S){
+      MR(0, 0, MW, LH, '#f7b38a'); MR(0, 0, MW, 16, '#e98a6e'); MR(0, 16, MW, 12, '#f09a7a');            // dawn sky
+      for (let x = 0; x < MW; x += 18) MR(x, 30 + (x * 7) % 14, 14, 40, '#5a3a5e');                    // the city behind
+      MR(0, LH * .6, MW, LH * .4, '#9a7a4a');                                                            // dirt yard
+      for (let x = 0; x < MW; x += 8) { MR(x, LH * .55, 2, 12, '#e8e2cc'); }                            // fence
+      MR(0, LH * .57, MW, 2, '#e8e2cc'); MR(0, LH * .62, MW, 2, '#e8e2cc');
+      MR(MW * .08, LH * .4, 26, 22, '#b8352a'); MR(MW * .08 - 2, LH * .38, 30, 4, '#6b2618'); MR(MW * .08 + 9, LH * .5, 8, 9, '#3d140b');   // coop
+      const people = [[S.by, () => trainee(S.bx, S.by, S.x > S.bx ? 1 : -1, POSE.guard, S.walk, true)], [S.y, () => drawChicken(S.x, S.y, S.vx > 0 ? 1 : -1, MG.time, S.got > 0)]];
+      people.sort((a, b) => a[0] - b[0]).forEach(p => p[1]());
+    },
+    grade:s => s >= 12 ? 'S' : s >= 9 ? 'A' : s >= 6 ? 'B' : s >= 3 ? 'C' : 'F',
+    hud:() => `Caught ${MG.score}`,
+  },
+  sta: {
+    name:'The stairs', how:'Tap left, right, left, right as fast as you can. The same side twice and you stumble. Get to the top!', dur:15,
+    init:() => ({ step:0, total:60, last:0, stumble:0, top:null, walk:0 }),
+    update(S, dt){
+      S.stumble = Math.max(0, S.stumble - dt);
+      if (S.top !== null && MG.time - S.top > 2.6) return true;
+    },
+    tap(S, x, y, side){
+      if (S.top !== null || S.stumble > 0) return;
+      if (side === S.last) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }
+      S.last = side; S.step++; S.walk += 2.2;
+      if (S.step >= S.total) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
+    },
+    draw(S){
+      const bands = ['#2c2670', '#5a3a7e', '#a24b7e', '#e2705b', '#f7a86a', '#ffd28a'];
+      bands.forEach((c, i) => MR(0, i * LH / 6, MW, LH / 6 + 1, c));
+      if (S.top !== null) { MR(MW * .7 - 8, LH * .45 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 8; i++) MR(MW * .7 + Math.cos(i * .8 + MG.time) * 22, LH * .45 + Math.sin(i * .8 + MG.time) * 22, 2, 2, '#fff3b8'); }
+      for (let x = 0; x < MW; x += 15) MR(x, LH * .55 + (x * 13) % 18, 12, LH, '#3a2850');              // skyline
+      // the staircase, the camera following you up
+      const SX = 6, SY = 3, wx = i => i * SX, wy = i => -i * SY;
+      const px = wx(Math.min(S.step, S.total)), py = wy(Math.min(S.step, S.total));
+      const camX = px - MW * .38, camY = py - LH * .72;
+      for (let i = -12; i <= S.total + 30; i++) {
+        const x = wx(i) - camX, y = wy(Math.min(i, S.total)) - camY;
+        if (x < -SX || x > MW) continue;
+        MR(x, y, SX, LH - y, i > S.total ? '#d8d0bc' : '#c9c2b0'); MR(x, y, SX, 1, '#efe8d4');
+      }
+      const bx = wx(S.total + 10) - camX, by = wy(S.total) - camY;           // the building at the top
+      MR(bx, by - 70, 90, 70, '#e8e2cc'); MR(bx - 4, by - 76, 98, 8, '#f4efe0');
+      for (let c = 0; c < 6; c++) MR(bx + 6 + c * 14, by - 66, 5, 66, '#d4ccb4');
+      const pose = S.top !== null ? POSE.win : S.stumble > 0 ? POSE.hurt : POSE.guard;
+      trainee(px - camX + 3, py - camY, 1, pose, S.walk, true);
+      // which side to tap next
+      const nx = S.last === 1 ? 0 : 1;
+      MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, S.top !== null ? 'rgba(0,0,0,0)' : 'rgba(255,255,255,.35)');
+    },
+    grade:s => s >= 75 ? 'S' : s >= 60 ? 'A' : s >= 45 ? 'B' : s >= 28 ? 'C' : 'F',
+    score:S => S.step + (S.top !== null ? Math.round((15 - S.top) * 5) : 0),
+    hud:S => `Step ${S.step} / ${S.total}`,
+  },
+  chin: {
+    name:'Medicine ball', how:'Tap the moment the ball lands on your stomach to tighten up. Too early and you flinch.', dur:40,
+    init:() => ({ drops:0, max:10, ball:null, wait:1, flinch:false, ouch:0 }),
+    update(S, dt){
+      S.ouch = Math.max(0, S.ouch - dt);
+      if (!S.ball) {
+        S.wait -= dt;
+        if (S.drops >= S.max) return S.wait <= 0 ? true : undefined;
+        if (S.wait <= 0) { S.ball = { y:0, v:0, g:150 + S.drops * 22, hold:rnd(.2, 1.1) }; S.flinch = false; }
+        return;
+      }
+      const B = S.ball;
+      if (B.hold > 0) { B.hold -= dt; return; }
+      B.v += B.g * dt; B.y += B.v * dt;
+      if (B.y >= 34) {                                                       // it lands
+        if (!B.done) { if (!S.flinch) { miniPop('OUCH', 'r'); S.ouch = .4; thud(.8, false); } }
+        S.ball = null; S.drops++; S.wait = rnd(.6, 1);
+      }
+    },
+    tap(S){
+      const B = S.ball; if (!B || B.done || S.flinch) return;
+      const d = 34 - B.y;
+      if (B.hold > 0 || d > 14) { S.flinch = true; miniPop('FLINCHED', 'r'); return; }
+      B.done = true;
+      if (d < 5) { MG.score += 3; miniPop('ROCK SOLID!', 'y'); thud(.4, true); }
+      else { MG.score += 1; miniPop('GOOD', ''); thud(.4, true); }
+    },
+    draw(S){
+      gymBg(); const gy = mgy(), cx = Math.round(MW / 2), me = G.fighters.me, skin = me.look.skin;
+      // the trainer, standing behind the mat
+      { const tx = cx - 24, ty = gy - 9;
+        MR(tx - 4, ty - 17, 3, 16, '#3a3a44'); MR(tx + 1, ty - 17, 3, 16, '#3a3a44');
+        MR(tx - 6, ty - 35, 12, 19, '#2f3a5e'); MR(tx - 4, ty - 45, 8, 9, '#e1ac80'); MR(tx - 5, ty - 47, 10, 3, '#3a3a44'); MR(tx - 3, ty - 49, 6, 2, '#3a3a44');
+        MR(tx + 1, ty - 41, 1, 1, '#141414');
+        const up = !S.ball || S.ball.hold > 0; MR(tx + 5, ty - (up ? 42 : 34), 3, up ? 10 : 12, '#2f3a5e');
+      }
+      // you, flat on the mat doing crunches
+      MR(cx - 34, gy - 2, 60, 3, '#2c2670');
+      MR(cx - 2, gy - 6, 14, 4, skin); MR(cx + 6, gy - 11, 4, 6, skin); MR(cx + 10, gy - 6, 4, 4, '#f2f2f2');
+      MR(cx - 12, gy - 7, 11, 6, me.look.trunks);
+      MR(cx - 26 + (S.ouch > 0 ? 0 : 1), gy - 8 - (S.ball && S.ball.done ? 1 : 0), 15, 7, skin);
+      MR(cx - 36, gy - 10, 10, 9, skin); if (me.look.hair !== 'none') MR(cx - 36, gy - 10, 3, 9, me.look.hair);
+      MR(cx - 31, gy - 7, 2, 1, '#141414');
+      const by = S.ball ? gy - 46 + S.ball.y : gy - 46;
+      if (S.ball || S.drops < S.max) { const x = cx - 18; MR(x + 1, by - 8, 6, 8, '#9a4a26'); MR(x, by - 7, 8, 6, '#9a4a26'); MR(x + 2, by - 7, 2, 2, '#c87a4a'); }
+      MR(cx - 20, gy - 9, 12, 1, 'rgba(255,210,63,.6)');                     // where it lands
+    },
+    grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
+    hud:S => `Ball ${Math.min(S.drops + 1, S.max)} / ${S.max}`,
+  },
+};
+function mresize(){
+  const w = innerWidth, h = innerHeight, dpr = Math.min(3, devicePixelRatio || 1);
+  mcv.width = Math.round(w * dpr); mcv.height = Math.round(h * dpr);
+  MW = Math.max(160, Math.round(LH * w / h)); mlow.width = MW; mlow.height = LH;
+}
+addEventListener('resize', () => { if (MG) mresize(); });
+function startMini(k){
+  if (!G || (G.sessions || 0) <= 0) return;
+  MG = { k, D:MINIS[k], phase:'intro', time:0, score:0, S:MINIS[k].init() };
+  $('#mini').hidden = false; $('#ui').hidden = true; mresize();
+  $('#mTitle').textContent = MG.D.name.toUpperCase();
+  miniCard(`<h2>${MG.D.name.toUpperCase()}</h2><div class="muted">${RNAME[k]} training</div><div style="font-size:15px">${MG.D.how}</div><button class="btn go" data-m="go">Start</button>`);
+}
+function miniCard(html){ const o = $('#mOver'); o.hidden = false; o.innerHTML = `<div class="panel">${html}</div>`; }
+function miniPop(text, cls){
+  const d = document.createElement('div'); d.className = 'fx ' + (cls || ''); d.textContent = text;
+  d.style.left = '50%'; d.style.top = '34%'; $('#mPops').appendChild(d); setTimeout(() => d.remove(), 850);
+}
+function miniUpdate(dt){
+  if (MG.phase !== 'play') return;
+  MG.time += dt;
+  const end = MG.D.update(MG.S, dt);
+  if (end || MG.time >= MG.D.dur) finishMini();
+}
+function finishMini(){
+  MG.phase = 'done';
+  const k = MG.k, me = G.fighters.me, score = MG.D.score ? MG.D.score(MG.S) : MG.score, gr = MG.D.grade(score);
+  let pts = GRADE_PTS[gr];
+  if (pts) pts = Math.max(1, Math.round(pts * (1 - (me.rat[k] - 40) / 120)));   // harder to improve at the top
+  const before = me.rat[k]; me.rat[k] = Math.min(99, me.rat[k] + pts);
+  G.sessions--; save();
+  miniCard(`<h2>GRADE <span class="${gr === 'F' ? 'bad' : 'yellow'}">${gr}</span></h2>
+    <div class="px">${RNAME[k]} ${before} &rarr; <span class="${pts ? 'good' : ''}">${me.rat[k]}</span></div>
+    <div class="muted num">Score ${score}</div><button class="btn go" data-m="done">Back to camp</button>`);
+}
+function miniDraw(){
+  if (!MG) return;
+  mg.setTransform(1, 0, 0, 1, 0, 0);
+  MG.D.draw(MG.S);
+  mctx.imageSmoothingEnabled = false; mctx.drawImage(mlow, 0, 0, mcv.width, mcv.height);
+  $('#mScore').textContent = MG.D.hud(MG.S);
+  $('#mTime').textContent = MG.phase === 'play' ? Math.max(0, Math.ceil(MG.D.dur - MG.time)) + 's' : '';
+}
+$('#mini').addEventListener('pointerdown', e => {
+  if (!MG || e.target.closest('button, #mOver')) return;
+  e.preventDefault(); ac();
+  if (MG.phase !== 'play') return;
+  const x = e.clientX * MW / innerWidth, y = e.clientY * LH / innerHeight, side = e.clientX < innerWidth / 2 ? -1 : 1;
+  MG.D.tap(MG.S, x, y, side);
+});
+$('#mOver').addEventListener('click', e => {
+  const b = e.target.closest('[data-m]'); if (!b || !MG) return;
+  if (b.dataset.m === 'go') { $('#mOver').hidden = true; MG.phase = 'play'; MG.time = 0; bell(1); }
+  else if (b.dataset.m === 'done') { MG = null; $('#mini').hidden = true; $('#ui').hidden = false; screen = 'train'; render(); }
+});
+$('#mQuit').addEventListener('click', () => { if (MG && MG.phase === 'play') finishMini(); });
+
 /* ================= menus ================= */
 const ui = $('#ui');
 function bar(title, left = '<button class="btn sm" data-a="hub">Back</button>'){
@@ -1603,16 +1890,17 @@ const VIEWS = {
       <button class="btn go" data-a="storynext">${last ? (b.who && !G.rivals[b.who].beaten && G.rivals[b.who].lost === 0 && b.who !== 'golden' ? 'Bring it on' : 'Continue') : 'Next'}</button></div></div></div>`;
   },
   train(){
-    const me = G.fighters.me;
-    const rows = RK.map(k => {
+    const me = G.fighters.me, n = G.sessions || 0;
+    const cards = RK.map(k => {
       const v = me.rat[k], p = priceOf(v), max = v >= 99;
-      let n5 = 0, c5 = 0; for (let i = 0; i < 5 && v + i < 99; i++) { c5 += priceOf(v + i); n5++; }
-      return `<div class="trow"><span class="nm">${RNAME[k]}</span><div class="hbar"><i style="width:${v}%;background:${barCol(v)}"></i></div><b class="num">${v}</b>
-        <button class="btn sm" data-a="tr" data-k="${k}" data-n="1" ${max || G.cash < p ? 'disabled' : ''}>+1 <span class="num">${money(p)}</span></button>
-        <button class="btn sm" data-a="tr" data-k="${k}" data-n="5" ${max || G.cash < c5 ? 'disabled' : ''}>+${n5 || 5} <span class="num">${money(c5)}</span></button>
-        <div class="ds">${RDESC[k]}</div></div>`;
+      return `<div class="tcard"><div class="row between"><span class="nm">${RNAME[k]}</span><b>${v}</b></div>
+        <div class="hbar"><i style="width:${v}%;background:${barCol(v)}"></i></div>
+        <div class="ds">${RDESC[k]}</div>
+        <button class="btn go" data-a="mini" data-k="${k}" ${n <= 0 || max ? 'disabled' : ''}>${MINIS[k].name}</button>
+        <button class="btn sm" data-a="tr" data-k="${k}" data-n="1" ${max || G.cash < p ? 'disabled' : ''}>Coach +1 <span class="num">${money(p)}</span></button></div>`;
     }).join('');
-    return `${bar('Training')}<div class="panel">${rows}<div class="muted" style="font-size:12px">Every point costs a bit more than the last. From age 31 you lose a little each birthday.</div></div>`;
+    const dots = Array.from({ length:SESSIONS_MAX }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+    return `${bar('Training camp')}<div class="sess"><span class="label">Sessions</span><span>${dots}</span><span class="muted">${n ? 'Each drill uses one.' : 'Win or lose, every fight earns ' + SESSIONS_PER_FIGHT + ' more.'}</span></div><div class="tcards">${cards}</div>`;
   },
   rankings(){
     const rows = G.ladder.map((id, i) => {
@@ -1663,6 +1951,7 @@ ui.addEventListener('click', e => {
     case 'fight': ac(); startFight(G.offers[sel]); return;
     case 'train': screen = 'train'; break;
     case 'tr': train(b.dataset.k, n); return;
+    case 'mini': startMini(b.dataset.k); return;
     case 'rankings': screen = 'rankings'; break;
     case 'log': screen = 'log'; break;
     case 'storynext': { const b = G.story[0]; if (storyStep < b.lines.length - 1) storyStep++; else { G.story.shift(); storyStep = 0; save(); screen = 'hub'; } break; }
