@@ -173,7 +173,7 @@ img.pt{image-rendering:pixelated;display:block}
 .offer.title .rk{color:var(--yellow)}
 
 /* --- tale of the tape --- */
-.tape{display:grid;grid-template-columns:130px minmax(0,1fr) 130px;gap:12px;align-items:center}
+.tape{display:grid;grid-template-columns:130px minmax(0,1fr) 150px;gap:12px;align-items:center}
 .tape .side{text-align:center}
 .tape .side .face{border:3px solid var(--white);border-radius:6px;background:var(--blue-dd);display:flex;justify-content:center;overflow:hidden}
 .tape .side .nm{font-family:var(--px);font-size:13px;margin-top:4px}
@@ -186,6 +186,25 @@ img.pt{image-rendering:pixelated;display:block}
 .tt i{display:block;height:100%}
 .tline{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;border-top:2px solid rgba(255,255,255,.12)}
 .tline span:nth-child(2){font-family:var(--px);font-size:10px;color:var(--muted);align-self:center}
+
+/* --- story --- */
+.story{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px;align-items:center;min-height:calc(100dvh - 40px)}
+.story .face{border:3px solid var(--white);border-radius:6px;background:var(--blue-dd);overflow:hidden}
+.story .face img{width:100%;height:auto}
+.story .who{font-family:var(--px);font-size:13px;color:var(--yellow);margin-bottom:6px}
+.story .say{font-size:clamp(18px,3.4vw,26px);line-height:1.3;min-height:3.9em}
+.story .say.news{font-family:var(--px);font-size:clamp(15px,2.6vw,20px);line-height:1.5;color:var(--muted)}
+.story .dots{display:flex;gap:6px;margin-top:10px}
+.story .dots i{width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,.25)}
+.story .dots i.on{background:var(--yellow)}
+.bubble{position:relative;background:#f4f4f4;color:#1d1d1d;border-radius:8px;padding:6px 10px;font-size:14px;line-height:1.25;margin-top:8px}
+.bubble::before{content:'';position:absolute;top:-8px;left:50%;margin-left:-6px;border:6px solid transparent;border-bottom:8px solid #f4f4f4;border-top:0}
+.paper{background:#efe8d4;color:#1d1d1d;border-radius:4px;padding:8px 16px 10px;max-width:560px;width:100%;box-shadow:0 5px 0 var(--navy);transform:rotate(-1deg)}
+.paper .mast{font-family:var(--px);font-size:11px;display:flex;justify-content:space-between;border-bottom:2px solid #1d1d1d;padding-bottom:3px;margin-bottom:5px}
+.paper .head{font-family:var(--px);font-weight:700;font-size:clamp(17px,3.4vw,26px);line-height:1.1}
+.paper .deck{font-size:14px;margin-top:4px;color:#3a3a3a}
+.offer .tag.grudge{background:var(--red);color:#fff}
+.offer.grudge{border-color:var(--red)}
 
 /* --- training --- */
 .trow{display:grid;grid-template-columns:96px minmax(0,1fr) 40px auto auto;align-items:center;gap:8px;margin-bottom:6px}
@@ -287,10 +306,15 @@ tr.champ td{color:#fff3b8}
   .create{grid-template-columns:140px minmax(0,1fr)}
   .field{margin-bottom:5px}
   .sw button{width:26px;height:26px}
-  .tape{grid-template-columns:110px minmax(0,1fr) 110px}
+  .tape{grid-template-columns:110px minmax(0,1fr) 140px}
+  .bubble{font-size:12px;padding:4px 7px}
   .tt{margin-bottom:3px}
   .tline{padding:2px 0;font-size:13px}
   .trow{margin-bottom:3px}
+  .story{grid-template-columns:130px minmax(0,1fr);min-height:calc(100dvh - 24px)}
+  .res{gap:5px;padding-top:2px}
+  .res h1{font-size:34px}
+  .paper{padding:5px 12px 7px}
   .offer .ln{font-size:12px}
   td{padding:3px 4px}
   .hn{font-size:11px}
@@ -347,6 +371,87 @@ const STYLES = {
   tank:     { name:'Tank',      mod:{ pow:3,  spd:-8, sta:5,  chin:9 },  w:{ jab:.4,  hook:.35, upper:.25 }, agg:.9,  dodge:.1, react:-.05 },
   counter:  { name:'Counter',   mod:{ pow:0,  spd:4,  sta:0,  chin:0 },  w:{ jab:.5,  hook:.3,  upper:.2 },  agg:.7,  dodge:.6, react:.15 },
 };
+// the four men the story is built around
+const RIVALS = {
+  viper: { name:'Vince Malone', nick:'The Viper', style:'brawler', at:24, boost:2, look:{ skin:'#e1ac80', hair:'#1b1b1b', trunks:'#44c45d', gloves:'#1d1d1d', stache:true },
+    callout:[['news', 'Word gets around the neighborhood: you won a pro fight.'], ['viper', 'Heard you think you\'re a fighter now.'], ['viper', 'Same gym, same streets. I\'ve been beating you since we were twelve.'], ['viper', 'Get in the ring with me. I\'ll put you back where you belong.']],
+    tape:['Your mother should\'ve made you a plumber.', 'Look at me when I\'m talking to you.'], win:['Told you. Back to the bottom, where you live.'], lose:['...This ain\'t over.', 'Lucky punch. That\'s all it was.'] },
+  hurricane: { name:'Hector Castillo', nick:'Hurricane', town:'San Juan', style:'speedster', at:12, boost:5, look:{ skin:'#c68642', hair:'#1b1b1b', trunks:'#a24be0', gloves:'#f2f2f2' },
+    callout:[['news', 'You crack the top 20. The fastest man in the division has noticed.'], ['hurricane', 'They say you hit hard. Can\'t hit what you can\'t catch, amigo.'], ['hurricane', 'I\'m the fastest man alive. You\'ll be swinging at the wind all night.']],
+    tape:['Try to keep up.', 'I\'ll be gone before you see it coming.'], win:['Too slow, amigo. Much too slow.'], lose:['Respect. You earned that one.'] },
+  golden: { name:'Marcus Sterling', nick:'Golden Boy', town:'Las Vegas', style:'counter', at:0, boost:4, look:{ skin:'#93592b', hair:'#1b1b1b', trunks:'#ffd23f', gloves:'#e0b12d' },
+    callout:[['news', 'Top five in the world. A reporter asks the champion about you.'], ['golden', 'Who? Never heard of him.'], ['golden', 'I\'ve got commercials. A cologne. A reality show. I don\'t fight nobodies.'], ['golden', '...Fine. Get to number one and I\'ll make room in my schedule.']],
+    tape:['Smile for the cameras. Last time anyone sees you.', 'I\'ve never even been knocked down.'], win:['Nice try. Go back to your little gym.'], lose:['This... this wasn\'t in the script.'] },
+  iceberg: { name:'Viktor Kolarov', nick:'The Iceberg', town:'Murmansk', style:'tank', at:-1, base:93, look:{ skin:'#f3cfac', hair:'#e8e8e8', trunks:'#e24b3b', gloves:'#d42d2d', flat:true },
+    callout:[['news', 'A new name from the far north. 31 fights. 31 knockouts. Nobody has gone past round four.'], ['news', 'He is the mandatory challenger for your belt.'], ['iceberg', 'Champion? He is small.'], ['iceberg', 'I have seen his fights. I am not impressed.']],
+    tape:['You are smaller up close.', 'Where I train, there is only snow and silence.'], win:['As I said. Small.'], lose:['...Strong. Stronger than I was told.'] },
+};
+const RIVAL_ORDER = ['viper', 'hurricane', 'golden', 'iceberg'];
+const TAUNTS = {
+  brawler:['I\'m gonna knock your teeth into next week.', 'Hope you brought a mouthguard. And a doctor.'],
+  speedster:['You\'ll never lay a glove on me.', 'I\'ll be dancing. You\'ll be bleeding.'],
+  tank:['Hit me. Go on. I\'ll wait.', 'Got a head like a brick. Break your hands on it.'],
+  counter:['Go ahead. Throw first. Please.', 'Every miss is gonna cost you.'],
+};
+function addRivals(){
+  G.rivals = {};
+  const L = G.ladder;
+  for (const key of RIVAL_ORDER) {
+    const R = RIVALS[key], f = genFighter(R.base || (87 - Math.max(0, R.at) * 1.5 + R.boost));
+    Object.assign(f, { name:R.name, nick:R.nick, style:R.style, town:R.town || G.fighters.me.town || 'Philadelphia', look:{ ...R.look }, rival:key, age:key === 'iceberg' ? 26 : ri(25, 30) });
+    const m = STYLES[R.style].mod;
+    for (const k of RK) f.rat[k] = clamp(Math.round((R.base || (87 - Math.max(0, R.at) * 1.5 + R.boost)) + m[k] + (key === 'iceberg' && k === 'pow' ? 8 : 0)), 15, 99);
+    if (key === 'iceberg') { f.w = 31; f.l = 0; f.ko = 31; }
+    else { f.w = ri(12, 18) + Math.round((30 - R.at) * .5); f.l = R.at === 0 ? 0 : ri(1, 4); f.ko = Math.round(f.w * .7); }
+    G.rivals[key] = { id:f.id, met:false, beaten:0, lost:0, rematchAt:null };
+    if (R.at >= 0) {                                                       // take over that spot in the rankings
+      let i = R.at; while (L[i] === 'me' || Object.values(G.rivals).some(r => r.id === L[i] && r.id !== f.id)) i++;
+      const old = L[i]; L[i] = f.id; if (old) G.pool.push(old);
+    }
+  }
+}
+const rivalOf = id => { const f = G.fighters[id]; return f && f.rival ? RIVALS[f.rival] : null; };
+function storyBeat(lines, who){ (G.story = G.story || []).push({ lines, who:who || null }); }
+// story beats that unlock as you climb
+function checkStory(){
+  const r = rankOf('me'), R = G.rivals; if (!R) return;
+  if (!R.viper.met && G.week >= 1) { R.viper.met = true; storyBeat(RIVALS.viper.callout, 'viper'); R.viper.rematchAt = G.week; }
+  if (!R.hurricane.met && r > 0 && r <= 18) { R.hurricane.met = true; storyBeat(RIVALS.hurricane.callout, 'hurricane'); R.hurricane.rematchAt = G.week; }
+  if (!R.golden.met && r > 0 && r <= 5) { R.golden.met = true; storyBeat(RIVALS.golden.callout, 'golden'); }
+  if (!R.iceberg.met && r === 0) {
+    R.iceberg.met = true; storyBeat(RIVALS.iceberg.callout, 'iceberg'); R.iceberg.rematchAt = G.week;
+    G.ladder = G.ladder.filter(x => x !== R.iceberg.id); G.ladder.splice(1, 0, R.iceberg.id);
+    while (G.ladder.length > 31) { const out = G.ladder.pop(); if (out !== 'me') G.pool.push(out); }
+  }
+}
+// the rival you owe a fight, if any (golden only ever comes as the title fight)
+function grudgeDue(){
+  if (!G.rivals) return null;
+  for (const key of ['viper', 'hurricane', 'iceberg']) {
+    const R = G.rivals[key];
+    if (R.met && !R.beaten && R.rematchAt !== null && G.week >= R.rematchAt && G.fighters[R.id]) return { key, id:R.id, rematch:R.lost > 0 };
+  }
+  return null;
+}
+function headline(R, o){
+  const me = G.fighters.me, L = n => n.split(' ').pop().toUpperCase(), A = L(me.name), B = L(o.name);
+  const upset = R.oppRankIdx >= 0 && (R.wasRank < 0 || R.oppRankIdx < R.wasRank);
+  const rv = o.rival ? RIVALS[o.rival] : null;
+  let h, d;
+  if (R.draw) { h = `${A}, ${B} FIGHT TO A DRAW`; d = 'Judges can\'t split them. Fans want a rematch.'; }
+  else if (R.win) {
+    if (R.title && R.wasRank !== 0) { h = `NEW CHAMP! ${A} TAKES THE BELT`; d = `${esc(townOf(me))} goes wild for its world champion.`; }
+    else if (R.title) { h = `${A} STILL THE KING`; d = `Title defense #${G.defenses} in the books.`; }
+    else if (rv) { h = `GRUDGE SETTLED: ${A} ${R.ko ? 'FLATTENS' : 'BEATS'} ${B}`; d = `${esc(o.nick ? '"' + o.nick + '"' : o.name)}: "${esc(rv.lose[0])}"`; }
+    else if (R.ko) { h = `${A} ${pick(['FLATTENS', 'STOPS', 'DROPS', 'DEMOLISHES'])} ${B} IN THE ${R.rd}${['ST', 'ND', 'RD'][R.rd - 1] || 'TH'}`; d = upset ? 'Nobody saw this coming.' : 'Another one for the highlight reel.'; }
+    else { h = `${A} OUTPOINTS ${B}`; d = upset ? 'The kid keeps climbing.' : 'Steady work over the distance.'; }
+  } else {
+    if (rv) { h = `${B} HUMBLES ${A}`; d = `"${esc(rv.win[0])}"`; }
+    else if (R.ko) { h = `LIGHTS OUT FOR ${A}`; d = `${B} ends it in round ${R.rd}.`; }
+    else { h = `${B} TOO MUCH FOR ${A}`; d = 'Back to the gym.'; }
+  }
+  return { h, d };
+}
 const ovr = f => Math.round(RK.reduce((s, k) => s + f.rat[k], 0) / 4);
 const rec = f => `${f.w}-${f.l}${f.d ? '-' + f.d : ''}`;
 const barCol = v => `hsl(${clamp((v - 20) * 1.5, 0, 120)},70%,50%)`;      // red to green
@@ -382,6 +487,11 @@ function newCareer(name, nick, look, town){
     G.ladder.push(f.id);
   }
   for (let i = 0; i < 12; i++) { const f = genFighter(rnd(30, 40)); f.w = ri(2, 9); f.l = ri(2, 10); f.ko = Math.round(f.w * rnd(.3, .6)); G.pool.push(f.id); }
+  addRivals();
+  G.story = [{ who:null, lines:[['news', `${esc(G.fighters.me.town).toUpperCase()}. AGE 21. RECORD 0-0.`], ['news', 'Nobody in this town knows your name.'], ['news', 'Thirty men stand between you and the world title.'], ['news', 'Time to go to work.']] }];
+}
+function migrate(){
+  if (!G.rivals) { addRivals(); G.story = G.story || []; }
 }
 const rankOf = id => G.ladder.indexOf(id);
 const rankLabel = id => { const i = rankOf(id); return i < 0 ? 'Unranked' : i === 0 ? 'Champion' : '#' + i; };
@@ -423,7 +533,7 @@ function worldSim(){
   }
   // old fighters retire; a new prospect joins the unranked pool for each
   for (const f of Object.values(G.fighters)) {
-    if (f.me || f.age < 36 || Math.random() > .3 || (G.offers || []).some(o => o.id === f.id)) continue;
+    if (f.me || f.rival || f.age < 36 || Math.random() > .3 || (G.offers || []).some(o => o.id === f.id)) continue;
     G.ladder = G.ladder.filter(x => x !== f.id); G.pool = G.pool.filter(x => x !== f.id); delete G.fighters[f.id];
     const n = genFighter(rnd(32, 44), ri(20, 24)); n.w = ri(3, 8); n.l = ri(0, 2); n.ko = Math.round(n.w * .6); G.pool.push(n.id);
   }
@@ -458,6 +568,11 @@ function makeOffers(){
   G.offers = o.map(x => ({ ...x, purse:purseFor(x.id, x.title), rounds:roundsFor(x.id, x.title) }));
   // order: easiest first
   G.offers.sort((a, b) => ovr(G.fighters[a.id]) - ovr(G.fighters[b.id]));
+  const gr = grudgeDue();
+  if (gr && !G.offers.some(x => x.id === gr.id)) {
+    const title = i === 0 && rankOf(gr.id) >= 0 && rankOf(gr.id) <= 6;
+    G.offers[G.offers.length - 1] = { id:gr.id, title, grudge:true, rematch:gr.rematch, purse:Math.round(purseFor(gr.id, title) * 1.5 / 100) * 100 + 1000, rounds:Math.max(roundsFor(gr.id, title), 4) };
+  } else if (gr) { const x = G.offers.find(x => x.id === gr.id); x.grudge = true; x.rematch = gr.rematch; }
 }
 
 /* ================= training ================= */
@@ -498,11 +613,20 @@ function applyResult(R){
     aged = {};
     for (const k of RK) { const d = k === 'spd' ? ri(1, 3) : k === 'pow' ? ri(0, 1) : ri(0, 2); me.rat[k] = Math.max(15, me.rat[k] - d); aged[k] = d; }
   }
+  if (o.rival && G.rivals) {
+    const RV = G.rivals[o.rival], D = RIVALS[o.rival];
+    if (R.win) { RV.beaten++; if (RV.beaten === 1) storyBeat([[o.rival, pick(D.lose)]], o.rival); }
+    else if (RV.beaten) RV.lost++;
+    else { RV.lost++; RV.rematchAt = G.week + 3; storyBeat([[o.rival, pick(D.win)], ['news', 'You\'ll get your rematch. Train harder.']], o.rival); }
+  }
+  R.oppRankIdx = R.oppRankIdxBefore ?? -1;
   G.log.unshift({ wk:G.week, opp:o.name, oppRank:R.oppRank, res:R.draw ? 'D' : R.win ? 'W' : 'L', how:R.how, rd:R.rd, title:R.title });
   G.week++;
   worldSim();
   G.offers = null;
   G.last = { ...R, pay, wasRank, nowRank:rankOf('me'), aged, age:Math.floor(me.age) };
+  G.last.paper = headline({ ...R, wasRank }, o);
+  checkStory();
   if (me.age >= 40) G.over = true;
   save();
 }
@@ -583,6 +707,8 @@ function drawBoxer(g, ox, gy, dir, p, look, o = {}){
   const hx = L * 1.15 + p.hx, hy = C + p.hy, sw = o.swell || 0;
   R(-5 + hx, -53 + hy, 10, 10, skin);                                      // head
   if (hair !== 'none') { R(-5 + hx, -53 + hy, 10, 3, hair); R(-5 + hx, -50 + hy, 3, 3, hair); }
+  if (look.flat && hair !== 'none') R(-5 + hx, -56 + hy, 10, 3, hair);    // flat-top
+  if (look.stache) R(1 + hx, -46 + hy, 5, 1, hair !== 'none' ? shade(hair, .9) : '#2a1a10');
   R(-1 + hx, -48 + hy, 2, 2, skinB);                                       // ear
   // the eye on our side swells shut as the head shots pile up
   if (sw > .12) R(1 + hx, -51 + hy, 4, 3, mix(skin, '#7a3f86', sw * .9));
@@ -1027,7 +1153,7 @@ function quitFight(){
   M.result = { winSide:1, how:'RTD' }; leaveFight();
 }
 function leaveFight(){
-  const res = M.result, R = { opp:M.opp, oppRank:M.oppRank, purse:M.offer.purse, title:M.offer.title, rd:M.round,
+  const res = M.result, R = { opp:M.opp, oppRank:M.oppRank, oppRankIdxBefore:rankOf(M.opp), purse:M.offer.purse, title:M.offer.title, rd:M.round,
     win:res.winSide === 0, draw:res.winSide < 0, ko:['KO', 'TKO', 'RTD', 'DOC'].includes(res.how), how:res.how, totals:M.totals || null };
   M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true;
   $('#game').hidden = true; $('#ui').hidden = false;
@@ -1386,7 +1512,7 @@ const ui = $('#ui');
 function bar(title, left = '<button class="btn sm" data-a="hub">Back</button>'){
   return `<div class="bar"><div>${left}</div><div class="title">${title}</div><div class="box num">${money(G.cash)}</div></div>`;
 }
-let draft = null;
+let draft = null, storyStep = 0;
 function render(){
   ui.dataset.screen = screen;
   ui.innerHTML = (VIEWS[screen] || VIEWS.title)();
@@ -1425,6 +1551,7 @@ const VIEWS = {
   hub(){
     const me = G.fighters.me, i = rankOf('me');
     if (G.over) return VIEWS.over();
+    if (G.story && G.story.length) { screen = 'story'; ui.dataset.screen = 'story'; return VIEWS.story(); }
     const rats = RK.map(k => `<div class="rat"><span class="label">${RNAME[k]}</span><div class="hbar"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div><b>${me.rat[k]}</b></div>`).join('');
     return `${bar(me.nick ? '&ldquo;' + esc(me.nick) + '&rdquo;' : 'Retro Boxing', '<button class="btn sm" data-a="title">Menu</button>')}
       <div class="hub"><div class="panel"><div class="me"><div class="face">${face(me, 150)}</div><div>
@@ -1442,14 +1569,14 @@ const VIEWS = {
     if (!G.offers) { makeOffers(); save(); }
     const cards = G.offers.map((o, k) => {
       const f = G.fighters[o.id], S = STYLES[f.style];
-      return `<button class="offer ${o.title ? 'title' : ''}" data-a="pickoff" data-k="${k}">
-        <div class="top"><span class="rk">${rankShort(o.id)}</span><span class="tag">${S.name}</span>${face(f, 104)}</div>
+      return `<button class="offer ${o.title ? 'title' : ''} ${o.grudge ? 'grudge' : ''}" data-a="pickoff" data-k="${k}">
+        <div class="top"><span class="rk">${rankShort(o.id)}</span><span class="tag ${o.grudge ? 'grudge' : ''}">${o.grudge ? (o.rematch ? 'Rematch' : 'Grudge') : S.name}</span>${face(f, 104)}</div>
         <div class="bot"><div class="nm">${esc(f.name)}</div>
           <div class="ln"><span>Record</span><b class="num">${rec(f)}</b></div>
           <div class="ln"><span>Overall</span><b class="num">${ovr(f)}</b></div>
           <div class="ln"><span>Rounds</span><b class="num">${o.rounds}</b></div>
           <div class="ln"><span>Purse</span><b class="num yellow">${money(o.purse)}</b></div>
-          ${o.title ? '<div class="label yellow" style="margin-top:3px">Title fight</div>' : ''}</div></button>`;
+          ${o.title ? '<div class="label yellow" style="margin-top:3px">Title fight</div>' : o.grudge ? `<div class="label bad" style="margin-top:3px">&ldquo;${esc(f.nick)}&rdquo;</div>` : ''}</div></button>`;
     }).join('');
     return `${bar('Pick a fight')}<div class="offers">${cards}</div>`;
   },
@@ -1462,7 +1589,18 @@ const VIEWS = {
       <div class="panel">${RK.map(row).join('')}
         ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(Math.floor(me.age), 'Age', Math.floor(f.age))}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
-      <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div></div></div>`;
+      <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>
+        <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>`;
+  },
+  story(){
+    const b = G.story[0], k = clamp(storyStep, 0, b.lines.length - 1), [who, text] = b.lines[k];
+    const rv = who !== 'news' ? RIVALS[who] : null, f = rv ? G.fighters[G.rivals[who].id] : G.fighters.me;
+    const last = k >= b.lines.length - 1;
+    return `<div class="story"><div class="face">${f ? face(f, 170) : ''}</div><div>
+      <div class="who">${rv ? `&ldquo;${esc(rv.nick)}&rdquo; ${esc(rv.name)}` : '&nbsp;'}</div>
+      <div class="say ${rv ? '' : 'news'}">${rv ? '&ldquo;' + text + '&rdquo;' : text}</div>
+      <div class="row between" style="margin-top:12px"><div class="dots">${b.lines.map((_, j) => `<i class="${j <= k ? 'on' : ''}"></i>`).join('')}</div>
+      <button class="btn go" data-a="storynext">${last ? (b.who && !G.rivals[b.who].beaten && G.rivals[b.who].lost === 0 && b.who !== 'golden' ? 'Bring it on' : 'Continue') : 'Next'}</button></div></div></div>`;
   },
   train(){
     const me = G.fighters.me;
@@ -1494,7 +1632,8 @@ const VIEWS = {
     const rk = i => i < 0 ? 'Unranked' : i === 0 ? 'Champion' : '#' + i;
     const aged = R.aged ? `<div class="bad" style="font-size:14px">Turned ${R.age}: ${RK.filter(k => R.aged[k]).map(k => RNAME[k] + ' -' + R.aged[k]).join(', ') || 'no change'}</div>` : '';
     const title = R.title && R.win ? `<div class="belt" style="padding:4px 14px">${R.wasRank === 0 ? 'TITLE DEFENDED' : 'NEW WORLD CHAMPION'}</div>` : '';
-    return `<div class="res"><h1 class="${R.win ? 'yellow' : ''}">${word}</h1>
+    const P = R.paper ? `<div class="paper"><div class="mast"><span>THE DAILY JAB</span><span>${esc(townOf(me)).toUpperCase()} EDITION</span></div><div class="head">${R.paper.h}</div><div class="deck">${R.paper.d}</div></div>` : '';
+    return `<div class="res"><h1 class="${R.win ? 'yellow' : ''}">${word}</h1>${P}
       <div class="how">${HOW[R.how]}${R.ko ? ' &middot; round ' + R.rd : ''}${R.totals ? ' &middot; ' + R.totals.map(t => t[0] + '-' + t[1]).join(', ') : ''}</div>${title}
       <div class="lines"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Purse</span><b class="num yellow">+${money(R.pay)}${R.win || R.draw ? '' : ' (loser\'s half)'}</b><span>Rank</span><b class="num">${rk(R.wasRank)} &rarr; ${rk(R.nowRank)}</b></div>
       ${aged}<button class="btn go" data-a="hub">Continue</button></div>`;
@@ -1514,7 +1653,7 @@ ui.addEventListener('click', e => {
   switch (a) {
     case 'title': SLOT = null; G = null; screen = 'title'; break;
     case 'newslot': SLOT = n; draft = { name:'', nick:'', town:'', look:{ skin:SKINS[1], hair:HAIRS[0], trunks:KITS[0], gloves:GLOVES[0] } }; screen = 'create'; break;
-    case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } break;
+    case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } else { migrate(); checkStory(); save(); } break;
     case 'del': e.stopPropagation(); if (armed === 'del' + n) { resetSlot(n); armed = null; } else armed = 'del' + n; break;
     case 'look': draft.look[b.dataset.k] = b.dataset.v; break;
     case 'start': { const nm = (draft.name || '').trim() || 'ROOKIE'; newCareer(nm, (draft.nick || '').trim(), { ...draft.look }, (draft.town || '').trim()); save(); screen = 'hub'; break; }
@@ -1526,6 +1665,7 @@ ui.addEventListener('click', e => {
     case 'tr': train(b.dataset.k, n); return;
     case 'rankings': screen = 'rankings'; break;
     case 'log': screen = 'log'; break;
+    case 'storynext': { const b = G.story[0]; if (storyStep < b.lines.length - 1) storyStep++; else { G.story.shift(); storyStep = 0; save(); screen = 'hub'; } break; }
     case 'retire': if (armed === 'retire') { armed = null; G.over = true; save(); } else armed = 'retire'; break;
   }
   render();
