@@ -3120,8 +3120,9 @@ function addAil(f, k, v){
 const away = f => f.side === 0 ? -1 : 1;                   // the direction of his own ropes
 const gapOf = () => M.f[1].x - M.f[0].x;
 let punchSeq = 0;
+function fireQueued(f){ const q = f.queued; f.queued = null; if (!q || M.time - (q[2] || M.time) >= .6) return; if (q[0] === 'slip') slip(f); else if (q[0] === 'duck') duck(f); else punch(f, q[0], q[1]); }
 function punch(f, type, tgt){
-  if (f.user && M && M.phase === 'fight' && f.state === 'rec' && f.dur - f.t < .16) { f.queued = [type, tgt]; return false; }   // tapped just before he's ready: throw it the moment he is
+  if (f.user && M && M.phase === 'fight' && ['wind', 'hit', 'rec', 'stun', 'slip', 'duck'].includes(f.state)) { f.queued = [type, tgt, M.time]; return false; }   // busy: throw it the moment he's free
   if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block')) return false;
   const P = FT[type], cost = f.rage > 0 ? 0 : P.cost;
   f.weak = f.st < cost; f.st = Math.max(0, f.st - cost);
@@ -3137,12 +3138,14 @@ function punch(f, type, tgt){
   return true;
 }
 function slip(f){
+  if (f.user && M && M.phase === 'fight' && ['wind', 'hit', 'rec', 'stun'].includes(f.state)) { f.queued = ['slip', null, M.time]; return false; }   // swiped while busy: dodge the moment he's free
   if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block') || f.evadeCD > 0 || f.st < EVADE_COST) return false;
   if (f.pinned) { if (f.user) fx('ON THE ROPES', f.side, 'r'); return false; }
   f.st -= EVADE_COST; f.state = 'slip'; f.t = 0; f.dur = SLIP_T;
   return true;
 }
 function duck(f){
+  if (f.user && M && M.phase === 'fight' && ['wind', 'hit', 'rec', 'stun'].includes(f.state)) { f.queued = ['duck', null, M.time]; return false; }   // swiped while busy: dodge the moment he's free
   if (!M || M.phase !== 'fight' || !(f.state === 'idle' || f.state === 'block') || f.evadeCD > 0 || f.st < EVADE_COST) return false;
   f.st -= EVADE_COST; f.state = 'duck'; f.t = 0; f.dur = DUCK_T;
   return true;
@@ -3175,7 +3178,7 @@ function resolve(a, d){
     if (!head) dmg *= BODY_DMG * (1 + A(d, 'ribs') / 150);
     else dmg *= 1 + A(d, 'jaw') / 250;
     const kr = tag ? 1.4 : 1, k = kr * AILX;                               // injuries build at their own pace
-    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (d.user ? 1 : a.pt === 'jab' ? .45 : .8) * (tag ? 1.35 : 1) * (!head && A(d, 'ribs') > 60 ? 1.4 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
+    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (d.user ? .65 : a.pt === 'jab' ? .45 : .8) * (tag ? 1.35 : 1) * (!head && A(d, 'ribs') > 60 ? 1.4 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
     push(d, P.push * (tag ? 1.5 : 1) * (a.rage > 0 ? 1.4 : 1));
     a.landed++; a.rLanded++; d.unanswered++;
     // what the punch does to him
@@ -3256,10 +3259,10 @@ function step(f, o, dt){
   }
   switch (f.state) {
     case 'wind': if (f.t >= f.dur) { f.state = 'hit'; f.t = 0; f.dur = FT[f.pt].hit; resolve(f, o); } break;
-    case 'hit': if (f.t >= f.dur) { f.state = 'rec'; f.t = 0; f.dur = FT[f.pt].rec * f.sm + (f.whiff ? OPEN_T : 0); } break;
-    case 'rec': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.whiff = false; if (f.queued) { const q = f.queued; f.queued = null; punch(f, q[0], q[1]); } } break;
-    case 'slip': case 'duck': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.evadeCD = EVADE_CD * (1 - .15 * (gearOf(f).shoes || 0)); } break;
-    case 'stun': if (f.t >= f.dur) f.state = f.blockHeld ? 'block' : 'idle'; break;
+    case 'hit': if (f.t >= f.dur) { f.state = 'rec'; f.t = 0; f.dur = FT[f.pt].rec * f.sm * (f.user ? .8 : 1) + (f.whiff ? OPEN_T : 0); } break;
+    case 'rec': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.whiff = false; fireQueued(f); } break;
+    case 'slip': case 'duck': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.evadeCD = EVADE_CD * (1 - .15 * (gearOf(f).shoes || 0)); fireQueued(f); } break;
+    case 'stun': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; fireQueued(f); } break;
     case 'block': if (!f.blockHeld) f.state = 'idle'; break;
     case 'idle': if (f.blockHeld) f.state = 'block'; break;
   }
@@ -3293,7 +3296,7 @@ function aiThink(f, o, dt){
   if (o.state === 'wind' && AI.seen === o.pid && !AI.reacted && o.t >= AI.react) {
     AI.reacted = true;
     const ok = f.state === 'idle' || f.state === 'block', head = o.tgt === 'head';
-    if (ok && Math.random() < .1 + sk * .65) {
+    if (ok && Math.random() < .08 + sk * .42) {
       if (Math.random() < S.dodge && f.evadeCD <= 0) {
         if (head && o.pt !== 'upper' && (f.pinned || Math.random() < .45)) duck(f);
         else if (!f.pinned) slip(f);
@@ -3301,7 +3304,7 @@ function aiThink(f, o, dt){
       } else {
         f.blockHeld = true; AI.blockUntil = M.time + rnd(.35, .7);
         f.guard = (head ? 'high' : 'low');
-        if (Math.random() < (1 - sk) * .3) f.guard = head ? 'low' : 'high';                  // guessed wrong
+        if (Math.random() < .12 + (1 - sk) * .3) f.guard = head ? 'low' : 'high';            // guessed wrong
       }
     } else if (o.pt === 'upper' && f.state === 'idle' && Math.random() < sk * .35) punch(f, 'jab', 'head');
   }
@@ -3770,7 +3773,7 @@ function draw(){
   g.setTransform(SC, 0, 0, SC, -cam * SC, 0);
   const hy = M.hype, empty = !!M.offer.spar;
   if (!empty) {
-    const tick = hy > .05 ? Math.floor(M.time * 20) : -1, key = tick + '|' + (hy > .15 ? 1 : 0) + '|' + SC + '|' + PAN;
+    const tick = hy > .05 ? Math.floor(M.time * 12) : -1, key = tick + '|' + (hy > .15 ? 1 : 0) + '|' + SC + '|' + PAN;
     const off = PAN + 6;
     if (!crowdC || crowdC.width !== Math.ceil((LW + off + 4) * SC)) { crowdC = document.createElement('canvas'); crowdC.width = Math.ceil((LW + off + 4) * SC); crowdC.height = Math.ceil(60 * SC); crowdG = crowdC.getContext('2d'); crowdKey = null; }
     if (crowdKey !== key) { crowdKey = key; crowdG.setTransform(1, 0, 0, 1, 0, 0); crowdG.clearRect(0, 0, crowdC.width, crowdC.height); crowdG.setTransform(SC, 0, 0, SC, off * SC, 0); drawCrowd(crowdG, hy); }
