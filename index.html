@@ -2399,28 +2399,35 @@ function drop(a, t0, f0, f1, len, gain, dest, shape){                       // a
   if (shape) { const w = a.createWaveShaper(), c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 2.6); } w.curve = c; node = o.connect(w); }
   node.connect(v); for (const x of dest) v.connect(x); o.start(t0); o.stop(t0 + len + .02);
 }
+// a burst of noise: optional hard clip for the crack, a lowpass that sweeps down for the boom
+function noiseShot(a, t0, len, decay, gain, lp0, lp1, dest, clip){
+  const n = Math.floor(a.sampleRate * len), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / n * decay);
+  const src = a.createBufferSource(); src.buffer = buf; let node = src;
+  if (clip) { const w = a.createWaveShaper(), c = new Float32Array(512); for (let i = 0; i < 512; i++) { const x = (i / 256 - 1) * clip; c[i] = Math.max(-1, Math.min(1, x)); } w.curve = c; node = node.connect(w); }
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = .4; f.frequency.setValueAtTime(lp0, t0); f.frequency.exponentialRampToValueAtTime(lp1, t0 + len);
+  const v = a.createGain(); v.gain.value = gain;
+  node.connect(f).connect(v); for (const x of dest) v.connect(x); src.start(t0);
+}
+// a punch lands like a gunshot: an instant crack, a short boom, the roof throws it back
 function punchSound(pt, head, big){
   if (!SOUND) return; const a = ac(); if (!a) return;
-  const out = outBus(a), t0 = a.currentTime, P = pt === 'jab' ? .55 : pt === 'hook' ? .85 : 1, B = big ? 1.35 : 1, j = 1 + (Math.random() - .5) * .12;
-  noiseHit(a, t0, .045, 'highpass', (head ? 2200 : 1300) * j, .7, .9 * P * B, 9, [out]);                 // the leather crack
-  noiseHit(a, t0, .12, 'bandpass', (head ? 950 : 620) * j, 1.1, .85 * P * B, 6, [out]);                   // the smack
-  drop(a, t0, (head ? 150 : 115) * j, 42, .22 + P * .08, 1.1 * P * B, [out], true);                       // the thump in your chest
-  if (pt !== 'jab' || big) {
-    drop(a, t0 + .005, 70, 34, .45 + (big ? .25 : 0), .9 * P * B, [out, ECHO], false);                   // sub boom
-    noiseHit(a, t0, .4, 'lowpass', 420, .5, .45 * P * B, 5, [out, ECHO]);                                 // the arena takes the hit
-  }
-  if (big) noiseHit(a, t0 + .01, .09, 'highpass', 3600, .5, .5, 7, [out, ECHO]);                         // a sharper snap on the big ones
+  const out = outBus(a), t0 = a.currentTime, P = pt === 'jab' ? .6 : pt === 'hook' ? .85 : 1, B = big ? 1.3 : 1;
+  noiseShot(a, t0, .018, 3, 1.6 * P * B, head ? 14000 : 8000, 4000, [out], 6);                          // the crack: a few ms of clipped noise
+  noiseShot(a, t0, .2 + P * .15, 9, 1.1 * P * B, head ? 2600 : 1600, 180, [out, ECHO], 2);              // the boom right behind it
+  if (pt !== 'jab' || big) noiseShot(a, t0 + .015, .7, 6, .5 * P * B, 900, 120, [ECHO], 0);            // the tail rolling round the arena
+  drop(a, t0, 70, 38, .1 + P * .06, .45 * P * B, [out], false);                                         // a short low punch you feel more than hear
 }
 function blockSound(){
   if (!SOUND) return; const a = ac(); if (!a) return;
   const out = outBus(a), t0 = a.currentTime;
-  noiseHit(a, t0, .08, 'lowpass', 1100, .7, .7, 7, [out]); drop(a, t0, 200, 90, .12, .5, [out], false);
+  noiseShot(a, t0, .012, 3, .7, 5000, 2000, [out], 3); noiseShot(a, t0, .12, 10, .55, 900, 200, [out], 0);
 }
 function canvasSlam(){
   if (!SOUND) return; const a = ac(); if (!a) return;
   const out = outBus(a), t0 = a.currentTime;
-  drop(a, t0, 95, 30, .7, 1.3, [out, ECHO], true); noiseHit(a, t0, .5, 'lowpass', 500, .6, .9, 4, [out, ECHO]);
-  noiseHit(a, t0 + .02, .12, 'bandpass', 1500, .8, .4, 6, [out]);                                          // the ropes and the boards rattle
+  noiseShot(a, t0, .025, 3, 1.5, 9000, 3000, [out], 5); noiseShot(a, t0, .6, 6, 1.2, 1400, 90, [out, ECHO], 2);
+  noiseShot(a, t0 + .02, 1, 5, .5, 700, 100, [ECHO], 0); drop(a, t0, 60, 30, .3, .7, [out], false);
 }
 function bell(times = 1){
   if (!SOUND) return; const a = ac(); if (!a) return;
