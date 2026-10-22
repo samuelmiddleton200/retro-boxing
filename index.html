@@ -1365,6 +1365,12 @@ const RIG = {
   robe:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58] },
   hop:{ cr:-1, nK:[42, 75], nA:[41, 86], fK:[34, 75], fA:[33, 86] },                              // up on the toes, mid-bounce
   land:{ cr:2, nK:[43, 77], fK:[33, 77], nGl:[50, 22], fGl:[44, 23] },                                // knees soak up the landing
+  rockF:{ lean:1, cr:1, nK:[44, 76], nA:[44, 88], fK:[34, 77], fA:[31, 88] },                        // weight rolls onto the front foot
+  shufA:{ nK:[42, 76], nA:[42, 88], fK:[36, 77], fA:[35, 88] },                                      // back foot slides up under him
+  rockB:{ lean:-1, cr:1, nK:[42, 77], nA:[41, 88], fK:[33, 76], fA:[32, 88], nGl:[49, 22] },         // weight settles back
+  shufB:{ nK:[43, 76], nA:[45, 88], fK:[34, 77], fA:[33, 88] },                                      // front foot pushes out
+  robeW1:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58], nK:[43, 76], nA:[44, 88], fK:[33, 77], fA:[31, 88] },
+  robeW2:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58], nK:[40, 77], nA:[38, 88], fK:[36, 76], fA:[35, 88] },
 };
 // hair styles, drawn by hand in the same way as the spiky original
 function rigHair(S, hx, hy, style){
@@ -1531,7 +1537,7 @@ function rigDraw(look, frame, o = {}){
   rigCuff(S, nW, nE);
   (o.hands ? rigFist : rigGlove)(S, RO + J.nGl[0] + t, J.nGl[1] + cr, false, o.rage);
   // ---- the walkout robe, over everything ----
-  if (o.robe && o.robe.style) rigRobe(S, T, H, o.robe);
+  if (o.robe && o.robe.style) rigRobe(S, T, H, o.robe);  // (robe, robeW1, robeW2 frames)
   else if (o.robe) {
     const R = { r1:o.robe.color, r2:o.robe.trim };
     const [c1, c2, c3] = rampHsl(R.r1, [[-6, .9, .62], [0, 1, 1], [6, .9, 0, .35]]);
@@ -2577,7 +2583,7 @@ function annLines(){
 function walkout(dt){
   M.wt += dt;
   const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2), ease = x => x * x * (3 - 2 * x);
-  const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; } };
+  const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; f.moving = .15; } };
   // the photographers never stop
   M.pf = (M.pf || []).filter(p => (p.life -= dt) > 0);
   const rate = t < 4.4 ? 3 : M.arrived == null ? 14 : 6;
@@ -2772,12 +2778,12 @@ function animate(f, dt){
   f.frame = frameOf(f);
   f.lift = 0; f.sway = (f.sway || 0) * Math.exp(-dt * 6);
   if (f.state === 'idle' && !(f.rock > 55) && M.phase !== 'walkout') {
-    const en = clamp(f.st / f.stMax, .2, 1), hz = (f.rage > 0 ? 2.9 : 2.3) * (.7 + en * .3);
+    const en = clamp(f.st / f.stMax, .2, 1), hz = (f.rage > 0 ? 2 : 1.5) * (.65 + en * .35);
     f.bph = ((f.bph == null ? f.side * .5 : f.bph) + dt * hz) % 1;
-    const ph = f.bph, amp = (f.moving > 0 ? 3 : 2.4) * (.35 + en * .65);
-    f.lift = Math.sin(ph * Math.PI) * amp;
-    if (!(f.moving > 0)) f.frame = ph < .13 || ph > .9 ? 'land' : f.lift > amp * .6 ? 'hop' : f.frame;
-    f.sway += ((f.moving > 0 ? 0 : Math.sin(M.time * 1.25 + f.side * 2.1) * 2 + Math.sin(M.time * 3.1 + f.side) * .6) - f.sway) * (1 - Math.exp(-dt * 8));
+    const ph = f.bph, w = Math.sin(ph * Math.PI * 2);                       // + = weight forward, - = weight back
+    f.lift = Math.abs(Math.sin(ph * Math.PI * 4)) * .45 * en;                   // light on the toes, never a hop
+    if (!(f.moving > 0)) f.frame = ['rockF', 'shufA', 'rockB', 'shufB'][Math.floor(ph * 4) % 4];
+    f.sway += ((f.moving > 0 ? 0 : w * 2.4 * (.5 + en * .5)) - f.sway) * (1 - Math.exp(-dt * 10));
   }
 }
 function animatePose(f, dt){
@@ -2894,7 +2900,7 @@ function draw(){
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
     const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src)) : null };
-    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? (M.phase === 'walkout' ? Math.abs(Math.sin(f.walk * 1.3)) * .9 : 0) : f.lift || 0 }, f.ang || 0);
+    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? (M.phase === 'walkout' && f.moving > 0 ? (Math.floor(f.walk / 2.2) % 2 ? 'robeW1' : 'robeW2') : 'robe') : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (wide) drawSpot(gy, cam);
