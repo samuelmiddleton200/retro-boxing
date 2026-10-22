@@ -2413,10 +2413,11 @@ function noiseShot(a, t0, len, decay, gain, lp0, lp1, dest, clip){
 function punchSound(pt, head, big){
   if (!SOUND) return; const a = ac(); if (!a) return;
   const out = outBus(a), t0 = a.currentTime, P = pt === 'jab' ? .6 : pt === 'hook' ? .85 : 1, B = big ? 1.3 : 1;
-  noiseShot(a, t0, .018, 3, 1.6 * P * B, head ? 14000 : 8000, 4000, [out], 6);                          // the crack: a few ms of clipped noise
-  noiseShot(a, t0, .2 + P * .15, 9, 1.1 * P * B, head ? 2600 : 1600, 180, [out, ECHO], 2);              // the boom right behind it
-  if (pt !== 'jab' || big) noiseShot(a, t0 + .015, .7, 6, .5 * P * B, 900, 120, [ECHO], 0);            // the tail rolling round the arena
-  drop(a, t0, 70, 38, .1 + P * .06, .45 * P * B, [out], false);                                         // a short low punch you feel more than hear
+  noiseShot(a, t0, .015, 3, 1.2 * P * B, head ? 12000 : 7000, 3000, [out], 6);                          // the crack
+  noiseHit(a, t0, .16, 'bandpass', (head ? 520 : 420) * (1 + (Math.random() - .5) * .1), 1.2, 1.3 * P * B, 8, [out]);   // the meaty slap of glove on face
+  noiseShot(a, t0, .25 + P * .15, 8, .9 * P * B, head ? 2000 : 1300, 150, [out, ECHO], 2);              // the boom right behind it
+  drop(a, t0, 85, 40, .28 + P * .1, .9 * P * B, [out], true);                                           // the deep movie thump underneath
+  if (pt !== 'jab' || big) noiseShot(a, t0 + .015, .8, 6, .5 * P * B, 900, 110, [ECHO], 0);            // the tail rolling round the arena
 }
 function blockSound(){
   if (!SOUND) return; const a = ac(); if (!a) return;
