@@ -2196,6 +2196,12 @@ function girlDraw(d, frame = 'stand'){
   const PAL = girlPalette(d), S = RigSprite(PAL), cx = 46;
   const step = frame === 'walk1' ? 1 : frame === 'walk2' ? -1 : 0;
   // ---- big hair, behind everything ----
+  if ((d.hairStyle || 'feather') === 'feather') {
+    S.begin();                                                                        // the back of the hair: long, falling behind the shoulders
+    S.ell('h2', cx, 16, 8.6, 9.6); S.poly('h1', [[cx - 7.5, 16], [cx + 7.5, 16], [cx + 8, 32], [cx - 8, 32]]);
+    for (const sd of [-1, 1]) S.poly('h1', [[cx + sd * 7, 12], [cx + sd * 10.5, 17], [cx + sd * 12, 26], [cx + sd * 11, 34], [cx + sd * 12.5, 42], [cx + sd * 8, 44], [cx + sd * 7, 34], [cx + sd * 6, 22]]);
+    S.end();
+  } else {
   S.begin();
   const hs = d.hairStyle || 'curls', wide = hs === 'teased' ? 15 : hs === 'perm' ? 14 : 13, low = hs === 'side' ? 31 : hs === 'perm' ? 32 : 30;
   S.ell('h2', cx, 18, wide, 12); S.poly('h2', [[cx - wide, 18], [cx - wide + 1, low], [cx + wide - 1, low], [cx + wide, 18]]);
@@ -2209,6 +2215,7 @@ function girlDraw(d, frame = 'stand'){
   S.shade('h1', [[cx - wide - 3, 24], [cx - wide + 2, 24], [cx - wide + 2, low + 3], [cx - wide - 3, low + 3]]);
   S.shade('h1', [[cx + wide - 2, 24], [cx + wide + 3, 24], [cx + wide + 3, low + 3], [cx + wide - 2, low + 3]]);
   S.end();
+  }
   // ---- arms up, holding the card ----
   for (const sd of [-1, 1]) {
     const Sh = [cx + sd * 8.5, 31], El = [cx + sd * 16.5, 18], Hd = [cx + sd * 15, 3];
@@ -2283,19 +2290,49 @@ function girlDraw(d, frame = 'stand'){
       S.begin(); S.poly(j2, [[cx + sd * 6.5, 28], [cx + sd * 12, 29], [cx + sd * 15, 22], [cx + sd * 11, 18]]); S.shade(j1, [[cx + sd * 11, 18], [cx + sd * 12, 18], [cx + sd * 15, 22], [cx + sd * 14, 23]]); S.end();
     }
   }
-  // ---- neck and head ----
+  // ---- neck and head: a fuller face, painted feature by feature ----
   S.begin();
-  S.poly('s4', [[cx - 2.5, 23], [cx + 2.5, 23], [cx + 2.8, 30], [cx - 2.8, 30]]); S.shade('s3', [[cx - 2.5, 23], [cx + 2.5, 23], [cx + 2.5, 26], [cx - 2.5, 26]]);
-  S.ell('s4', cx, 18.5, 5.4, 6.6);
-  S.shade('s5', [[cx + 1, 13], [cx + 4.5, 15], [cx + 4.5, 19], [cx + 2, 17]]);
-  S.shade('s3', [[cx - 5.5, 15], [cx - 3.5, 14], [cx - 3, 23], [cx - 5, 21]]);
-  S.dot('lash', cx - 3.5, 17, 3, 1); S.dot('lash', cx + 1, 17, 3, 1);                // lashes
-  S.dot('eye', cx - 3, 18, 2, 1); S.dot('iris', cx - 2.5, 18, 1, 1); S.dot('eye', cx + 1.5, 18, 2, 1); S.dot('iris', cx + 2, 18, 1, 1);
-  S.dot('h1', cx - 3.5, 15.5, 3, .6); S.dot('h1', cx + 1, 15.5, 3, .6);             // brows
-  S.dot('s3', cx, 19.5, 1, 2); S.dot('s5', cx - .5, 19, 1, 1);                      // nose
-  S.dot('blush', cx - 4, 20, 2, 1); S.dot('blush', cx + 2.5, 20, 2, 1);
-  S.dot('lip', cx - 1.5, 22, 3, 1); S.dot('lipL', cx - .5, 22, 1, 1); S.dot('lip', cx - 1, 23, 2, .7);
+  S.poly('s4', [[cx - 2.6, 23], [cx + 2.6, 23], [cx + 2.9, 30], [cx - 2.9, 30]]); S.shade('s3', [[cx - 2.6, 23], [cx + 2.6, 23], [cx + 2.6, 26.5], [cx - 2.6, 26.5]]);
+  S.ell('s4', cx, 18.2, 5.9, 7.1);
+  S.shade('s3', [[cx - 6, 14], [cx - 4, 13], [cx - 3.6, 21], [cx - 2, 24.5], [cx - 4.5, 23]]);                  // the far cheek, turned from the light
+  S.shade('s5', [[cx + 1.5, 12], [cx + 5, 14], [cx + 5.2, 19], [cx + 3, 17]]);                                 // forehead and cheekbone in the light
+  S.dot('s6', cx + 3, 18.5, 1, 1); S.dot('s6', cx + 1, 12.5, 2, 1);
+  S.shade('s3', [[cx - 3, 24.6], [cx + 3, 24.6], [cx + 1.5, 25.6], [cx - 1.5, 25.6]]);                         // under the chin
+  // brows: thin and arched
+  S.dot('h1', cx - 4.5, 15, 1, 1); S.dot('h1', cx - 3.5, 14.4, 2, 1); S.dot('h1', cx - 1.6, 15, 1, 1);
+  S.dot('h1', cx + 1.6, 15, 1, 1); S.dot('h1', cx + 2.5, 14.4, 2, 1); S.dot('h1', cx + 4.5, 15, 1, 1);
+  // eyes: shadowed lids, a dark lash line with a flick, white, a blue iris with a glint
+  S.dot('#b8807a', cx - 4.5, 16.2, 3, 1); S.dot('#b8807a', cx + 1.5, 16.2, 3, 1);
+  S.dot('lash', cx - 4.6, 17, 3.6, 1); S.dot('lash', cx - 5.4, 16.4, 1, 1); S.dot('lash', cx + 1, 17, 3.6, 1); S.dot('lash', cx + 4.4, 16.4, 1, 1);
+  S.dot('eye', cx - 4.4, 18, 1, 1); S.dot('#4a8ac0', cx - 3.4, 18, 1, 1); S.dot('#2a4a70', cx - 2.4, 18, 1, 1);
+  S.dot('eye', cx + 3.4, 18, 1, 1); S.dot('#4a8ac0', cx + 1.4, 18, 1, 1); S.dot('#2a4a70', cx + 2.4, 18, 1, 1);
+  S.dot('s3', cx - 4, 19, 2, .6); S.dot('s3', cx + 2, 19, 2, .6);
+  // nose: a lit bridge, a soft shadow on one side, nostrils
+  S.dot('s5', cx, 17.5, 1, 2.5); S.dot('s3', cx - 1, 19, 1, 2); S.dot('s2', cx - 1, 21, 1, 1); S.dot('s2', cx + 1, 21, 1, 1); S.dot('s6', cx, 20.4, 1, 1);
+  S.dot('blush', cx - 4.5, 20.5, 2, 1); S.dot('blush', cx + 3, 20.5, 2, 1);
+  // lips: full, a darker line between, a shine on the lower lip
+  S.dot('lip', cx - 1.5, 22.4, 3, 1); S.dot('#8a1a30', cx - 2, 23, 4, .6); S.dot('lipL', cx - 1, 23.5, 2, .8); S.dot('#ffd0d8', cx, 23.5, .6, .6);
   S.end();
+  // ---- the hair in front: centre part, waves framing the face and falling over the shoulders ----
+  if ((d.hairStyle || 'feather') === 'feather') {
+    S.begin();
+    S.poly('h2', [[cx - 6.6, 19], [cx - 7, 11], [cx - 3.5, 7], [cx, 8.6], [cx + 3.5, 7], [cx + 7, 11], [cx + 6.6, 19], [cx + 5.2, 14], [cx + 2.6, 11.2], [cx, 11.6], [cx - 2.6, 11.2], [cx - 5.2, 14]]);
+    S.shade('h3', [[cx - 6, 11], [cx - 3.5, 8], [cx - 1, 9.4], [cx - 4, 11]]); S.shade('h4', [[cx - 5, 10], [cx - 3.5, 8.6], [cx - 2.5, 9.2], [cx - 4.2, 10.4]]);
+    S.shade('h3', [[cx + 1, 9.4], [cx + 3.5, 8], [cx + 6, 11], [cx + 4, 11]]); S.shade('h4', [[cx + 2.5, 9.2], [cx + 3.5, 8.6], [cx + 5, 10], [cx + 4.2, 10.4]]);
+    S.line('h1', [[cx, 8.6], [cx, 11]]);                                                                             // the centre part
+    S.end();
+    if (d.headband) { S.begin(); S.poly(d.headband, [[cx - 7.2, 10.5], [cx - 3.5, 8.6], [cx + 3.5, 8.6], [cx + 7.2, 10.5], [cx + 7.2, 12], [cx + 3.5, 10.2], [cx - 3.5, 10.2], [cx - 7.2, 12]]); S.end(); }
+    for (const sd of [-1, 1]) {                                                                                         // a curtain of waves down each side
+      S.begin();
+      const P = (x, y) => [cx + sd * x, y];
+      S.poly('h2', [P(5.6, 12), P(7.4, 17), P(6.6, 22), P(8.6, 25), P(7.4, 30), P(9.4, 35), P(8, 40), P(10, 44), P(13, 41), P(11.6, 36), P(13.4, 31), P(11.4, 26), P(12.4, 20), P(10, 14), P(7.6, 10)]);
+      S.shade('h1', [P(6.6, 22), P(8.6, 25), P(7.4, 30), P(9.4, 35), P(8, 40), P(9, 41), P(10.6, 36), P(8.8, 30), P(10, 25)]);   // the inside of each wave, in shadow
+      S.line('h3', [P(9, 13), P(10.6, 18), P(9.6, 23), P(11.4, 28), P(10.4, 33), P(12, 38)]);                           // light running down the waves
+      S.line('h4', [P(9.4, 15), P(10.4, 18)]); S.line('h4', [P(10.8, 28), P(11.2, 30)]); S.line('h4', [P(11.4, 37), P(11.8, 39)]);
+      S.line('h1', [P(11.6, 21), P(12.2, 24)]); S.line('h1', [P(12.6, 32), P(12.8, 34)]);
+      S.end();
+    }
+  } else {
   // ---- the hair in front: bangs and curls framing the face ----
   S.begin();
   S.ell('h2', cx - 2, 11.5, 5, 3); S.ell('h2', cx + 3, 11, 4.5, 3); S.ell('h3', cx + 1, 10, 3, 1.6);
@@ -2303,21 +2340,22 @@ function girlDraw(d, frame = 'stand'){
   if (d.headband) { S.poly(d.headband, [[cx - 7, 12], [cx + 7, 12], [cx + 7, 13.5], [cx - 7, 13.5]]); }
   S.dot('h4', cx + 2, 9.5, 2, 1); S.dot('h4', cx - 3, 10.5, 1, 1);
   S.end();
+  }
   if (d.earrings !== false) { S.begin(); for (const sd of [-1, 1]) { S.ell(d.earrings || '#e0b12d', cx + sd * 5.6, d.bigHoops ? 25 : 23.5, d.bigHoops ? 2.2 : 1.4, d.bigHoops ? 2.8 : 1.8); } S.end(); }
   return S.canvas();
 }
-const G1 = { skin:'#e2a676', hair:'#ecc35a', hairStyle:'curls', suit:'#f6f4ef', pat:'flag', shoes:'#c8c8d0' };
+const G1 = { skin:'#e2a676', hair:'#ecc35a', hairStyle:'feather', suit:'#f6f4ef', pat:'flag', shoes:'#c8c8d0' };
 const GIRL_DESIGNS = [
   ['The original', { ...G1 }],
-  ['Halter neck', { ...G1, halter:true, hairStyle:'teased' }],
+  ['Halter neck', { ...G1, halter:true }],
   ['Plunging V', { ...G1, neck:'plunge' }],
-  ['Stripes on the hips', { ...G1, pat:'lower', hairStyle:'perm' }],
+  ['Stripes on the hips', { ...G1, pat:'lower' }],
   ['Flag sash', { ...G1, pat:'sash' }],
-  ['Side curls, headband', { ...G1, hairStyle:'side', headband:'#c42d3a' }],
+  ['Red headband', { ...G1, headband:'#c42d3a' }],
   ['Star straps, big hoops', { ...G1, strapStars:true, bigHoops:true }],
   ['High cut, star belt', { ...G1, cut:'high', belt:'#c42d3a', buckle:'#2a3a8a' }],
-  ['Scoop neck, chest flag', { ...G1, neck:'scoop', pat:'chest', hairStyle:'teased' }],
-  ['Red heels, gold cuffs', { ...G1, shoes:'#c42d3a', bracelet:'#e0b12d', hairStyle:'perm' }],
+  ['Scoop neck, chest flag', { ...G1, neck:'scoop', pat:'chest' }],
+  ['Red heels, gold cuffs', { ...G1, shoes:'#c42d3a', bracelet:'#e0b12d' }],
 ];
 
 const CARD_GIRL = GIRL_DESIGNS[0][1], girlCache = new Map();
