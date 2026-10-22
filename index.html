@@ -849,7 +849,7 @@ function purseFor(id, title){
 // every training day builds a spread of ratings and tires you out by its own amount
 const TRAIN = {
   bag:    { name:'Heavy bag',   gym:0, fat:18, gain:{ pow:3, sta:1, grit:2 }, desc:'Sit down on your punches.' },
-  run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:3, spd:2, grit:1 }, desc:'Run the stairs, two at a time.' },
+  run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:3, spd:2, grit:1 }, desc:'Run the stairs, three at a time.' },
   weights:{ name:'Pull-ups',    gym:0, fat:30, gain:{ grit:3, sta:1, pow:2 },      desc:'Chin over the bar till it burns.' },
   speed:  { name:'Speed bag',   gym:0, fat:12, gain:{ spd:3, sta:2, grit:1 },      desc:'Rhythm and fast hands.' },
   spar:   { name:'Sparring',    gym:0, fat:34, gain:{ pow:2, spd:2, sta:2, grit:2 }, desc:'One real round in headgear. A bit of everything.' },
@@ -4063,7 +4063,7 @@ const MINIS = {
     hud:S => S.live ? (S.combo > 1 ? `Combo ${S.combo}` : 'Keep it going') : 'Tap to start it',
   },
   run: {
-    name:'Roadwork', how:'Run the stairs to the top. Take them two at a time: tap LEFT for your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
+    name:'Roadwork', how:'Run the stairs to the top. Take them three at a time: tap LEFT for your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
     init:() => ({ lag:(() => { const r = G.fighters.me.rat; return .35 - .1 * Math.min(1, (Math.max(0, r.spd - 40) + Math.max(0, r.sta - 40)) / 100); })(), lastTap:-9, queued:[], puffs:[], step:0, total:150, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
@@ -4071,7 +4071,7 @@ const MINIS = {
       for (const p of S.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; } S.puffs = S.puffs.filter(p => p.life > 0);
       for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
         const t = S['f' + k], a = S['a' + k];
-        if (a < t) { S['a' + k] = Math.min(t, a + dt * 4 / S.lag); S['m' + k] = (S['a' + k] - (t - 4)) / 4; } else S['m' + k] = 0;
+        if (a < t) { S['a' + k] = Math.min(t, a + dt * 6 / S.lag); S['m' + k] = (S['a' + k] - (t - 6)) / 6; } else S['m' + k] = 0;
       }
       S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
       const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
@@ -4089,7 +4089,7 @@ const MINIS = {
       S.lastTap = MG.time;
       const foot = side < 0 ? 'L' : 'R';
       if (S['f' + foot] > S['f' + (foot === 'L' ? 'R' : 'L')]) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }   // that foot is already in front
-      S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 2);           // two at a time: skip a step
+      S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 3);           // three at a time: big bounding strides
       S.step = Math.max(S.fL, S.fR);
       if (Math.max(S.fL, S.fR) >= S.total) { S.fL = S.fR = S.total; }
       if (S.step >= S.total && S.top === null) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
@@ -4123,7 +4123,7 @@ const MINIS = {
         }
       }
     },
-    grade:s => s <= 27.5 ? 'S' : s <= 29.5 ? 'A' : s <= 32 ? 'B' : s <= 36 ? 'C' : 'F',
+    grade:s => s <= 18.5 ? 'S' : s <= 20 ? 'A' : s <= 22 ? 'B' : s <= 25 ? 'C' : 'F',
     score:S => S.top !== null ? S.top : 999,
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
@@ -4194,7 +4194,8 @@ function drawRunner(g, S, ox, oy){
   const movL = S.aL < S.fL, movR = S.aR < S.fR, mv = movL ? S.mL : movR ? S.mR : 0, push = Math.sin(clamp(mv, 0, 1) * Math.PI);
   const fast = clamp(.25 / S.lag - 1, 0, 1) * .5 + (MG.time - S.lastTap < .5 ? .5 : 0);
   const bounce = top ? Math.abs(Math.sin((t - S.top) * 6)) * 3 : 0;
-  const Hw = [(FL[0] + FR[0]) / 2 - 1, Math.max(FL[1], FR[1]) - 19 - push * 1.6 + (S.stumble > 0 ? 2 : 0) - bounce];
+  const back = FL[1] > FR[1] ? FL : FR, front = back === FL ? FR : FL;
+  const Hw = [back[0] * .45 + front[0] * .55 - 1, back[1] * .6 + front[1] * .4 - 16 - push * 1.6 + (S.stumble > 0 ? 2 : 0) - bounce];
   const lean = top ? 0 : Math.round(4 + fast * 3), q = v => Math.round(v);
   const toB = P => [35 + lean * .5 + (P[0] - Hw[0]) / k - 3, 66 + (P[1] - Hw[1]) / k - 7];
   const [fK, fA] = runLeg([32 + lean * .5, 66], toB(FL), false), [nK, nA] = runLeg([38 + lean * .5, 66], toB(FR), true);
