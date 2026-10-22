@@ -2121,17 +2121,31 @@ const MR = (x, y, w, h, c) => { mg.fillStyle = c; mg.fillRect(Math.round(x), Mat
 const mgy = () => Math.round(LH * .86);
 
 function gymBg(){
-  const lvl = G ? G.gym : 0;
-  const wall = ['#5a2f2a', '#3d4a5e', '#2f3a4a', '#262a3a'][lvl], brick = ['#6b3a2e', '#4a5870', '#38465a', '#2e3446'][lvl], floor = ['#8a5a34', '#9a6a3a', '#7a7a86', '#4a4a5a'][lvl];
+  const lvl = G ? G.gym : 0, fy = Math.round(LH * .78);
+  const wall = ['#4e2a26', '#3a4458', '#2c3546', '#232838'][lvl], wallD = shade(wall, .8), floor = ['#7a4e2c', '#8a6038', '#6e6e7a', '#3e3e4c'][lvl];
   MR(0, 0, MW, LH, wall);
-  if (lvl < 2) for (let y = 0; y < LH * .78; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? brick : shade(brick, 1.08));
-  else { for (let x = 0; x < MW; x += 24) MR(x, 0, 1, LH * .78, shade(wall, 1.2)); MR(0, LH * .5, MW, 2, '#e24b3b'); }
-  const wx = Math.round(MW * .62);
-  MR(wx, 10, 40, 30, '#2c2670'); MR(wx + 2, 12, 36, 26, '#ffcf8a'); MR(wx + 19, 12, 2, 26, '#2c2670'); MR(wx + 2, 24, 36, 2, '#2c2670');   // window, morning light
-  MR(Math.round(MW * .12), 14, 22, 30, '#e8e2cc'); MR(Math.round(MW * .12) + 3, 18, 16, 10, '#e24b3b'); MR(Math.round(MW * .12) + 3, 31, 16, 2, '#1d1d1d'); MR(Math.round(MW * .12) + 3, 35, 10, 2, '#1d1d1d');   // old fight poster
-  const fy = Math.round(LH * .78);
+  if (lvl === 0) {                                                        // the basement: brick, pipes, one bulb
+    for (let y = 8; y < fy; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) { MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? '#5e3430' : '#68392f'); MR(x, y + 4, 11, 1, wallD); }
+    MR(0, 2, MW, 3, '#3a3a40'); MR(0, 2, MW, 1, '#5a5a62'); MR(MW * .3, 0, 2, 6, '#3a3a40');   // pipe along the ceiling
+    for (let x = 6; x < MW; x += 34) MR(x, 1, 3, 6, '#2a2a30');
+  } else {
+    for (let x = 0; x < MW; x += 20) MR(x, 0, 1, fy, wallD);              // panelled walls
+    MR(0, fy * .52, MW, 2, lvl === 3 ? '#e0b12d' : '#e24b3b'); MR(0, fy * .52 + 2, MW, 1, shade(wall, .7));
+    for (let i = 0; i < 3; i++) MR(MW * (.08 + i * .3), 10, 14, 10, '#1d1d24');   // lockers / banners up high
+  }
+  const lx = Math.round(MW * .5);                                          // the light, and the pool it throws
+  MR(lx - 1, 0, 2, 9, '#222'); MR(lx - 4, 9, 8, 3, '#3a3a40'); MR(lx - 2, 12, 4, 2, '#fff3b8');
+  for (let i = 0; i < 4; i++) { mg.fillStyle = `rgba(255,236,180,${.035 + i * .015})`; mg.fillRect(lx - 34 + i * 7, 14, 68 - i * 14, fy - 14); }
+  const wx = Math.round(MW * .72);                                         // a high window with morning light
+  MR(wx, 14, 34, 22, '#1d1d24'); MR(wx + 2, 16, 30, 18, '#ffcf8a'); MR(wx + 16, 16, 2, 18, '#1d1d24'); MR(wx + 2, 24, 30, 2, '#1d1d24');
+  const px = Math.round(MW * .12);                                         // an old fight poster
+  MR(px, 18, 22, 30, '#e8e2cc'); MR(px + 2, 20, 18, 12, '#c42d2d'); MR(px + 5, 22, 5, 8, '#1d1d1d'); MR(px + 12, 22, 5, 8, '#1d1d1d');
+  MR(px + 3, 35, 16, 2, '#1d1d1d'); MR(px + 3, 39, 11, 2, '#1d1d1d'); MR(px + 3, 43, 14, 1, '#7a7a7a');
+  MR(MW * .9, fy - 26, 10, 26, '#3a2a22'); MR(MW * .9, fy - 26, 10, 2, '#5a4232'); MR(MW * .9 + 2, fy - 22, 6, 1, '#7a1f2a');   // a stool with a towel
   MR(0, fy, MW, LH - fy, floor);
-  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, shade(floor, .85));
+  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, shade(floor, .82));
+  for (let x = 13; x < MW; x += 29) MR(x, fy, 1, LH - fy, shade(floor, .86));
+  mg.fillStyle = 'rgba(255,236,180,.07)'; mg.fillRect(lx - 40, fy, 80, LH - fy);
 }
 const SWEATS = '#8d8d96';
 function trainee(x, y, dir, pose, walk, sweats){
@@ -2154,81 +2168,136 @@ function lyingBoxer(cx, gy, pressed){
 
 const MINIS = {
   bag: {
-    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect. Ten big shots.', dur:30,
-    init:() => ({ swings:0, max:10, mark:0, dir:1, speed:.9, zc:rnd(.35, .65), zw:.2, pw:.05, a:0, v:0, hitT:0 }),
+    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect. Keep going until you miss. More Power and Grit = a wider green.', dur:Infinity,
+    init:() => {
+      const r = G.fighters.me.rat, wide = ((r.pow + r.grit) / 2 - 40) / 60;              // 0 at 40, 1 at 100
+      return { hits:0, streak:0, mark:0, dir:1, speed:.7, zc:rnd(.35, .65), zw:.2 + wide * .16, pw:.04 + wide * .03, a:0, v:0, hitT:0, missed:false, hand:0, puffs:[] };
+    },
     update(S, dt){
-      S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; }
-      S.v += (-S.a * 26 - S.v * 1.4) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
-      if (S.swings >= S.max && S.hitT <= 0) return true;
+      if (!S.missed) { S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; } }
+      S.v += (-S.a * 22 - S.v * 1.6) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
+      for (const p of S.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; } S.puffs = S.puffs.filter(p => p.life > 0);
+      if (S.missed && S.hitT <= 0) return true;
     },
     tap(S){
-      if (S.swings >= S.max || S.hitT > .12) return;
-      S.swings++; S.hitT = .3;
+      if (S.missed || S.hitT > .14) return;
+      S.hitT = .28; S.hand = 1 - S.hand;
       const d = Math.abs(S.mark - S.zc);
-      if (d < S.pw) { MG.score += 3; S.v += 2.4; thud(1, false); miniPop('PERFECT!', 'y'); }
-      else if (d < S.zw / 2) { MG.score += 1; S.v += 1.3; thud(.5, false); miniPop('GOOD', ''); }
-      else { S.v += .3; thud(.1, true); miniPop('MISS', 'r'); }
-      S.speed *= 1.1; S.zc = rnd(.25, .75);
+      if (d < S.pw) { S.hits++; MG.score += 2; S.v += 2.6; thud(1, false); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
+      else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += 1.5; thud(.55, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
+      else { S.missed = true; S.hitT = 1.1; S.v += .3; thud(.1, true); miniPop('MISSED', 'r'); return; }
+      for (let i = 0; i < 6; i++) S.puffs.push({ x:0, y:rnd(-6, 6), vx:rnd(6, 22), vy:rnd(-10, 6), life:rnd(.2, .45) });
+      S.speed *= 1.035; S.zc = rnd(.25, .75);
     },
     draw(S){
-      gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
-      const bx = cx + 6 + S.a * 9;
-      for (let i = 0; i < 18; i += 2) MR(cx + 6 + S.a * 9 * i / 18, i, 1, 1, '#9a9a9a');
-      MR(bx - 1, 17, 4, 3, '#555');
-      MR(bx - 7, 20, 16, 44, '#b8352a'); MR(bx - 7, 20, 16, 3, '#8a1f2a'); MR(bx - 7, 61, 16, 3, '#8a1f2a'); MR(bx + 5, 23, 2, 38, '#d24a3b');
-      trainee(cx - 25, gy, 1, S.hitT > 0 ? (S.swings % 2 ? POSE.hookH : POSE.jabH) : POSE.guard, 0, false);
+      gymBg(); const gy = mgy(), cx = Math.round(MW / 2), P = painter(mg);
+      const top = 6, bx = cx + 4 + S.a * 10, by = top + 16, squash = S.hitT > .18 ? 1.5 : 0;
+      MR(cx - 30, top - 2, 60, 3, '#3a2a22'); MR(cx - 30, top - 2, 60, 1, '#5a4232');                     // the beam
+      for (let i = 0; i < 14; i += 2) MR(cx + 4 + S.a * 10 * i / 14, top + i, 1.5, 1.5, '#a0a0a8');      // chain
+      for (const pass of [true, false]) {
+        P.set(pass);
+        P.R(bx - 2.5, by - 2, 5, 3, '#4a4a52');                                                         // the swivel
+        P.R(bx - 8 + squash, by, 16 - squash, 46, '#9a2a24');                                            // the bag
+        if (!pass) {
+          P.R(bx - 8 + squash, by, 4, 46, '#7a1f1c'); P.R(bx + 4, by + 2, 2, 42, '#c0463a');            // shading and a highlight
+          P.R(bx - 8 + squash, by + 3, 16 - squash, 2.5, '#d8d0bc'); P.R(bx - 8 + squash, by + 40, 16 - squash, 2.5, '#d8d0bc');   // tape bands
+          for (let y = by + 10; y < by + 38; y += 9) P.R(bx - 7 + squash, y, 14 - squash, .5, '#7a1f1c');   // stitched panels
+          P.R(bx - 3, by + 47, 6, 1.5, '#4a4a52');
+        }
+      }
+      for (const p of S.puffs) MR(bx - 8 + p.x * .3 - 2, by + 18 + p.y, 1.5, 1.5, 'rgba(240,230,210,.8)');
+      const pose = S.hitT > .14 && !S.missed ? (S.hand ? POSE.hookH : POSE.jabH) : S.missed ? POSE.hurt : POSE.guard;
+      const p2 = copyPose(pose); if (S.hitT > .14) p2.lean += 1;
+      drawBoxer(mg, cx - 26, gy, 1, p2, G.fighters.me.look, { sweat:S.hits > 8 });
+      // the timing bar
       const x0 = cx - 60, w = 120, y = LH - 11;
       MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
       MR(x0 + (S.zc - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (S.zc - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
       MR(x0 + S.mark * w - 1, y - 3, 2, 12, '#ffffff');
     },
-    grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
-    hud:S => `Shot ${Math.min(S.swings + 1, S.max)} / ${S.max}`,
+    grade:s => s >= 40 ? 'S' : s >= 26 ? 'A' : s >= 15 ? 'B' : s >= 7 ? 'C' : 'F',
+    hud:S => `${S.hits} in a row`,
   },
   speed: {
-    name:'Speed bag', how:'Gloves slide toward the line. Tap the moment each one reaches it. Keep the rhythm going.', dur:22,
+    name:'Speed bag', how:'You\'re looking right at the bag. Tap to hit it: it flies back to the board and swings back at you. Tap again just as it comes back (when the ring closes). Every clean hit speeds it up. Miss and it stops.', dur:25,
     init:() => {
-      const notes = []; let t = 1.2, gap = .62;
-      for (let i = 0; i < 26; i++) { notes.push({ t, hit:null }); t += gap; gap = Math.max(.32, gap * .975) * (Math.random() < .15 ? 1.6 : 1); }
-      return { notes, i:0, combo:0, bag:0, bv:0, fist:0 };
+      const r = G.fighters.me.rat, wide = 1 + Math.max(0, r.spd - 40) / 120;     // faster hands: a bigger window
+      return { live:false, t:0, T:.95, hits:0, combo:0, best:0, good:.085 * wide, perf:.035 * wide, hand:0, punch:0, wob:0, flash:0 };
     },
     update(S, dt){
-      S.bv += (-S.bag * 260 - S.bv * 6) * dt; S.bag += S.bv * dt; S.fist = Math.max(0, S.fist - dt);
-      for (const n of S.notes) if (n.hit === null && MG.time - n.t > .16) { n.hit = 'miss'; S.combo = 0; miniPop('MISS', 'r'); }
-      if (S.notes.every(n => n.hit !== null)) return true;
-    },
-    tap(S){
-      const n = S.notes.find(n => n.hit === null && Math.abs(MG.time - n.t) < .16);
-      S.fist = .12;
-      if (!n) { S.combo = 0; return; }
-      const d = Math.abs(MG.time - n.t);
-      if (d < .06) { n.hit = 'p'; MG.score += 3; S.combo++; miniPop(S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT', 'y'); }
-      else { n.hit = 'g'; MG.score += 1; S.combo++; miniPop('GOOD', ''); }
-      S.bv += S.bv >= 0 ? -9 : 9; thud(.15, true);
-    },
-    draw(S){
-      gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
-      MR(cx - 22, 18, 44, 4, '#5a3a1e'); MR(cx - 2, 22, 4, 3, '#555');      // the platform
-      const sx = cx + S.bag * 2.4;
-      MR(sx - 4, 25, 8, 3, '#b8352a'); MR(sx - 5, 28, 10, 7, '#b8352a'); MR(sx - 4, 35, 8, 3, '#8a1f2a'); MR(sx + 2, 28, 2, 6, '#d24a3b');
-      const p = copyPose(POSE.guard); p.fg = [18 + (S.fist > 0 ? 3 : 0), -66 + (S.fist > 0 ? -2 : 2)]; p.bg = [16 + (S.fist > 0 ? 0 : 3), -63]; p.fe = [10, -55]; p.be = [8, -53]; p.hx = 1;
-      trainee(cx - 20, gy, 1, p, 0, false);
-      // the rhythm lane
-      const y = LH - 12, x0 = 26, w = MW - 40, hitX = x0 + 14, speed = 70;
-      MR(x0 - 2, y - 2, w + 4, 10, '#000'); MR(x0, y, w, 6, '#2c2670'); MR(hitX - 1, y - 4, 3, 14, '#ffd23f');
-      for (const n of S.notes) {
-        if (n.hit === 'p' || n.hit === 'g') continue;
-        const x = hitX + (n.t - MG.time) * speed;
-        if (x < x0 - 4 || x > x0 + w) continue;
-        MR(x - 3, y - 1, 6, 6, n.hit === 'miss' ? '#555' : '#e24b3b'); MR(x - 3, y + 4, 6, 1, '#8a1f2a');
+      S.punch = Math.max(0, S.punch - dt); S.flash = Math.max(0, S.flash - dt); S.wob *= Math.exp(-dt * 3);
+      if (!S.live) return;
+      S.t += dt;
+      if (S.t > S.T + S.good) {                                                // it came back and you weren't there
+        S.live = false; S.combo = 0; S.T = .95; S.wob = 1; miniPop('MISSED', 'r');
       }
     },
-    grade:s => s >= 66 ? 'S' : s >= 50 ? 'A' : s >= 34 ? 'B' : s >= 18 ? 'C' : 'F',
-    hud:S => S.combo > 2 ? `Combo ${S.combo}` : 'Speed bag',
+    tap(S){
+      S.hand = 1 - S.hand; S.punch = .12;
+      if (!S.live) { S.live = true; S.t = 0; thud(.2, true); return; }      // get it going
+      const d = Math.abs(S.t - S.T);
+      if (d <= S.good) {
+        const perfect = d <= S.perf;
+        S.hits++; S.combo++; S.best = Math.max(S.best, S.combo); MG.score += perfect ? 3 : 1;
+        miniPop(perfect ? (S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT') : 'GOOD', perfect ? 'y' : '');
+        S.T = Math.max(.32, S.T * .95); S.t = 0; S.flash = .1; thud(.2, true);
+      } else { S.live = false; S.combo = 0; S.T = .95; S.wob = 1; miniPop(S.t < S.T ? 'TOO EARLY' : 'TOO LATE', 'r'); }
+    },
+    draw(S){
+      // looking straight at the wall, the board overhead, the bag in front of your face
+      const cx = MW / 2, P = painter(mg);
+      MR(0, 0, MW, LH, '#2c3546');
+      for (let x = 0; x < MW; x += 16) { MR(x, 0, 1, LH, '#25303e'); MR(x + 1, 0, 1, LH, '#34405a'); }
+      MR(0, LH * .62, MW, 2, '#e24b3b');
+      mg.fillStyle = 'rgba(255,236,180,.08)'; mg.fillRect(cx - 50, 0, 100, LH);
+      MR(cx - 70, 8, 140, 12, '#6a4426'); MR(cx - 70, 8, 140, 2, '#8a5a34'); MR(cx - 70, 18, 140, 2, '#4a2e18');   // the rebound board, seen from below
+      MR(cx - 74, 4, 6, 26, '#3a2a22'); MR(cx + 68, 4, 6, 26, '#3a2a22');                                           // brackets
+      MR(cx - 3, 20, 6, 4, '#9a9aa2'); MR(cx - 1, 24, 2, 3, '#7a7a82');                                             // swivel
+      // where the bag is in its swing: 0 = right in your face, 1 = flat against the board
+      let away = 0;
+      if (S.live) { const p = clamp(S.t / S.T, 0, 1.3); away = p < .5 ? Math.sin(p * Math.PI) : Math.max(0, Math.sin(p * Math.PI)); }
+      const sc = 1 - away * .5, by = 27 + (1 - away) * 22 - away * 2 + Math.sin(MG.time * 9) * S.wob * 3, bxo = Math.sin(MG.time * 7) * S.wob * 6;
+      const bw = 26 * sc, bh = 36 * sc;
+      mg.strokeStyle = '#3a2a22'; mg.lineWidth = 1.5; mg.beginPath(); mg.moveTo(cx, 26); mg.lineTo(cx + bxo, by - 2); mg.stroke();   // the strap up to the swivel
+      for (const pass of [true, false]) {                                       // the teardrop bag
+        P.set(pass);
+        P.R(cx + bxo - bw * .18, by - 3, bw * .36, 4, '#7a1c1c');
+        P.R(cx + bxo - bw * .38, by, bw * .76, bh * .3, '#b8352a');
+        P.R(cx + bxo - bw * .5, by + bh * .25, bw, bh * .45, '#b8352a');
+        P.R(cx + bxo - bw * .4, by + bh * .7, bw * .8, bh * .18, '#b8352a');
+        P.R(cx + bxo - bw * .25, by + bh * .88, bw * .5, bh * .1, '#b8352a');
+      }
+      P.R(cx + bxo - bw * .5, by + bh * .25, bw * .22, bh * .45, '#8a1f1c');     // shading, highlight, laces
+      P.R(cx + bxo + bw * .18, by + bh * .3, bw * .12, bh * .3, '#e0604f');
+      for (let i = 0; i < 4; i++) P.R(cx + bxo - 1, by + bh * (.12 + i * .08), 2, .5, '#f2e8d8');
+      if (S.flash > 0) for (let i = 0; i < 8; i++) MR(cx + Math.cos(i * .8) * 22, by + bh * .55 + Math.sin(i * .8) * 18, 2, 2, '#fff3b8');
+      // the timing ring: it closes on the bag as it swings back to you
+      if (S.live && S.t > S.T * .5) {
+        const k = clamp((S.T - S.t) / (S.T * .5), 0, 1), rr = 18 + k * 30, gx = cx + bxo, gyy = 27 + 22 + 18;
+        mg.strokeStyle = Math.abs(S.t - S.T) <= S.good ? '#ffd23f' : 'rgba(255,255,255,.7)'; mg.lineWidth = 1.5;
+        mg.beginPath(); mg.arc(gx, gyy, rr, 0, Math.PI * 2); mg.stroke();
+      }
+      // your gloves at the bottom of the screen; the punching one snaps up toward the bag
+      const glove = G.fighters.me.look.gloves;
+      for (const side of [0, 1]) {
+        const out = S.punch > 0 && S.hand === side, k = out ? S.punch / .12 : 0;
+        const gx = side ? cx + 40 - k * 28 : cx - 40 + k * 28, gyy = out ? LH - 18 - (1 - k) * 34 : LH - 12 + Math.sin(MG.time * 4 + side) * 1.5, r = out ? 15 - (1 - k) * 4 : 17;
+        for (const pass of [true, false]) {
+          P.set(pass);
+          P.R(gx - r, gyy - r * .8, r * 2, r * 1.6, glove); P.R(gx - r * .8, gyy - r, r * 1.6, r * 2, glove);
+          P.R(gx - r * .7, gyy + r * .8, r * 1.4, r * .6, '#ece8e0');
+        }
+        P.R(gx - r * .5, gyy - r * .7, r * .5, r * .35, mix(glove, '#ffffff', .4)); P.R(gx - r * .8, gyy + r * .45, r * 1.6, r * .3, shade(glove, .72));
+        P.R(gx + (side ? -r * .9 : r * .5), gyy - r * .2, r * .4, r * .9, shade(glove, .82));   // the thumb
+      }
+
+    },
+    grade:s => s >= 70 ? 'S' : s >= 48 ? 'A' : s >= 30 ? 'B' : s >= 14 ? 'C' : 'F',
+    hud:S => S.live ? (S.combo > 1 ? `Combo ${S.combo}` : 'Keep it going') : 'Tap to start it',
   },
   run: {
-    name:'Roadwork', how:'Run the stairs. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble.', dur:16,
-    init:() => ({ step:0, total:60, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
+    name:'Roadwork', how:'Run the stairs. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. You get 15 seconds, plus 1 for every 5 Stamina and 5 Grit you build.', dur:() => { const r = G.fighters.me.rat; return 15 + Math.max(0, Math.floor((r.sta - 40) / 5)) + Math.max(0, Math.floor((r.grit - 40) / 5)); },
+    init:() => ({ step:0, total:120, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
       for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
@@ -2269,8 +2338,8 @@ const MINIS = {
         MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)');
       }
     },
-    grade:s => s >= 75 ? 'S' : s >= 60 ? 'A' : s >= 45 ? 'B' : s >= 28 ? 'C' : 'F',
-    score:S => S.step + (S.top !== null ? Math.round((16 - S.top) * 5) : 0),
+    grade:s => s >= 120 ? 'S' : s >= 90 ? 'A' : s >= 65 ? 'B' : s >= 40 ? 'C' : 'F',
+    score:S => S.step + (S.top !== null ? Math.round((MG.dur - S.top) * 3) : 0),
     hud:S => `Step ${S.step} / ${S.total}`,
   },
   weights: {
@@ -2389,15 +2458,15 @@ function drawBench(g, cx, gy, S){
     P.R(cx + 2, benchY - 7.5, 9, 7, me.look.trunks);                          // shorts
     P.R(cx - 25, benchY - 8, 9, 8, skin);                                     // head
     if (hair !== 'none') P.R(cx - 26, benchY - 8, 3, 8, hair);
-    // arms up to the bar (the far one darker)
-    const sh = [cx - 11, benchY - 6];
-    const ef = joint(sh, [bar[0] - 1, bar[1] + 1], 8.5, 8.5, 1), en = joint([sh[0] + 2, sh[1]], [bar[0] + 1, bar[1] + 1], 8.5, 8.5, 1);
-    P.B(sh[0], sh[1], ef[0], ef[1], 3.5, shade(skin, .82)); P.B(ef[0], ef[1], bar[0] - 1, bar[1] + 1, 3, shade(skin, .82));
-    P.B(sh[0] + 2, sh[1], en[0], en[1], 3.5, skin); P.B(en[0], en[1], bar[0] + 1, bar[1] + 1, 3, skin);
     // the bar end-on: a big plate with a collar
     g.fillStyle = pass ? OUTLINE : '#1d1d24'; g.beginPath(); g.arc(bar[0], bar[1], pass ? 7.5 : 7, 0, Math.PI * 2); g.fill();
     if (!pass) { g.fillStyle = '#2e2e38'; g.beginPath(); g.arc(bar[0], bar[1], 5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 2, 0, Math.PI * 2); g.fill(); P.R(bar[0] - 5, bar[1] - 6, 3, 1, '#4a4a58'); }
     if (S.reps >= 4 && !pass) { g.fillStyle = '#c42d2d'; g.beginPath(); g.arc(bar[0], bar[1], 3.5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 1.5, 0, Math.PI * 2); g.fill(); }
+    // arms up to the bar (the far one darker)
+    const sh = [cx - 11, benchY - 6];
+    const ef = joint(sh, [bar[0] - 1, bar[1] + 1], 8.5, 8.5, -1), en = joint([sh[0] + 2, sh[1]], [bar[0] + 1, bar[1] + 1], 8.5, 8.5, -1);
+    P.B(sh[0], sh[1], ef[0], ef[1], 3.5, shade(skin, .82)); P.B(ef[0], ef[1], bar[0] - 1, bar[1] + 1, 3, shade(skin, .82));
+    P.B(sh[0] + 2, sh[1], en[0], en[1], 3.5, skin); P.B(en[0], en[1], bar[0] + 1, bar[1] + 1, 3, skin);
   }
   P.R(cx - 19, benchY - 6, 1.5, 1, '#141414');                               // eye, straining
   if (S.phase === 'grind' || tired > .6) { P.R(cx - 21, benchY - 9, .5, .5, '#ffffff'); P.R(cx - 13, benchY - 8, .5, .5, '#ffffff'); }   // sweat
@@ -2411,6 +2480,7 @@ addEventListener('resize', () => { if (MG) mresize(); });
 function startMini(k){
   if (!G || G.fight && G.fight.day === G.day) return;
   MG = { k, D:MINIS[k], phase:'intro', time:0, score:0, S:MINIS[k].init() };
+  MG.dur = typeof MG.D.dur === 'function' ? MG.D.dur() : MG.D.dur;
   $('#mini').hidden = false; $('#ui').hidden = true; mresize();
   $('#mTitle').textContent = MG.D.name.toUpperCase();
   miniCard(`<h2>${MG.D.name.toUpperCase()}</h2><div class="muted">${fmtDate(G.day)} &middot; ${Object.keys(TRAIN[k].gain).map(r => RNAME[r]).join(', ')}</div><div style="font-size:15px">${MG.D.how}</div><div class="row" style="justify-content:center"><button class="btn" data-m="back">Back</button><button class="btn go" data-m="go">Start</button></div>`);
@@ -2424,7 +2494,7 @@ function miniUpdate(dt){
   if (MG.phase !== 'play') return;
   MG.time += dt;
   const end = MG.D.update(MG.S, dt);
-  if (end || MG.time >= MG.D.dur) finishMini();
+  if (end || MG.time >= MG.dur) finishMini();
 }
 const gainLines = gains => Object.entries(gains).map(([r, v]) => `<span class="good">${RNAME[r]} +${v.toFixed(1)}</span>`).join(' &middot; ');
 function finishMini(){
@@ -2441,7 +2511,7 @@ function miniDraw(){
   MG.D.draw(MG.S);
   mctx.imageSmoothingEnabled = false; mctx.drawImage(mlow, 0, 0, mcv.width, mcv.height);
   $('#mScore').textContent = MG.D.hud(MG.S);
-  $('#mTime').textContent = MG.phase === 'play' ? Math.max(0, Math.ceil(MG.D.dur - MG.time)) + 's' : '';
+  $('#mTime').textContent = MG.phase === 'play' && isFinite(MG.dur) ? Math.max(0, Math.ceil(MG.dur - MG.time)) + 's' : '';
 }
 $('#mini').addEventListener('pointerdown', e => {
   if (!MG || e.target.closest('button, #mOver')) return;
