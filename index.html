@@ -2978,7 +2978,7 @@ function bgNext(){
 function bgStart(){
   if (BG.on || !SOUND) return; const a = ac(); if (!a) return;
   BG.on = true; BG.el = new Audio(); BG.el.preload = 'auto';
-  const src = a.createMediaElementSource(BG.el); BG.gain = a.createGain(); BG.gain.gain.value = .5;
+  const src = a.createMediaElementSource(BG.el); BG.gain = a.createGain(); BG.gain.gain.value = .25;
   src.connect(BG.gain).connect(a.destination);
   BG.el.addEventListener('ended', bgNext);
   if (M && !M.offer.spar) { BG.paused = true; return; }                  // a fight is on: wait for it to finish
@@ -2991,7 +2991,7 @@ function bgPause(){
 }
 function bgResume(){
   if (!BG.on || !BG.paused || !SOUND) return; BG.paused = false;
-  const t = AC.currentTime; BG.gain.gain.cancelScheduledValues(t); BG.gain.gain.setValueAtTime(0, t); BG.gain.gain.linearRampToValueAtTime(.5, t + 3);
+  const t = AC.currentTime; BG.gain.gain.cancelScheduledValues(t); BG.gain.gain.setValueAtTime(0, t); BG.gain.gain.linearRampToValueAtTime(.25, t + 3);
   if (!BG.el.src) bgNext(); else BG.el.play().catch(() => {});
 }
 // browsers only allow sound after the first touch, so the music starts on it
