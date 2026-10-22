@@ -4151,7 +4151,7 @@ const MINIS = {
       S.t += dt;
       const b = Math.min(3, Math.floor(S.t / S.T * 4));                        // three rattles off the board before it comes back to you
       if (b > S.bn) { S.bn = b; bagSfx('light', .7); S.flash = .05; }
-      if (S.t > S.T * 1.125) {                                                // it came back and you weren't there
+      if (S.t > S.T * 1.2) {                                                  // it came back and you weren't there
         S.live = false; S.over = .9; S.wob = 1; miniPop('MISSED', 'r');
       }
     },
@@ -4160,7 +4160,7 @@ const MINIS = {
       if (S.over != null) return;
       if (!S.live) { S.live = true; S.t = 0; S.bn = 0; bagSfx('heavy', .9); return; }      // get it going
       const d = Math.abs(S.t - S.T);
-      if (d <= S.T * .125) {                                                   // the back half of its drop, or the front half of the next swing out
+      if (d <= S.T * .2) {                                                     // the last 80% of its drop, or the first 80% of the next swing out
         const perfect = d <= S.T * .04 * S.wide;
         S.hits++; S.combo++; S.best = Math.max(S.best, S.combo); MG.score += perfect ? 3 : 1;
         miniPop(perfect ? (S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT') : 'GOOD', perfect ? 'y' : '');
@@ -4199,7 +4199,7 @@ const MINIS = {
       // the timing ring: it closes on the bag as it swings back to you
       if (S.live && S.t > S.T * .75) {
         const k = clamp((S.T - S.t) / (S.T * .25), 0, 1), rr = 18 + k * 30, gx = cx + bxo, gyy = 27 + 22 + 18;
-        mg.strokeStyle = Math.abs(S.t - S.T) <= S.T * .125 ? '#ffd23f' : 'rgba(255,255,255,.7)'; mg.lineWidth = 1.5;
+        mg.strokeStyle = Math.abs(S.t - S.T) <= S.T * .2 ? '#ffd23f' : 'rgba(255,255,255,.7)'; mg.lineWidth = 1.5;
         mg.beginPath(); mg.arc(gx, gyy, rr, 0, Math.PI * 2); mg.stroke();
       }
       // your gloves at the bottom of the screen; the punching one snaps up toward the bag
