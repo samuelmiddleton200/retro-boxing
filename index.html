@@ -246,6 +246,9 @@ tr.champ td{color:#fff3b8}
 .cal .cd.past::after{content:'';position:absolute;inset:2px;background:linear-gradient(45deg,transparent 45%,#c42d2d 45%,#c42d2d 55%,transparent 55%),linear-gradient(-45deg,transparent 45%,#c42d2d 45%,#c42d2d 55%,transparent 55%);opacity:.5}
 .cal .cd.today{background:#ffd23f;font-weight:700}
 .cal .cd.fight::before{content:'';position:absolute;inset:-2px 0;border:3px solid #e01b1b;border-radius:50%}
+.cal .cd.rv span{text-decoration:underline;text-decoration-color:#c42d2d;text-decoration-thickness:2px}
+.cal .bigf{font-size:11px;text-align:left;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rvchip{background:#c42d2d;color:#fff;font-size:9px;padding:0 4px;border-radius:3px;font-weight:700}
 .cal .cd.tf span{text-decoration:underline;text-decoration-color:#c99a12;text-decoration-thickness:2px}
 .cal .cd.bd span::after{content:'*';color:#c42d2d}
 .next{font-size:13px;text-align:center}
@@ -827,16 +830,16 @@ function purseFor(id, title){
 const TRAIN = {
   bag:    { name:'Heavy bag',   gym:0, fat:18, gain:{ pow:1.2, sta:.35, grit:.15 }, desc:'Sit down on your punches. Power.' },
   run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:1.2, grit:.35, spd:.15 }, desc:'Run the city, then the stairs. Stamina.' },
-  weights:{ name:'Weight room', gym:0, fat:30, gain:{ pow:.9, grit:.8 },            desc:'Bench press till it burns. Power, Grit.' },
-  speed:  { name:'Speed bag',   gym:1, fat:12, gain:{ spd:1.2, sta:.3 },            desc:'Rhythm and fast hands. Speed.' },
-  spar:   { name:'Sparring',    gym:2, fat:34, gain:{ pow:.45, spd:.45, sta:.45, grit:.45 }, desc:'One real round in headgear. A bit of everything.' },
+  weights:{ name:'Pull-ups',    gym:0, fat:30, gain:{ pow:.9, grit:.8 },            desc:'Chin over the bar till it burns. Power, Grit.' },
+  speed:  { name:'Speed bag',   gym:0, fat:12, gain:{ spd:1.2, sta:.3 },            desc:'Rhythm and fast hands. Speed.' },
+  spar:   { name:'Sparring',    gym:0, fat:34, gain:{ pow:.45, spd:.45, sta:.45, grit:.45 }, desc:'One real round in headgear. A bit of everything.' },
 };
 const TRAIN_ORDER = ['bag', 'speed', 'run', 'weights', 'spar'];
 const GRADE_Q = { S:1, A:.8, B:.6, C:.4, F:.15 };
 const GYMS = [
-  { name:'Basement gym', cost:0,     heal:0,   desc:'Leaky pipes, one heavy bag and a bench.' },
-  { name:'City gym',     cost:8000,  heal:.2,  desc:'Speed bags and ice baths. Heal 20% faster.' },
-  { name:'Pro gym',      cost:30000, heal:.4,  desc:'A real ring and sparring partners. Heal 40% faster.' },
+  { name:'Basement gym', cost:0,     heal:0,   desc:'Leaky pipes and whoever walks in to spar.' },
+  { name:'City gym',     cost:8000,  heal:.2,  desc:'Better sparring partners, ice baths. Heal 20% faster.' },
+  { name:'Pro gym',      cost:30000, heal:.4,  desc:'Good sparring partners, a real ring. Heal 40% faster.' },
   { name:'Elite center', cost:90000, heal:.7,  desc:'Physio room, the best partners. Heal 70% faster.' },
 ];
 const TRAINERS = [
@@ -1406,8 +1409,29 @@ function rigLeg(S, H, K, A, near){
   S.end();
 }
 // draw one fighter in one pose. o: { swell 0-1, cut 0-3, nose, jaw, body, rage, headgear, robe:{color,trim} }
+// pull-ups: hands on the bar at height lv (0 = dead hang, 1 = chin over the bar); elbows found by two-bone IK
+function rigIK(Sh, W, a, b){
+  const dx = W[0] - Sh[0], dy = W[1] - Sh[1], d = Math.hypot(dx, dy);
+  if (d >= a + b - .01) return [Sh[0] + dx / 2, Sh[1] + dy / 2];
+  const ux = dx / d, uy = dy / d, al = (a * a - b * b + d * d) / (2 * d), h = Math.sqrt(Math.max(0, a * a - al * al));
+  let nx = -uy, ny = ux; if (ny < 0) { nx = -nx; ny = -ny; }
+  return [Sh[0] + ux * al + nx * h, Sh[1] + uy * al + ny * h];
+}
+function rigPullJ(lv){
+  const gx = 35 + lv * 13, gyb = -6 + lv * 27;
+  const nWr = [gx - .5, gyb + 4], fWr = [gx - 2.5, gyb + 4];
+  return { nGl:[gx, gyb], nWr, nEl:rigIK([35, 28], nWr, 15.5, 15.5), fGl:[gx - 2, gyb], fWr, fEl:rigIK([33, 27], fWr, 15.5, 15.5),
+    nK:[41 + 2 * lv, 77 - 2 * lv], nA:[41 - lv, 89 - 3 * lv], fK:[35 + 2 * lv, 76 - 2 * lv], fA:[34 - lv, 88 - 3 * lv], hx:2 - lv };
+}
+// a bare fist in hand wraps, for the drills that aren't in gloves
+function rigFist(S, cx, cy, far){
+  S.begin();
+  S.ell(far ? 's3' : 's4', cx, cy, 3.6, 3.2); S.shadeE(far ? 's2' : 's3', cx - 1.5, cy + 1.5, 2.5, 1.8);
+  S.shade('c2', [[cx - 4, cy + 1], [cx + 4, cy + 1], [cx + 4, cy + 3], [cx - 4, cy + 3]]); S.dot(far ? 's4' : 's5', cx, cy - 3, 2, 1);
+  S.end();
+}
 function rigDraw(look, frame, o = {}){
-  const PAL = rigPalette(look), S = RigSprite(PAL), J = { ...RIG_BASE, ...(RIG[frame] || {}) };
+  const PAL = rigPalette(look), S = RigSprite(PAL), J = { ...RIG_BASE, ...(RIG[frame] || (String(frame).startsWith('pull') ? rigPullJ(+frame.slice(4) / 12) : String(frame).startsWith('dyn:') ? JSON.parse(frame.slice(4)) : {})) };
   const t = J.lean, cr = J.cr, hx = t * 1.15 + J.hx, hy = cr + J.hy, sh = 0;
   const T = (x, y) => [RO + x + t, y + cr];                                   // torso space
   const style = look.style || (look.hair === 'none' ? 'bald' : look.flat ? 'flat' : 'spiky');
@@ -1416,7 +1440,7 @@ function rigDraw(look, frame, o = {}){
   const fSh = [33 + t, 27 + cr];
   S.begin(); S.limb([RO + fSh[0], fSh[1]], [RO + J.fEl[0] + t, J.fEl[1] + cr], 7, 5.5, { dark:true }); S.limb([RO + J.fEl[0] + t, J.fEl[1] + cr], [RO + J.fWr[0] + t, J.fWr[1] + cr], 5.5, 4.5, { dark:true }); S.end();
   rigCuff(S, [RO + J.fWr[0] + t, J.fWr[1] + cr], [RO + J.fEl[0] + t, J.fEl[1] + cr]);
-  rigGlove(S, RO + J.fGl[0] + t, J.fGl[1] + cr, true, o.rage);
+  (o.hands ? rigFist : rigGlove)(S, RO + J.fGl[0] + t, J.fGl[1] + cr, true, o.rage);
   // ---- legs ----
   rigLeg(S, hip(32), J.fK, J.fA, false);
   rigLeg(S, hip(38), J.nK, J.nA, true);
@@ -1487,7 +1511,7 @@ function rigDraw(look, frame, o = {}){
   S.dot('s2', nE[0] - 1, nE[1] + 1, 3, 1);
   S.end();
   rigCuff(S, nW, nE);
-  rigGlove(S, RO + J.nGl[0] + t, J.nGl[1] + cr, false, o.rage);
+  (o.hands ? rigFist : rigGlove)(S, RO + J.nGl[0] + t, J.nGl[1] + cr, false, o.rage);
   // ---- the walkout robe, over everything ----
   if (o.robe) {
     const R = { r1:o.robe.color, r2:o.robe.trim };
@@ -1507,7 +1531,7 @@ function rigDraw(look, frame, o = {}){
 const rigCache = new Map();
 function rigKey(look, frame, o){
   const q = v => v > .7 ? 3 : v > .45 ? 2 : v > .15 ? 1 : 0;
-  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim : ''}`;
+  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim : ''}|${o.hands ? 1 : 0}`;
 }
 function rigFrame(look, frame, o = {}){
   const k = rigKey(look, frame, o);
@@ -1536,6 +1560,396 @@ function lookStyle(f){
   let h = 0; for (const ch of String(f.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   f.look.style = f.me ? 'spiky' : f.look.hair === 'none' ? 'bald' : f.look.flat ? 'flat' : STYLES_HAIR[h % STYLES_HAIR.length];
   return f.look;
+}
+
+/* ================= scenes: the gyms, the speed bag wall, the stairs, the arena ================= */
+// painted once into a canvas at 2 pixels per world unit, then cached
+const FONT3 = (() => {
+  const src = {
+    A:'010101111101101', B:'110101110101110', C:'011100100100011', D:'110101101101110', E:'111100110100111', F:'111100110100100',
+    G:'011100101101011', H:'101101111101101', I:'111010010010111', J:'001001001101010', K:'101101110101101', L:'100100100100111',
+    M:'101111111101101', N:'110101101101101', O:'010101101101010', P:'110101110100100', Q:'010101101110011', R:'110101110101101',
+    S:'011100010001110', T:'111010010010010', U:'101101101101111', V:'101101101101010', W:'101101111111101', X:'101101010101101',
+    Y:'101101010010010', Z:'111001010100111', 0:'111101101101111', 1:'010110010010111', 2:'110001010100111', 3:'110001010001110',
+    4:'101101111001001', 5:'111100110001110', 6:'011100111101111', 7:'111001010010010', 8:'111101111101111', 9:'111101111001110',
+    '!':'010010010000010', '.':'000000000000010', '-':'000000111000000', ':':'000010000010000', "'":'010010000000000', ' ':'000000000000000',
+  };
+  return src;
+})();
+function PX(w, h, seed = 1){
+  const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const x = c.getContext('2d'); let s = seed;
+  const api = {
+    c, x, w, h,
+    R(a, b, ww, hh, col){ x.fillStyle = col; x.fillRect(Math.round(a), Math.round(b), Math.round(ww), Math.round(hh)); },
+    D(a, b, col){ x.fillStyle = col; x.fillRect(Math.round(a), Math.round(b), 1, 1); },
+    rnd(){ s = (s * 16807) % 2147483647; return s / 2147483647; },
+    ri(a, b){ return a + Math.floor(api.rnd() * (b - a + 1)); },
+    pick(arr){ return arr[Math.floor(api.rnd() * arr.length)]; },
+    poly(pts, col){ x.fillStyle = col; x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.closePath(); x.fill(); },
+    glow(cx, cy, r, col, a){ const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); },
+    disc(cx, cy, r, col){ for (let yy = -r; yy <= r; yy++) { const hw = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy))); api.R(cx - hw, cy + yy, hw * 2 + 1, 1, col); } },
+    text(str, a, b, col, k = 1){
+      let cx = Math.round(a);
+      for (const ch of String(str).toUpperCase()) { const gl = FONT3[ch] || FONT3[' ']; for (let i = 0; i < 15; i++) if (gl[i] === '1') api.R(cx + (i % 3) * k, b + Math.floor(i / 3) * k, k, k, col); cx += 4 * k; }
+    },
+    tw(str, k = 1){ return String(str).length * 4 * k - k; },
+    // a vertical gradient between two colours, dithered so it stays pixel art
+    dith(x0, y0, w, hh, c0, c1){
+      const B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+      for (let yy = 0; yy < hh; yy++) {
+        const t = yy / Math.max(1, hh - 1);
+        api.R(x0, y0 + yy, w, 1, c0);
+        x.fillStyle = c1;
+        for (let xx = 0; xx < w; xx++) if (B[(yy % 4) * 4 + (xx % 4)] / 16 < t) x.fillRect(x0 + xx, y0 + yy, 1, 1);
+      }
+    },
+  };
+  return api;
+}
+// darken toward the edges and the ceiling, like a room lit from one lamp
+function vignette(P, top = 1, sides = 1){
+  for (let i = 0; i < 10; i++) {
+    P.x.fillStyle = `rgba(6,4,10,${.05 * sides})`;
+    P.x.fillRect(0, 0, Math.round(P.w * (.16 - i * .015)), P.h); P.x.fillRect(P.w - Math.round(P.w * (.16 - i * .015)), 0, Math.round(P.w * (.16 - i * .015)), P.h);
+    P.x.fillStyle = `rgba(6,4,10,${.05 * top})`; P.x.fillRect(0, 0, P.w, Math.round(P.h * (.12 - i * .011)));
+  }
+}
+// a cone of lamplight from (x, y) down to the floor
+function lampCone(P, x, y, fy, spread, rgb = '255,228,170', a = .045){
+  for (let i = 0; i < 3; i++) { const s = spread * (1 - i * .28); P.x.fillStyle = `rgba(${rgb},${a})`; P.x.beginPath(); P.x.moveTo(x - 4, y); P.x.lineTo(x + 4, y); P.x.lineTo(x + s, fy); P.x.lineTo(x - s, fy); P.x.closePath(); P.x.fill(); }
+  for (let i = 0; i < 3; i++) { P.x.fillStyle = `rgba(${rgb},${a * 1.3})`; P.x.beginPath(); P.x.ellipse(x, fy + 8, spread * (1.1 - i * .3), 9 - i * 2, 0, 0, 7); P.x.fill(); }
+}
+// ---- walls ----
+function wallBrick(P, fy){
+  P.R(0, 0, P.w, fy, '#2a1716');
+  const cols = ['#6a3a31', '#5e332c', '#733f31', '#5a2f2b', '#66362e', '#7a4535', '#61342c'];
+  for (let r = 0, y = 0; y < fy; r++, y += 7) for (let x = r % 2 ? -7 : 0; x < P.w; x += 14) {
+    const c = P.pick(cols); P.R(x, y, 13, 6, c);
+    P.R(x, y, 13, 1, mix(c, '#ffd9b0', .16)); P.R(x, y + 5, 13, 1, shade(c, .8)); P.R(x + 12, y + 1, 1, 5, shade(c, .86));
+    if (P.rnd() < .3) P.R(x + P.ri(1, 9), y + P.ri(1, 3), P.ri(1, 3), 1, shade(c, .74));
+    if (P.rnd() < .05) { P.R(x + P.ri(1, 8), y, 4, 2, '#2a1716'); }
+  }
+  for (let i = 0; i < 6; i++) {                                               // damp stains running down from the pipes
+    const x0 = P.ri(0, P.w), w0 = P.ri(8, 22);
+    for (let y = 16; y < fy * .75; y += 1) { const w = Math.round(w0 * (1 - y / fy)); if (w > 0) { P.x.fillStyle = 'rgba(16,8,8,.09)'; P.x.fillRect(x0 + Math.round(Math.sin(y * .08) * 2), y, w, 1); } }
+  }
+}
+function wallBlock(P, fy){
+  const split = Math.round(fy * .5);
+  P.R(0, 0, P.w, split, '#9a8f74'); P.R(0, split, P.w, fy - split, '#2f5246');
+  for (let r = 0, y = 0; y < fy; r++, y += 14) for (let x = r % 2 ? -15 : 0; x < P.w; x += 30) {
+    const low = y >= split, c = low ? '#2f5246' : '#9a8f74';
+    P.R(x, y + 13, 30, 1, shade(c, .78)); P.R(x + 29, y, 1, 13, shade(c, .84)); P.R(x, y, 29, 1, mix(c, '#ffffff', .1));
+    if (P.rnd() < .25) P.R(x + P.ri(3, 24), y + P.ri(3, 9), 1, 1, shade(c, .8));
+  }
+  P.R(0, split - 3, P.w, 3, '#b8302a'); P.R(0, split - 3, P.w, 1, '#d8504a'); P.R(0, split, P.w, 1, '#1d3a30');
+}
+function wallPanel(P, fy){
+  const split = Math.round(fy * .58);
+  P.R(0, 0, P.w, split, '#26324c');
+  for (let x = 0; x < P.w; x += 2) if (P.rnd() < .3) P.R(x, P.ri(0, split), 1, 1, '#2c3a56');
+  P.R(0, split, P.w, fy - split, '#6a4a30');
+  for (let x = 0; x < P.w; x += 34) {                                         // raised wood panels
+    P.R(x + 4, split + 6, 26, fy - split - 12, '#5a3e28'); P.R(x + 4, split + 6, 26, 1, '#3e2a1a'); P.R(x + 4, split + 6, 1, fy - split - 12, '#3e2a1a');
+    P.R(x + 4, fy - 7, 26, 1, '#8a6442'); P.R(x + 29, split + 6, 1, fy - split - 12, '#8a6442');
+    for (let k = 0; k < 4; k++) P.R(x + 6 + P.ri(0, 20), split + 9 + P.ri(0, fy - split - 20), P.ri(3, 8), 1, '#634530');
+  }
+  P.R(0, split - 2, P.w, 4, '#8a6442'); P.R(0, split - 2, P.w, 1, '#b08a5e'); P.R(0, split + 2, P.w, 1, '#3e2a1a');
+}
+function wallElite(P, fy){
+  P.R(0, 0, P.w, fy, '#1a1d26');
+  for (let x = 0; x < P.w; x += 8) { P.R(x, 0, 1, fy, '#232733'); P.R(x + 1, 0, 1, fy, '#14161d'); }
+  const ly = Math.round(fy * .42);
+  P.R(0, ly, P.w, 2, '#f2c14e'); for (let i = 1; i < 6; i++) { P.x.fillStyle = `rgba(242,193,78,${.12 - i * .02})`; P.x.fillRect(0, ly - i * 2, P.w, 2); P.x.fillRect(0, ly + 2 + (i - 1) * 2, P.w, 2); }
+}
+// ---- floors ----
+function floorPlanks(P, fy, base){
+  P.R(0, fy, P.w, P.h - fy, base);
+  let y = fy, i = 0;
+  while (y < P.h) {
+    const hh = 3 + Math.round(i * 1.3);
+    P.R(0, y, P.w, 1, shade(base, .7)); P.R(0, y + 1, P.w, 1, mix(base, '#ffe0b0', .1));
+    for (let x = ((i * 37) % 61) - 61; x < P.w; x += 61 + (i % 3) * 13) P.R(x, y, 1, hh, shade(base, .74));
+    for (let k = 0; k < P.w / 7; k++) P.R(P.ri(0, P.w), y + P.ri(2, Math.max(2, hh - 1)), P.ri(3, 11), 1, shade(base, P.rnd() < .5 ? .88 : .94));
+    if (P.rnd() < .5) { const kx = P.ri(0, P.w); P.R(kx, y + Math.min(hh - 1, 2), 2, 1, shade(base, .65)); }
+    y += hh; i++;
+  }
+  P.R(0, fy - 3, P.w, 3, '#24160f'); P.R(0, fy - 3, P.w, 1, '#3e281a');
+}
+function floorMat(P, fy){
+  P.R(0, fy, P.w, P.h - fy, '#2a2b30');
+  let y = fy, i = 0;
+  while (y < P.h) { const hh = 6 + i * 3; P.R(0, y, P.w, 1, '#1a1b1f'); for (let x = (i % 2) * 20 - 40; x < P.w; x += 40 + i * 8) P.R(x, y, 1, hh, '#1a1b1f'); y += hh; i++; }
+  for (let k = 0; k < P.w * 1.5; k++) P.D(P.ri(0, P.w), P.ri(fy, P.h), P.pick(['#3a3c44', '#34363c', '#4a3a3a', '#3a4a40']));
+  P.R(0, fy - 3, P.w, 3, '#121316'); P.R(0, fy - 3, P.w, 1, '#3a3c44');
+}
+function floorMaple(P, fy){ floorPlanks(P, fy, '#a8743f'); for (let i = 0; i < 4; i++) { P.x.fillStyle = 'rgba(255,240,210,.05)'; P.x.fillRect(0, fy + 4 + i * 6, P.w, 3); } }
+function floorPolished(P, fy, lights){
+  P.R(0, fy, P.w, P.h - fy, '#262933');
+  let y = fy, i = 0; while (y < P.h) { const hh = 5 + i * 3; P.R(0, y, P.w, 1, '#1c1e26'); y += hh; i++; }
+  for (const lx of lights) for (let k = 0; k < P.h - fy; k += 2) { P.x.fillStyle = `rgba(255,236,190,${.16 * (1 - k / (P.h - fy))})`; P.x.fillRect(lx - 3 + (k % 4 ? 1 : 0), fy + k, 6, 1); }
+  P.R(0, fy - 3, P.w, 3, '#0e0f14'); P.R(0, fy - 2, P.w, 1, '#f2c14e');
+}
+// ---- props ----
+function poster(P, x, y, w, h, head, sub, col = '#b8302a'){
+  P.R(x + 1, y + 1, w, h, 'rgba(0,0,0,.35)');
+  P.R(x, y, w, h, '#e6dcc2'); P.R(x, y + h - 2, w, 2, '#cdbf9f'); P.R(x + w - 2, y, 2, h, '#d6c9aa');
+  P.R(x + 2, y + 2, w - 4, 11, col); P.text(head, x + Math.round((w - P.tw(head)) / 2), y + 5, '#f6efdc');
+  const by = y + 16;                                                          // two fighters squaring up
+  for (const [fx, fc] of [[x + w * .3, '#3a2418'], [x + w * .7, '#141414']]) {
+    P.disc(fx, by + 5, 4, fc); P.R(fx - 5, by + 9, 10, 10, fc); P.R(fx + (fx < x + w / 2 ? 4 : -9), by + 8, 5, 4, '#b8302a');
+  }
+  P.text('VS', x + Math.round(w / 2 - 3), by + 9, '#c8962a');
+  P.text(sub, x + Math.round((w - P.tw(sub)) / 2), y + h - 12, '#2a2420');
+  P.R(x + 4, y + h - 6, w - 8, 1, '#8a8070');
+  for (const [tx, ty] of [[x - 2, y - 1], [x + w - 4, y - 1]]) P.x.fillStyle = 'rgba(240,236,220,.6)', P.x.fillRect(tx, ty, 6, 3);
+}
+function picFrame(P, x, y, w, h, inner){ P.R(x + 1, y + 1, w, h, 'rgba(0,0,0,.4)'); P.R(x, y, w, h, '#1a1414'); P.R(x, y, w, 1, '#4a3a30'); P.R(x + 2, y + 2, w - 4, h - 4, inner); }
+function photo(P, x, y, w, h){
+  picFrame(P, x, y, w, h, '#b8ab8a');
+  P.R(x + 3, y + 3, w - 6, h - 6, '#8a7a5a'); P.disc(x + w / 2, y + h * .42, Math.max(2, Math.round(w * .14)), '#3a2a1e'); P.R(x + w / 2 - w * .22, y + h * .55, w * .44, h * .35, '#3a2a1e');
+  P.R(x + w / 2 + w * .1, y + h * .5, w * .2, w * .14, '#b8302a');
+}
+function chalkboard(P, x, y){
+  P.R(x - 2, y - 2, 52, 38, '#5a3a22'); P.R(x - 2, y - 2, 52, 1, '#8a6442'); P.R(x, y, 48, 34, '#26332c');
+  P.text('ROAD 5AM', x + 3, y + 3, '#d8d8cc'); P.text('BAG 10R', x + 3, y + 11, '#d8d8cc'); P.text('ROPE', x + 3, y + 19, '#d8d8cc');
+  for (let i = 0; i < 4; i++) P.R(x + 30 + i * 3, y + 19, 1, 5, '#d8d8cc'); P.R(x + 29, y + 21, 12, 1, '#d8d8cc');
+  P.x.fillStyle = 'rgba(220,220,210,.12)'; P.x.fillRect(x + 6, y + 26, 30, 4);
+  P.R(x + 8, y + 34, 10, 2, '#5a3a22'); P.R(x + 10, y + 33, 4, 1, '#f0f0e8');
+}
+function windowLight(P, x, y, w, h, glassTop, glassBot, bars){
+  P.R(x - 3, y - 3, w + 6, h + 6, '#1a1414'); P.dith(x, y, w, h, glassTop, glassBot);
+  for (let i = 0; i < 5; i++) P.R(x + P.ri(2, w - 8), y + h - P.ri(3, 8), P.ri(3, 8), P.ri(2, 6), 'rgba(40,30,30,.5)');   // the street outside
+  if (bars) for (let bx = x + 6; bx < x + w; bx += 8) { P.R(bx, y, 2, h, '#2a2222'); P.R(bx, y, 1, h, '#4a3a3a'); }
+  else { P.R(x + Math.round(w / 2) - 1, y, 2, h, '#1a1414'); P.R(x, y + Math.round(h / 2) - 1, w, 2, '#1a1414'); }
+  P.R(x - 4, y + h + 3, w + 8, 3, '#8a7a6a'); P.R(x - 4, y + h + 3, w + 8, 1, '#aa9a8a');
+}
+function lightShaft(P, x, y, w, h, fy){
+  P.x.fillStyle = 'rgba(255,214,150,.05)';
+  for (let i = 0; i < 2; i++) { P.x.beginPath(); P.x.moveTo(x + i * 6, y); P.x.lineTo(x + w - i * 6, y + h); P.x.lineTo(x + w - 70 - i * 6, fy + 10); P.x.lineTo(x - 70 + i * 6, fy + 10); P.x.closePath(); P.x.fill(); }
+}
+function bulb(P, x, y){
+  P.R(x, 0, 1, y - 4, '#141414'); P.R(x - 3, y - 5, 7, 4, '#3a3a40'); P.R(x - 3, y - 5, 7, 1, '#6a6a72');
+  P.disc(x, y + 1, 3, '#fff3c8'); P.D(x - 1, y, '#ffffff'); P.glow(x, y + 1, 26, '255,232,170', .35);
+}
+function domeLamp(P, x, y){
+  P.R(x, 0, 1, y - 6, '#141414'); P.poly([[x - 12, y], [x - 4, y - 7], [x + 5, y - 7], [x + 13, y]], '#2e3a2e');
+  P.R(x - 12, y, 25, 1, '#4a5a4a'); P.R(x - 4, y + 1, 9, 2, '#fff6d8'); P.glow(x, y + 3, 30, '255,240,200', .3);
+}
+function tubeLight(P, x, y){ P.R(x - 22, y, 44, 4, '#b8b8c0'); P.R(x - 21, y + 3, 42, 2, '#f4fbff'); P.glow(x, y + 5, 30, '230,245,255', .25); }
+function downLight(P, x){ P.R(x - 4, 0, 9, 3, '#3a3d48'); P.R(x - 3, 3, 7, 1, '#fff6d8'); P.glow(x, 4, 20, '255,240,200', .3); }
+function pipesRun(P, y, fy){
+  P.R(0, 0, P.w, y - 2, '#160c0c');
+  for (let x = 6; x < P.w; x += 44) P.R(x, 0, 6, y - 2, '#24140f');            // joists
+  P.R(0, y, P.w, 6, '#4a4c55'); P.R(0, y, P.w, 1, '#8a8e99'); P.R(0, y + 1, P.w, 1, '#686b76'); P.R(0, y + 5, P.w, 1, '#2a2b31');
+  for (let x = 24; x < P.w; x += 92) { P.R(x, y - 1, 4, 8, '#3a3c44'); P.R(x, y - 1, 4, 1, '#7a7d88'); P.R(x + 1, y - 4, 2, 3, '#2a2b31'); }
+  P.R(0, y + 9, P.w, 3, '#8a5a34'); P.R(0, y + 9, P.w, 1, '#c08a58'); P.R(0, y + 11, P.w, 1, '#5a3a20');   // copper line
+  const vx = Math.round(P.w * .9); P.R(vx, y + 5, 5, fy - y - 5, '#4a4c55'); P.R(vx, y + 5, 1, fy - y - 5, '#8a8e99'); P.R(vx + 4, y + 5, 1, fy - y - 5, '#2a2b31');
+  P.disc(vx + 2, y + 30, 4, '#b8302a'); P.R(vx - 1, y + 29, 7, 2, '#7a1f1c'); P.D(vx + 2, y + 30, '#e8e0d0');   // valve wheel
+}
+function lockers(P, x0, x1, fy, col){
+  const h = 64, y = fy - h;
+  for (let x = x0; x + 16 <= x1; x += 17) {
+    P.R(x, y, 16, h, col); P.R(x, y, 16, 1, mix(col, '#ffffff', .25)); P.R(x + 15, y, 1, h, shade(col, .7));
+    for (let v = 0; v < 4; v++) P.R(x + 4, y + 5 + v * 3, 8, 1, shade(col, .6));
+    P.R(x + 12, y + 30, 2, 6, '#d8d8e0'); P.R(x + 5, y + 20, 6, 3, '#e8e2cc');
+  }
+  P.R(x0 - 2, fy - 2, x1 - x0 + 2, 2, '#121316');
+}
+function clockFace(P, x, y){ P.disc(x, y, 9, '#141414'); P.disc(x, y, 8, '#f0ead8'); for (let i = 0; i < 12; i++) P.D(x + Math.round(Math.sin(i * .52) * 6), y - Math.round(Math.cos(i * .52) * 6), '#3a3a3a'); P.R(x, y - 5, 1, 5, '#141414'); P.R(x, y, 4, 1, '#141414'); P.D(x, y, '#b8302a'); }
+function beltShelf(P, x, y){
+  P.R(x, y + 18, 90, 3, '#5a3e28'); P.R(x, y + 18, 90, 1, '#8a6442'); P.R(x + 4, y + 21, 3, 6, '#3e2a1a'); P.R(x + 83, y + 21, 3, 6, '#3e2a1a');
+  for (const bx of [x + 6, x + 48]) {                                          // two title belts, hung flat
+    P.R(bx, y + 7, 36, 7, '#141414'); P.R(bx, y + 7, 36, 1, '#3a3a3a');
+    P.disc(bx + 18, y + 10, 8, '#c8962a'); P.disc(bx + 18, y + 10, 6, '#f2c14e'); P.disc(bx + 18, y + 10, 3, '#b8302a'); P.D(bx + 16, y + 6, '#fff6d8');
+    P.R(bx + 4, y + 9, 5, 3, '#c8962a'); P.R(bx + 27, y + 9, 5, 3, '#c8962a');
+  }
+  for (const [tx, th] of [[x + 40, 12], [x + 86, 9]]) { P.R(tx - 3, y + 18 - th, 6, th - 4, '#e0b12d'); P.R(tx - 4, y + 18 - 4, 8, 4, '#8a6a2a'); P.R(tx - 3, y + 18 - th, 2, th - 4, '#f8d878'); }
+}
+function wallBanner(P, x, y, w, h, text, col, txt, k){
+  P.R(x - 2, y - 2, w + 4, 2, '#6a6a72');
+  P.R(x, y, w, h, col); P.R(x, y, 2, h, shade(col, .8)); P.R(x + w - 2, y, 2, h, shade(col, .8)); P.R(x, y + h - 2, w, 2, txt);
+  for (let i = 0; i < w; i += 6) P.R(x + i, y + h, 4, 3, col);
+  P.text(text, x + Math.round((w - P.tw(text, k)) / 2), y + Math.round((h - 5 * k) / 2), txt, k);
+}
+function stool(P, x, fy){
+  P.R(x, fy - 26, 22, 4, '#5a3e28'); P.R(x, fy - 26, 22, 1, '#8a6442'); P.R(x + 2, fy - 22, 3, 22, '#3e2a1a'); P.R(x + 17, fy - 22, 3, 22, '#3e2a1a'); P.R(x + 4, fy - 10, 14, 2, '#3e2a1a');
+  P.R(x + 3, fy - 31, 16, 5, '#7a1f2a'); P.R(x + 13, fy - 31, 5, 14, '#7a1f2a'); P.R(x + 3, fy - 31, 16, 1, '#a8343a');   // towel
+  P.R(x + 28, fy - 14, 12, 14, '#6a6a72'); P.R(x + 28, fy - 14, 12, 2, '#9a9aa2'); P.R(x + 30, fy - 12, 8, 2, '#4a7ab8');      // a bucket of water
+}
+function ropeHook(P, x, y){ P.R(x, y, 2, 2, '#9a9aa2'); for (let i = 0; i < 30; i++) P.D(x + Math.round(Math.sin(i * .2) * 6), y + 2 + i, '#c8b088'); P.R(x - 3, y + 30, 3, 8, '#7a1f1c'); P.R(x + 6, y + 26, 3, 8, '#7a1f1c'); }
+function tvScreen(P, x, y, w, h){ P.R(x - 2, y - 2, w + 4, h + 4, '#0a0b0f'); P.R(x, y, w, h, '#14213a'); for (let i = 0; i < 6; i++) { const bh = 4 + ((i * 7) % 11); P.R(x + 4 + i * (w - 8) / 6, y + h - 3 - bh, (w - 8) / 6 - 2, bh, i === 5 ? '#f2c14e' : '#4a8ad8'); } P.R(x + 3, y + 3, 20, 2, '#d8e8ff'); }
+
+// the training room for each gym level
+function gymScene(lvl, W, H){
+  const P = PX(W, H, 11 + lvl * 7), fy = Math.round(H * .78), cx = Math.round(W / 2);
+  if (lvl === 0) {
+    wallBrick(P, fy); pipesRun(P, 8, fy);
+    windowLight(P, Math.round(W * .7), 26, 56, 26, '#ffd9a0', '#ff9e60', true);
+    poster(P, Math.round(W * .06), 44, 40, 58, 'FIGHT', 'SAT NITE');
+    chalkboard(P, Math.round(W * .2), 58);
+    ropeHook(P, Math.round(W * .82), 84);
+    floorPlanks(P, fy, '#6e4728');
+    stool(P, Math.round(W * .86) - 20, fy);
+    lightShaft(P, Math.round(W * .7), 52, 56, 0, fy);
+    bulb(P, cx - 44, 34); lampCone(P, cx - 44, 36, fy, 90);
+  } else if (lvl === 1) {
+    wallBlock(P, fy);
+    P.R(0, 0, W, 10, '#3a3a40'); P.R(0, 10, W, 1, '#55555c');
+    P.text('CITY GYM', 12, 30, '#b8302a', 3);
+    poster(P, Math.round(W * .06), 50, 36, 52, 'FIGHT', 'FRI 8PM', '#2f5aa8');
+    clockFace(P, Math.round(W * .3), 34);
+    chalkboard(P, Math.round(W * .62), 60);
+    lockers(P, Math.round(W * .78), W - 4, fy, '#4a5a70');
+    floorMat(P, fy);
+    for (const x of [W * .18, W * .5, W * .82]) tubeLight(P, Math.round(x), 11);
+    lampCone(P, cx - 30, 15, fy, 110, '235,245,255', .035);
+  } else if (lvl === 2) {
+    wallPanel(P, fy);
+    wallBanner(P, 10, 24, 132, 22, 'PRO BOXING CLUB', '#9a1f24', '#f2c14e', 2);
+    windowLight(P, Math.round(W * .66), 18, 80, 44, '#cfe6ff', '#9cc4ee', false);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) photo(P, Math.round(W * .06) + i * 22, 44 + j * 24, 18, 20);
+    beltShelf(P, Math.round(W * .82) - 30, 70);
+    floorMaple(P, fy);
+    for (const x of [W * .4, W * .6, W * .85]) domeLamp(P, Math.round(x), 22);
+    lampCone(P, cx, 24, fy, 100, '255,240,200', .04);
+  } else {
+    wallElite(P, fy);
+    P.text('ELITE', 14, 30, '#f2c14e', 4); P.R(14, 54, P.tw('ELITE', 4), 1, '#f2c14e');
+    tvScreen(P, Math.round(W * .74), 22, 54, 32);
+    P.R(Math.round(W * .06), 64, 64, 40, '#0e1424'); for (let i = 0; i < 9; i++) P.R(Math.round(W * .06) + 3 + i * 7, 104 - 6 - ((i * 13) % 26), 5, 6 + ((i * 13) % 26), i % 3 ? '#1e2a44' : '#2a3a5a');   // city through the glass
+    for (let i = 0; i < 14; i++) P.D(Math.round(W * .06) + P.ri(3, 60), P.ri(70, 100), '#f2d27a');
+    P.R(Math.round(W * .06) - 2, 62, 68, 2, '#3a3d48'); P.R(Math.round(W * .06) - 2, 104, 68, 2, '#3a3d48');
+    const ls = [W * .2, W * .4, W * .6, W * .8].map(Math.round);
+    floorPolished(P, fy, ls);
+    for (const x of ls) { downLight(P, x); lampCone(P, x, 4, fy, 34, '255,240,200', .025); }
+  }
+  vignette(P, 1, lvl === 0 ? 1.3 : 1);
+  return P.c;
+}
+let gymCache = null;
+function gymBg(){
+  const lvl = G ? G.gym : 0, key = lvl + '|' + MW;
+  if (!gymCache || gymCache.key !== key) gymCache = { key, c:gymScene(lvl, MW * 2, LH * 2) };
+  mg.imageSmoothingEnabled = false; mg.drawImage(gymCache.c, 0, 0, MW, LH);
+  const t = MG ? MG.time : 0, lx = MW / 2 - 22;                              // dust drifting in the light
+  for (let i = 0; i < 14; i++) {
+    const x = lx + Math.sin(t * .3 + i * 1.7) * 34 + (i - 7) * 2, y = 20 + ((t * 2.5 + i * 23) % 70);
+    mg.fillStyle = `rgba(255,240,200,${.18 + (i % 3) * .08})`; mg.fillRect(x, y, .5, .5);
+  }
+}
+// the wall behind the speed bag, the rebound board and its bracket
+let speedCache = null;
+function speedScene(lvl, W, H){
+  const P = PX(W, H, 31 + lvl), cx = Math.round(W / 2), fy = H;
+  if (lvl === 0) wallBrick(P, fy); else if (lvl === 1) wallBlock(P, fy); else if (lvl === 2) wallPanel(P, fy); else wallElite(P, fy);
+  if (lvl === 0) poster(P, 14, 80, 40, 58, 'FIGHT', 'SAT NITE'); else picFrame(P, 14, 70, 40, 52, '#b8ab8a');
+  P.glow(cx, 20, 150, '255,232,180', .18);
+  // wall plate and the two steel arms
+  P.R(cx - 150, 0, 300, 10, '#2a2a30'); P.R(cx - 150, 9, 300, 1, '#4a4a52');
+  for (const x of [cx - 150, cx + 140]) { P.R(x, 0, 10, 64, '#3a3a42'); P.R(x, 0, 2, 64, '#6a6a74'); P.R(x + 9, 0, 1, 64, '#1a1a20'); for (const y of [8, 54]) { P.disc(x + 5, y, 2, '#8a8a94'); P.D(x + 4, y - 1, '#d8d8e0'); } }
+  // the board: lacquered front edge, then its underside as you look up at it
+  P.R(cx - 140, 16, 280, 13, '#7a4a28');
+  for (let i = 0; i < 10; i++) P.R(cx - 138 + P.ri(0, 260), 18 + P.ri(0, 9), P.ri(10, 40), 1, P.pick(['#6a3e20', '#8a5a34', '#70422a']));
+  P.R(cx - 140, 16, 280, 1, '#b07a48'); P.R(cx - 140, 17, 280, 1, '#9a6a3c'); P.R(cx - 140, 28, 280, 1, '#4a2c18');
+  P.poly([[cx - 140, 29], [cx + 140, 29], [cx + 120, 40], [cx - 120, 40]], '#4a2c18');
+  P.poly([[cx - 136, 29], [cx + 136, 29], [cx + 130, 31], [cx - 130, 31]], '#5a3820');
+  P.R(cx - 14, 34, 28, 6, '#5a5a62'); P.R(cx - 14, 34, 28, 1, '#8a8a94'); for (const x of [cx - 11, cx + 9]) P.D(x, 37, '#c8c8d0');
+  P.x.fillStyle = 'rgba(0,0,0,.25)'; P.x.fillRect(cx - 140, 40, 280, 4);
+  vignette(P, .6, 1.2);
+  return P.c;
+}
+function speedBg(){
+  const lvl = G ? G.gym : 0, key = lvl + '|' + MW;
+  if (!speedCache || speedCache.key !== key) speedCache = { key, c:speedScene(lvl, MW * 2, LH * 2) };
+  mg.imageSmoothingEnabled = false; mg.drawImage(speedCache.c, 0, 0, MW, LH);
+}
+// roadwork: dawn sky and two layers of city behind the steps
+let skyCache = null;
+function skyScene(W, H){
+  const P = PX(W, H, 5), stops = ['#1c1a4a', '#3a2a66', '#6a3a78', '#b8507a', '#e8785e', '#f8a860', '#ffd890'];
+  const seg = H * .78 / (stops.length - 1);
+  for (let i = 0; i < stops.length - 1; i++) P.dith(0, Math.round(i * seg), W, Math.ceil(seg) + 1, stops[i], stops[i + 1]);
+  P.R(0, Math.round(H * .78), W, H, '#ffd890');
+  for (let i = 0; i < 40; i++) { const y = P.ri(0, Math.round(H * .25)); P.D(P.ri(0, W), y, `rgba(255,255,255,${.7 - y / H * 2.5})`); }
+  P.glow(Math.round(W * .74), Math.round(H * .66), 70, '255,236,170', .55); P.disc(Math.round(W * .74), Math.round(H * .66), 14, '#fff3c0');
+  for (let i = 0; i < 7; i++) {                                               // long thin clouds lit from below
+    const x = P.ri(-40, W), y = P.ri(Math.round(H * .18), Math.round(H * .5)), w = P.ri(40, 110);
+    P.R(x, y, w, 3, '#c86a86'); P.R(x + 6, y - 2, w - 20, 2, '#9a4a7a'); P.R(x + 4, y + 3, w - 8, 1, '#f8a878');
+  }
+  return P.c;
+}
+function skylineTile(seed, base, win, tall){
+  const W = 512, H = 200, P = PX(W, H, seed);
+  let x = 0;
+  while (x < W) {
+    const w = P.ri(18, 44), h = P.ri(tall * .35, tall), y = H - h, c = shade(base, .9 + P.rnd() * .2);
+    P.R(x, y, w, h, c); P.R(x, y, 1, h, mix(c, '#ffb070', .2));
+    if (P.rnd() < .3) { P.R(x + w / 2 - 4, y - 12, 8, 10, c); P.R(x + w / 2 - 5, y - 13, 10, 2, shade(c, .8)); P.R(x + w / 2 - 3, y - 2, 1, 2, c); P.R(x + w / 2 + 2, y - 2, 1, 2, c); }   // a water tower
+    else if (P.rnd() < .25) P.R(x + P.ri(3, w - 4), y - P.ri(8, 18), 1, 18, c);                                                   // an antenna
+    for (let wy = y + 5; wy < H - 4; wy += 6) for (let wx = x + 3; wx < x + w - 3; wx += 5) if (P.rnd() < .22) P.R(wx, wy, 2, 3, win);
+    x += w + P.ri(0, 4);
+  }
+  return P.c;
+}
+function runSky(S){
+  if (!skyCache || skyCache.W !== MW) skyCache = { W:MW, sky:skyScene(MW * 2, LH * 2), far:skylineTile(3, '#5a3a6e', 'rgba(255,214,140,.55)', 120), near:skylineTile(9, '#2e2040', '#f2c870', 170) };
+  mg.imageSmoothingEnabled = false; mg.drawImage(skyCache.sky, 0, 0, MW, LH);
+  const climb = Math.max(0, -S.camY - LH * .8);
+  for (const [img, f, y0] of [[skyCache.far, .08, 0], [skyCache.near, .18, LH * .15]]) {
+    const off = ((S.camX * f) % 256 + 256) % 256, y = y0 + climb * f * .4;
+    for (let x = -off; x < MW; x += 256) mg.drawImage(img, x, y, 256, 100);
+    mg.fillStyle = img === skyCache.far ? '#5a3a6e' : '#2e2040'; mg.fillRect(0, y + 99.5, MW, LH);
+  }
+}
+// the arena behind the ring, built once per screen size
+function arenaScene(W, H, gyU, cxU, halfU){
+  const P = PX(W, H, 77), gy = gyU * 2, cx = cxU * 2, half = halfU * 2, top = gy - 20;
+  P.dith(0, 0, W, 112, '#06051a', '#141038');
+  // the rafters and the light rigs
+  P.R(0, 0, W, 2, '#1c1a30'); P.R(0, 9, W, 2, '#1c1a30');
+  for (let x = 0; x < W; x += 12) { for (let i = 0; i < 8; i++) P.D(x + i * 1.5, 2 + i, '#1c1a30'); }
+  for (const lx of [cx - half * .7, cx - half * .25, cx + half * .25, cx + half * .7].map(Math.round)) {
+    P.R(lx - 5, 10, 10, 5, '#0c0b18'); P.R(lx - 4, 14, 8, 2, '#fff6d8'); P.glow(lx, 16, 18, '255,240,200', .35);
+  }
+  // banners hanging over the crowd on both sides
+  for (const [bx, col] of [[6, '#9a1f24'], [W - 30, '#1f3a8a']]) { P.R(bx, 10, 24, 46, col); P.R(bx, 10, 2, 46, shade(col, .75)); P.R(bx, 52, 24, 4, '#f2c14e'); for (let i = 0; i < 24; i += 6) P.R(bx + i, 56, 4, 3, col); P.disc(bx + 12, 28, 6, '#f2c14e'); P.disc(bx + 12, 28, 4, col); P.R(bx + 11, 25, 2, 6, '#f2c14e'); }
+  // the barrier in front of the crowd
+  P.R(0, 108, W, top - 108, '#0b0926'); P.R(0, 108, W, 4, '#2a2440'); P.R(0, 108, W, 1, '#4a4466');
+  for (let x = 8; x < W; x += 30) P.R(x, 112, 2, top - 112, '#1a1630');
+  // the canvas
+  const L = cx - half - 20, Wd = (half + 20) * 2;
+  P.R(L, top, Wd, 36, '#d6cfb8'); P.R(L, top, Wd, 3, '#bdb6a0'); P.R(L, top + 33, Wd, 3, '#c4bca4');
+  P.x.fillStyle = 'rgba(160,30,40,.12)'; P.x.beginPath(); P.x.ellipse(cx, top + 18, 60, 10, 0, 0, 7); P.x.fill();
+  P.x.fillStyle = 'rgba(214,207,184,1)'; P.x.beginPath(); P.x.ellipse(cx, top + 18, 54, 8, 0, 0, 7); P.x.fill();
+  P.x.fillStyle = 'rgba(160,30,40,.12)'; P.x.beginPath(); P.x.ellipse(cx, top + 18, 30, 5, 0, 0, 7); P.x.fill();
+  for (let i = 0; i < 30; i++) P.R(L + P.ri(10, Wd - 20), top + P.ri(4, 30), P.ri(2, 8), 1, 'rgba(120,110,90,.18)');   // scuffs
+  P.x.fillStyle = 'rgba(255,248,225,.18)'; P.x.beginPath(); P.x.ellipse(cx, top + 14, half * .8, 9, 0, 0, 7); P.x.fill();
+  // the apron skirt
+  const ay = top + 36; P.R(L - 4, ay, Wd + 8, H - ay, '#8a1f2a'); P.R(L - 4, ay, Wd + 8, 3, '#f4f4f4'); P.R(L - 4, ay + 3, Wd + 8, 1, '#c8c8d0');
+  for (let x = L; x < L + Wd; x += 10) P.R(x, ay + 4, 1, H - ay, '#741a24');
+  const label = 'RETRO BOXING'; for (const tx of [cx - half * .6, cx + half * .6]) P.text(label, Math.round(tx - P.tw(label) / 2), ay + 7, '#f4f0e8');
+  // posts, corner pads and the ropes
+  const pads = ['#c42d2d', '#2f5aa8'], ropes = [['#e24b3b', gy - 104], ['#f4f4f4', gy - 76], ['#3f7be0', gy - 48]];
+  [cx - half - 4, cx + half - 4].forEach((x, side) => {
+    P.R(x, 92, 10, top - 90, '#c9c9d6'); P.R(x, 92, 2, top - 90, '#f0f0f8'); P.R(x + 8, 92, 2, top - 90, '#8a8a98'); P.R(x - 1, 88, 12, 5, '#e8e8f0');
+    for (const [, ry] of ropes) { P.R(x - 3, ry - 5, 16, 12, pads[side]); P.R(x - 3, ry - 5, 16, 2, mix(pads[side], '#ffffff', .3)); P.R(x - 3, ry + 5, 16, 2, shade(pads[side], .7)); }
+  });
+  for (const [c, y] of ropes) {
+    P.R(cx - half + 6, y, half * 2 - 10, 4, c); P.R(cx - half + 6, y, half * 2 - 10, 1, mix(c, '#ffffff', .45)); P.R(cx - half + 6, y + 3, half * 2 - 10, 1, shade(c, .65));
+    P.x.fillStyle = 'rgba(0,0,0,.2)'; P.x.fillRect(cx - half + 6, y + 4, half * 2 - 10, 1);
+  }
+  for (const f of [1 / 3, 2 / 3]) { const x = Math.round(cx - half + half * 2 * f); P.R(x, gy - 104, 3, 60, 'rgba(244,244,244,.85)'); }   // rope spacers
+  return P.c;
+}
+// light beams over the crowd, drawn in front of them
+function arenaBeams(W, H, cxU, halfU){
+  const P = PX(W, H, 3), cx = cxU * 2, half = halfU * 2;
+  for (const lx of [cx - half * .7, cx - half * .25, cx + half * .25, cx + half * .7]) {
+    for (let i = 0; i < 3; i++) { P.x.fillStyle = 'rgba(255,240,210,.035)'; P.x.beginPath(); P.x.moveTo(lx - 4, 16); P.x.lineTo(lx + 4, 16); P.x.lineTo(cx + (lx - cx) * .3 + 30 - i * 10, H * .8); P.x.lineTo(cx + (lx - cx) * .3 - 30 + i * 10, H * .8); P.x.closePath(); P.x.fill(); }
+  }
+  return P.c;
 }
 
 /* ================= sound ================= */
@@ -1909,8 +2323,8 @@ function startFight(offer){
 function sparIntro(){ M.phase = 'intro'; M.pt = 1.4; banner('SPARRING', 'y'); bell(1); }
 // a training day in the ring: one round in headgear against a partner your gym provides
 function startSpar(){
-  if (!G || G.gym < 2) return;
-  const me = G.fighters.me, base = clamp(ovr(me) + [0, 0, -2, 3][G.gym] + rnd(-3, 3), 30, 95);
+  if (!G) return;
+  const me = G.fighters.me, base = clamp(ovr(me) + [-8, -5, -2, 3][G.gym] + rnd(-3, 3), 30, 95);
   const p = { id:'spar', name:pick(FIRST) + ' ' + pick(LAST), nick:'', style:pick(Object.keys(STYLES)), rat:{}, age:ri(22, 30), town:me.town, w:0, l:0, d:0, ko:0, look:{ ...genLook(), trunks:'#3a3a44' } };
   for (const k of RK) p.rat[k] = clamp(base + STYLES[p.style].mod[k] * .5 + rnd(-4, 4), 20, 95);
   startFight({ id:'spar', spar:true, partner:p, rounds:1, purse:0, title:false });
@@ -2161,34 +2575,26 @@ function resize(){
   buildBg();
 }
 addEventListener('resize', () => { if (M) resize(); });
+let beamCanvas = null;
 function buildBg(){
   bgCanvas = document.createElement('canvas'); bgCanvas.width = LW * SC; bgCanvas.height = LH * SC;
-  const b = bgCanvas.getContext('2d'); b.setTransform(SC, 0, 0, SC, 0, 0);
-  const R = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
+  const b = bgCanvas.getContext('2d'); b.setTransform(SC, 0, 0, SC, 0, 0); b.imageSmoothingEnabled = false;
   const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
-  R(0, 0, LW, LH, '#100d2e');
-  // crowd: rows of heads and shoulders, darker further back (drawn every frame so they can jump)
+  b.drawImage(arenaScene(LW * 2, LH * 2, gy, cx, half), 0, 0, LW, LH);
+  beamCanvas = arenaBeams(LW * 2, LH * 2, cx, half);
+  // crowd: rows of heads and shoulders, darker further back and away from the lights (drawn every frame so they can jump)
   let seed = 7; const rr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const shirts = ['#3a3470', '#4a2f5e', '#2f4a6e', '#5e3a3a', '#3f5a48', '#55506e', '#6e5a3a', '#2a2a44'];
-  const heads = ['#e1ac80', '#c68642', '#93592b', '#f3cfac', '#5e3a21'];
+  const shirts = ['#3a3470', '#4a2f5e', '#2f4a6e', '#5e3a3a', '#3f5a48', '#55506e', '#6e5a3a', '#2a2a44', '#7a3030', '#30606a'];
+  const heads = ['#e1ac80', '#c68642', '#93592b', '#f3cfac', '#5e3a21'], hairs = ['#141010', '#3a2418', '#6a4a2a', '#b8a080', '#1b1b1b', null];
   CROWD = [];
   for (let row = 0; row < 7; row++) {
-    const y = 6 + row * 7, dim = .45 + row * .08;
+    const y = 6 + row * 7;
     for (let x = -2 + (row % 2) * 3; x < LW; x += 6) {
       if (rr() < .08) continue;
-      CROWD.push({ x, y, shirt:shade(shirts[Math.floor(rr() * shirts.length)], dim), head:shade(heads[Math.floor(rr() * heads.length)], dim), ph:rr() * 6.28, arms:rr() < .3 });
+      const dim = (.42 + row * .08) * (1 - .3 * Math.min(1, Math.abs(x - cx) / (LW / 2))), sh = shirts[Math.floor(rr() * shirts.length)], hd = heads[Math.floor(rr() * heads.length)], hr = hairs[Math.floor(rr() * hairs.length)];
+      CROWD.push({ x, y, shirt:shade(sh, dim), shirtD:shade(sh, dim * .75), head:shade(hd, dim), headD:shade(hd, dim * .78), hair:hr ? shade(hr, dim + .1) : null, ph:rr() * 6.28, arms:rr() < .3, sign:rr() < .04 ? ['#c42d2d', '#2f5aa8', '#1d1d1d'][Math.floor(rr() * 3)] : null });
     }
   }
-  // ring: posts, ropes, canvas, apron
-  const top = gy - 10;
-  R(0, top, LW, LH - top, '#0b0926');
-  R(cx - half - 10, top, (half + 10) * 2, 18, '#cfc9b4');                 // canvas
-  R(cx - half - 10, top, (half + 10) * 2, 2, '#bdb6a0');
-  R(cx - half - 12, top + 18, (half + 12) * 2, LH - top - 18, '#8a1f2a'); // apron skirt
-  R(cx - half - 12, top + 18, (half + 12) * 2, 2, '#f4f4f4');
-  for (const x of [cx - half - 2, cx + half - 2]) { R(x, 48, 5, top - 46, '#d9d9e8'); R(x, 46, 5, 4, '#e24b3b'); }   // corner posts
-  [['#e24b3b', gy - 52], ['#f4f4f4', gy - 38], ['#3f7be0', gy - 24]].forEach(([c, y]) => R(cx - half + 3, y, half * 2 - 5, 2, c));
-  R(cx - 40, top + 3, 80, 1, '#ddd7c3'); R(cx - 60, top + 8, 120, 1, '#c8c2ac');   // ring lights on the canvas
 }
 function draw(){
   const gy = M.gy;
@@ -2198,12 +2604,15 @@ function draw(){
   if (M.phase === 'walkout' && M.close != null) return drawCloseup();
   const hy = M.hype;
   for (const c of CROWD) {
-    const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0;
-    g.fillStyle = c.shirt; g.fillRect(c.x, c.y + 3 - up, 5, Math.min(5, 54 - (c.y + 3 - up)));
-    g.fillStyle = c.head; g.fillRect(c.x + 1, c.y - up, 3, 3);
-    if (up && c.arms) g.fillRect(c.x - 1, c.y - 3, 1, 3), g.fillRect(c.x + 5, c.y - 3, 1, 3);
+    const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0, y = c.y - up, sh = Math.min(5, 54 - (y + 3));
+    g.fillStyle = c.shirt; g.fillRect(c.x, y + 3, 5, sh); g.fillStyle = c.shirtD; g.fillRect(c.x + 4, y + 3, 1, sh); g.fillRect(c.x + 2, y + 3, 1, .5);
+    g.fillStyle = c.head; g.fillRect(c.x + 1, y, 3, 3); g.fillStyle = c.headD; g.fillRect(c.x + 3, y + .5, 1, 2.5);
+    if (c.hair) { g.fillStyle = c.hair; g.fillRect(c.x + 1, y - .5, 3, 1); }
+    if (up && c.arms) { g.fillStyle = c.shirt; g.fillRect(c.x - 1, y - 2, 1, 4); g.fillRect(c.x + 5, y - 2, 1, 4); g.fillStyle = c.head; g.fillRect(c.x - 1, y - 3, 1, 1); g.fillRect(c.x + 5, y - 3, 1, 1); }
+    if (c.sign && hy > .15) { g.fillStyle = '#f4f0e8'; g.fillRect(c.x - 2, y - 8, 9, 5); g.fillStyle = c.sign; g.fillRect(c.x - 1, y - 7, 7, 1.5); g.fillRect(c.x - 1, y - 4.5, 4, 1); }
   }
-  g.fillStyle = '#0b0926'; g.fillRect(0, 54, LW, 2);
+  g.fillStyle = '#2a2440'; g.fillRect(0, 54, LW, 2); g.fillStyle = '#4a4466'; g.fillRect(0, 54, LW, .5);
+  if (beamCanvas) g.drawImage(beamCanvas, 0, 0, LW, LH);
   if (M.flashes > 0 || Math.random() < .04) {                              // camera flashes in the crowd
     const n = Math.min(4, Math.ceil(M.flashes) || 1);
     for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(4, 50), 2, 2); }
@@ -2433,33 +2842,6 @@ let MW = 240;
 const MR = (x, y, w, h, c) => { mg.fillStyle = c; mg.fillRect(Math.round(x), Math.round(y), w, h); };
 const mgy = () => Math.round(LH * .86);
 
-function gymBg(){
-  const lvl = G ? G.gym : 0, fy = Math.round(LH * .78);
-  const wall = ['#4e2a26', '#3a4458', '#2c3546', '#232838'][lvl], wallD = shade(wall, .8), floor = ['#7a4e2c', '#8a6038', '#6e6e7a', '#3e3e4c'][lvl];
-  MR(0, 0, MW, LH, wall);
-  if (lvl === 0) {                                                        // the basement: brick, pipes, one bulb
-    for (let y = 8; y < fy; y += 6) for (let x = (y / 6) % 2 ? -6 : 0; x < MW; x += 12) { MR(x, y, 11, 5, (x * 7 + y * 3) % 5 ? '#5e3430' : '#68392f'); MR(x, y + 4, 11, 1, wallD); }
-    MR(0, 2, MW, 3, '#3a3a40'); MR(0, 2, MW, 1, '#5a5a62'); MR(MW * .3, 0, 2, 6, '#3a3a40');   // pipe along the ceiling
-    for (let x = 6; x < MW; x += 34) MR(x, 1, 3, 6, '#2a2a30');
-  } else {
-    for (let x = 0; x < MW; x += 20) MR(x, 0, 1, fy, wallD);              // panelled walls
-    MR(0, fy * .52, MW, 2, lvl === 3 ? '#e0b12d' : '#e24b3b'); MR(0, fy * .52 + 2, MW, 1, shade(wall, .7));
-    for (let i = 0; i < 3; i++) MR(MW * (.08 + i * .3), 10, 14, 10, '#1d1d24');   // lockers / banners up high
-  }
-  const lx = Math.round(MW * .5);                                          // the light, and the pool it throws
-  MR(lx - 1, 0, 2, 9, '#222'); MR(lx - 4, 9, 8, 3, '#3a3a40'); MR(lx - 2, 12, 4, 2, '#fff3b8');
-  for (let i = 0; i < 4; i++) { mg.fillStyle = `rgba(255,236,180,${.035 + i * .015})`; mg.fillRect(lx - 34 + i * 7, 14, 68 - i * 14, fy - 14); }
-  const wx = Math.round(MW * .72);                                         // a high window with morning light
-  MR(wx, 14, 34, 22, '#1d1d24'); MR(wx + 2, 16, 30, 18, '#ffcf8a'); MR(wx + 16, 16, 2, 18, '#1d1d24'); MR(wx + 2, 24, 30, 2, '#1d1d24');
-  const px = Math.round(MW * .12);                                         // an old fight poster
-  MR(px, 18, 22, 30, '#e8e2cc'); MR(px + 2, 20, 18, 12, '#c42d2d'); MR(px + 5, 22, 5, 8, '#1d1d1d'); MR(px + 12, 22, 5, 8, '#1d1d1d');
-  MR(px + 3, 35, 16, 2, '#1d1d1d'); MR(px + 3, 39, 11, 2, '#1d1d1d'); MR(px + 3, 43, 14, 1, '#7a7a7a');
-  MR(MW * .9, fy - 26, 10, 26, '#3a2a22'); MR(MW * .9, fy - 26, 10, 2, '#5a4232'); MR(MW * .9 + 2, fy - 22, 6, 1, '#7a1f2a');   // a stool with a towel
-  MR(0, fy, MW, LH - fy, floor);
-  for (let y = fy + 4; y < LH; y += 5) MR(0, y, MW, 1, shade(floor, .82));
-  for (let x = 13; x < MW; x += 29) MR(x, fy, 1, LH - fy, shade(floor, .86));
-  mg.fillStyle = 'rgba(255,236,180,.07)'; mg.fillRect(lx - 40, fy, 80, LH - fy);
-}
 const SWEATS = '#8d8d96';
 function trainee(x, y, dir, pose, walk, sweats){
   const me = G.fighters.me, look = sweats ? { ...me.look, trunks:SWEATS, gloves:'#f2f2f2' } : me.look;
@@ -2549,23 +2931,25 @@ const MINIS = {
     hud:S => `${S.hits} in a row`,
   },
   speed: {
-    name:'Speed bag', how:'You\'re looking right at the bag. Tap to hit it. Like a real speed bag it rattles three times: off the far side, back off your side, off the far side again, then it comes to you. Tap again just as it comes back (when the ring closes). Every clean hit speeds it up. Miss and it stops.', dur:25,
+    name:'Speed bag', how:'You\'re looking right at the bag. Tap to hit it. Like a real speed bag it rattles three times: off the far side, back off your side, off the far side again, then it comes to you. Tap again just as it comes back (when the ring closes). Every clean hit speeds it up. No clock: keep it going until you miss.', dur:Infinity,
     init:() => {
       const r = G.fighters.me.rat, wide = 1 + Math.max(0, r.spd - 40) / 120;     // faster hands: a bigger window
       return { live:false, t:0, T:1.5, bn:0, hits:0, combo:0, best:0, good:.085 * wide, perf:.035 * wide, hand:0, punch:0, wob:0, flash:0 };
     },
     update(S, dt){
       S.punch = Math.max(0, S.punch - dt); S.flash = Math.max(0, S.flash - dt); S.wob *= Math.exp(-dt * 3);
+      if (S.over != null) { S.over -= dt; return S.over <= 0; }
       if (!S.live) return;
       S.t += dt;
       const b = Math.min(3, Math.floor(S.t / S.T * 4));                        // three rattles off the board before it comes back to you
       if (b > S.bn) { S.bn = b; thud(.1, true); S.flash = .05; }
       if (S.t > S.T + S.good) {                                                // it came back and you weren't there
-        S.live = false; S.combo = 0; S.T = 1.5; S.wob = 1; miniPop('MISSED', 'r');
+        S.live = false; S.over = .9; S.wob = 1; miniPop('MISSED', 'r');
       }
     },
     tap(S){
       S.hand = 1 - S.hand; S.punch = .12;
+      if (S.over != null) return;
       if (!S.live) { S.live = true; S.t = 0; S.bn = 0; thud(.2, true); return; }      // get it going
       const d = Math.abs(S.t - S.T);
       if (d <= S.good) {
@@ -2573,17 +2957,12 @@ const MINIS = {
         S.hits++; S.combo++; S.best = Math.max(S.best, S.combo); MG.score += perfect ? 3 : 1;
         miniPop(perfect ? (S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT') : 'GOOD', perfect ? 'y' : '');
         S.T = Math.max(.72, S.T * .96); S.t = 0; S.bn = 0; S.flash = .1; thud(.2, true);
-      } else { S.live = false; S.combo = 0; S.T = 1.5; S.wob = 1; miniPop(S.t < S.T ? 'TOO EARLY' : 'TOO LATE', 'r'); }
+      } else { S.live = false; S.over = .9; S.wob = 1; miniPop(S.t < S.T ? 'TOO EARLY' : 'TOO LATE', 'r'); }
     },
     draw(S){
       // looking straight at the wall, the board overhead, the bag in front of your face
       const cx = MW / 2, P = painter(mg);
-      MR(0, 0, MW, LH, '#2c3546');
-      for (let x = 0; x < MW; x += 16) { MR(x, 0, 1, LH, '#25303e'); MR(x + 1, 0, 1, LH, '#34405a'); }
-      MR(0, LH * .62, MW, 2, '#e24b3b');
-      mg.fillStyle = 'rgba(255,236,180,.08)'; mg.fillRect(cx - 50, 0, 100, LH);
-      MR(cx - 70, 8, 140, 12, '#6a4426'); MR(cx - 70, 8, 140, 2, '#8a5a34'); MR(cx - 70, 18, 140, 2, '#4a2e18');   // the rebound board, seen from below
-      MR(cx - 74, 4, 6, 26, '#3a2a22'); MR(cx + 68, 4, 6, 26, '#3a2a22');                                           // brackets
+      speedBg();
       MR(cx - 3, 20, 6, 4, '#9a9aa2'); MR(cx - 1, 24, 2, 3, '#7a7a82');                                             // swivel
       // where the bag is in its swing: 0 = right in your face, 1 = against the far side of the board, -1 = flipped up against your side
       let away = 0;
@@ -2634,13 +3013,13 @@ const MINIS = {
     hud:S => S.live ? (S.combo > 1 ? `Combo ${S.combo}` : 'Keep it going') : 'Tap to start it',
   },
   run: {
-    name:'Roadwork', how:'Run the stairs. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. You get 15 seconds, plus 1 for every 5 Stamina and 5 Grit you build.', dur:() => { const r = G.fighters.me.rat; return 15 + Math.max(0, Math.floor((r.sta - 40) / 5)) + Math.max(0, Math.floor((r.grit - 40) / 5)); },
-    init:() => ({ step:0, total:120, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
+    name:'Roadwork', how:'Run the stairs to the top. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
+    init:() => ({ rate:(() => { const r = G.fighters.me.rat; return 11 + Math.max(0, r.spd - 40) * .25 + Math.max(0, r.sta - 40) * .25; })(), step:0, total:120, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
       for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
         const t = S['f' + k], a = S['a' + k];
-        if (a < t) { S['a' + k] = Math.min(t, a + dt * 11); S['m' + k] = (S['a' + k] - (t - 2)) / 2; } else S['m' + k] = 0;
+        if (a < t) { S['a' + k] = Math.min(t, a + dt * S.rate); S['m' + k] = (S['a' + k] - (t - 2)) / 2; } else S['m' + k] = 0;
       }
       S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
       const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
@@ -2657,31 +3036,35 @@ const MINIS = {
       if (S.step >= S.total && S.top === null) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
     },
     draw(S){
-      const bands = ['#2c2670', '#5a3a7e', '#a24b7e', '#e2705b', '#f7a86a', '#ffd28a'];
-      bands.forEach((c, i) => MR(0, i * LH / 6, MW, LH / 6 + 1, c));
+      runSky(S);
       if (S.top !== null) { MR(MW * .72 - 8, LH * .25 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 10; i++) MR(MW * .72 + Math.cos(i * .63 + MG.time) * 24, LH * .25 + Math.sin(i * .63 + MG.time) * 24, 2, 2, '#fff3b8'); }
-      for (let x = -15; x < MW + 15; x += 15) MR(x - (S.camX * .15) % 15, LH * .5 + ((x + 300) * 13) % 18, 12, LH, '#3a2850');
       const cX = S.camX, cY = S.camY;
       for (let i = -14; i <= S.total + 40; i++) {
         const x = i * RUN_SX - cX, y = -Math.min(i, S.total) * RUN_SY - cY;
         if (x < -RUN_SX || x > MW) continue;
-        MR(x, y, RUN_SX, LH - y, i > S.total ? '#d8d0bc' : '#c9c2b0'); MR(x, y, RUN_SX, 1, '#efe8d4'); MR(x, y + 1, 1, LH, '#b8b09c');
+        const top = i > S.total, base = top ? '#d8d0bc' : (i % 20 < 2 ? '#bdb5a0' : '#c9c2b0');
+        MR(x, y, RUN_SX, LH - y, base); MR(x, y, RUN_SX, 1, '#f4eedc'); MR(x, y + 1, RUN_SX, .5, '#a8a08a'); MR(x, y + 1, .5, LH, '#b0a892');
+        if ((i * 7) % 5 === 0) MR(x + 2 + (i % 3), y + 2.5, 1, .5, '#a8a08a');
+        if (i % 20 === 10 && !top) { MR(x + 3, y - 18, 1, 18, '#2a2a30'); MR(x + 1.5, y - 20, 4, 2, '#2a2a30'); MR(x + 2.5, y - 19, 2, 1, '#ffe8a8'); }   // lamp posts
       }
       const bx = (S.total + 10) * RUN_SX - cX, by = -S.total * RUN_SY - cY;     // the museum at the top
-      MR(bx, by - 70, 90, 70, '#e8e2cc'); MR(bx - 4, by - 76, 98, 8, '#f4efe0');
-      for (let c = 0; c < 6; c++) MR(bx + 6 + c * 14, by - 66, 5, 66, '#d4ccb4');
+      MR(bx, by - 70, 90, 70, '#d8d0b8'); MR(bx - 4, by - 76, 98, 8, '#f4efe0'); MR(bx - 4, by - 69, 98, 1, '#b8b09a');
+      mg.fillStyle = '#ece6d2'; mg.beginPath(); mg.moveTo(bx - 4, by - 76); mg.lineTo(bx + 45, by - 92); mg.lineTo(bx + 94, by - 76); mg.closePath(); mg.fill();
+      mg.fillStyle = '#c8c0aa'; mg.beginPath(); mg.moveTo(bx + 10, by - 78); mg.lineTo(bx + 45, by - 88); mg.lineTo(bx + 80, by - 78); mg.closePath(); mg.fill();
+      for (let c = 0; c < 6; c++) { MR(bx + 6 + c * 14, by - 66, 6, 66, '#ece6d2'); MR(bx + 7 + c * 14, by - 66, 1, 66, '#d0c8b0'); MR(bx + 10 + c * 14, by - 66, 1, 66, '#d0c8b0'); MR(bx + 5 + c * 14, by - 68, 8, 2, '#f4efe0'); }
+      MR(bx + 2, by - 4, 86, 4, '#c8c0aa');
       drawRunner(mg, S, -cX, -cY);
       if (S.top === null) {                                                     // which foot is next
         const nx = S.fL <= S.fR ? 0 : 1;
         MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)');
       }
     },
-    grade:s => s >= 120 ? 'S' : s >= 90 ? 'A' : s >= 65 ? 'B' : s >= 40 ? 'C' : 'F',
-    score:S => S.step + (S.top !== null ? Math.round((MG.dur - S.top) * 3) : 0),
-    hud:S => `Step ${S.step} / ${S.total}`,
+    grade:s => s <= 20 ? 'S' : s <= 25 ? 'A' : s <= 31 ? 'B' : s <= 42 ? 'C' : 'F',
+    score:S => S.top !== null ? S.top : 999,
+    hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
   weights: {
-    name:'Weight room', how:'Bench press. The needle swings: tap when it\'s in the green to drive the bar up (yellow is perfect). Ten reps. On the last one, mash to grind it out.', dur:40,
+    name:'Pull-ups', how:'The needle swings: tap when it\'s in the green to pull your chin over the bar (yellow is perfect). Ten reps. On the last one, mash to grind it out.', dur:40,
     init:() => ({ reps:0, max:10, h:0, phase:'ready', t:0, mark:0, dir:1, speed:.85, zc:.5, zw:.34, pw:.07, grind:0, perfect:0 }),
     update(S, dt){
       S.t += dt;
@@ -2711,7 +3094,7 @@ const MINIS = {
     },
     draw(S){
       gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
-      drawBench(mg, cx, gy, S);
+      drawPullup(cx, gy, S);
       if (S.phase === 'grind') {                                              // the grind meter
         MR(cx + 46, gy - 52, 8, 44, '#000'); MR(cx + 47, gy - 9 - S.grind * 42, 6, S.grind * 42, '#ffd23f'); MR(cx + 44, gy - 52, 12, 2, '#44c45d');
       } else {
@@ -2742,72 +3125,33 @@ function joint(A, Bp, a, b, bend){
 }
 const footAt = (S, k, ox, oy) => { const i = S['a' + k], m = S['m' + k] || 0; return [i * RUN_SX + RUN_SX * .5 + ox, -i * RUN_SY + oy - Math.sin(clamp(m, 0, 1) * Math.PI) * 3.5]; };
 function runnerHip(S){ const L = footAt(S, 'L', 0, 0), R = footAt(S, 'R', 0, 0); return [(L[0] + R[0]) / 2 - 1, (L[1] + R[1]) / 2 - 20]; }
-// the stair runner in grey sweats, leaning into the climb, arms pumping
-function drawRunner(g, S, ox, oy){
-  const me = G.fighters.me, skin = me.look.skin, hair = me.look.hair, P = painter(g), skD = shade(skin, .82);
-  const FL = footAt(S, 'L', ox, oy), FR = footAt(S, 'R', ox, oy), top = S.top !== null && MG.time - S.top > .3;
-  const H = [(FL[0] + FR[0]) / 2 - 1.5, Math.max(FL[1], FR[1]) - 20 + (S.stumble > 0 ? 2.5 : 0)];
-  const lean = top ? 0 : 4, Sh = [H[0] + lean, H[1] - 16], Hd = [Sh[0] + (top ? 0 : 2), Sh[1] - 7.5];
-  const sw = Math.sin(S.walk);
-  const fistN = top ? [Sh[0] + 9, Sh[1] - 14] : [Sh[0] + 3 + sw * 8, Sh[1] + 7 - sw * 4];
-  const fistF = top ? [Sh[0] - 4, Sh[1] - 16] : [Sh[0] + 3 - sw * 8, Sh[1] + 7 + sw * 4];
-  const back = FL[0] < FR[0] ? FL : FR, front = back === FL ? FR : FL;
-  const leg = (F, c) => {
-    const K = joint(H, F, 11.5, 11.5, 1);
-    P.B(H[0], H[1], K[0], K[1], 4.5, c); P.B(K[0], K[1], F[0], F[1] - 3, 3.5, c);
-    P.R(F[0] - 2.5, F[1] - 3.5, 6.5, 3.5, '#24202c');
-    if (!P.out) { P.R(F[0] - 2.5, F[1] - .5, 6.5, .5, '#0a0a0a'); P.R(F[0] - 2, F[1] - 4, 5, 1, '#f2f2f2'); }
-  };
-  const arm = (Fi, c, wrap) => { const E = joint(Sh, Fi, 8, 7.5, top && Fi === fistN ? 1 : -1); P.B(Sh[0], Sh[1], E[0], E[1], 3.5, c); P.B(E[0], E[1], Fi[0], Fi[1], 3, c); P.R(Fi[0] - 2, Fi[1] - 2, 4, 4, wrap); };
-  for (const pass of [true, false]) {
-    P.set(pass);
-    leg(back, SWD); arm(fistF, SWD, '#cfcac0');
-    P.B(H[0], H[1] - 1, Sh[0] - .5, Sh[1] + 1.5, 7.5, SW);                    // the sweatshirt
-    P.R(H[0] - 4, H[1] - 2, 8, 3, SWD);                                       // its waistband
-    P.R(Hd[0] - 7, Hd[1] + 2, 5, 6, SW);                                      // the hood, down his back
-    P.R(Sh[0] - 1.5 + (top ? 0 : 1), Sh[1] - 3, 4, 3, skin);                  // neck
-    P.R(Hd[0] - 5, Hd[1] - 5, 10, 9.5, skin);                                 // head
-    if (hair !== 'none') { P.R(Hd[0] - 5.5, Hd[1] - 6, 10.5, 3, hair); P.R(Hd[0] - 5.5, Hd[1] - 3.5, 3, 4, hair); }
-    leg(front, SW); arm(fistN, SW, '#ece8e0');
-  }
-  P.R(Hd[0] + 2, Hd[1] - 1.5, 2, 1.5, '#f2f2f2'); P.R(Hd[0] + 3, Hd[1] - 1.5, 1, 1.5, '#141414');   // eye
-  P.R(Hd[0] + 1.5, Hd[1] - 3, 3.5, 1, hair !== 'none' ? hair : skD);         // brow
-  P.R(Hd[0] - 1.5, Hd[1] - 1, 1.5, 2.5, skD); P.R(Hd[0] + 4.5, Hd[1] - .5, 1, 2, skD);   // ear, nose
-  P.R(Hd[0] + 2, Hd[1] + 2.5, top ? 2.5 : 2, top ? 1.5 : .5, top ? '#5a1a1a' : shade(skin, .65));   // breathing hard, or yelling at the top
-  P.R(Sh[0] - 3, Sh[1] + 1, 4, .5, SWL); P.R(H[0] - 2, H[1] - 6, 5, .5, SWD);
-  if (MG.time % .6 < .3) P.R(Hd[0] - 3, Hd[1] - 4, .5, .5, '#ffffff');       // sweat
+// the stair runner: the hand-drawn fighter in grey trunks and hand wraps; each leg is solved to the step its foot is on
+const RUN_K = .6;
+function runLeg(H, A, near){                                          // knee in front, thigh 11 and shin 12 sprite px
+  const a = 11, b = 12, dx = A[0] - H[0], dy = A[1] - H[1], d = Math.min(Math.hypot(dx, dy), a + b - .01);
+  const ang = Math.atan2(dy, dx), k = Math.acos(Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d))));
+  const t = ang - k, Kn = [H[0] + Math.cos(t) * a, H[1] + Math.sin(t) * a];
+  const len = Math.hypot(dx, dy), Ax = len > a + b ? [H[0] + dx / len * (a + b - .01), H[1] + dy / len * (a + b - .01)] : A;
+  return [Kn, Ax];
 }
-// the bench press, side on: bench, the boxer flat, both hands on the bar, plates end-on
-function drawBench(g, cx, gy, S){
-  const me = G.fighters.me, skin = me.look.skin, hair = me.look.hair, P = painter(g);
-  const tired = S.reps / S.max, shake = (S.phase === 'up' || S.phase === 'grind') && tired > .3 ? rnd(-1, 1) * tired * 1.2 : 0;
-  const benchY = gy - 12, chest = [cx - 6, benchY - 4];
-  const bar = [cx - 7 + shake * .5, benchY - 14 - S.h * 9 + shake];
-  for (const pass of [true, false]) {
-    P.set(pass);
-    P.R(cx + 34, gy - 46, 3, 46, '#6a6a74'); P.R(cx + 30, gy - 46, 11, 3, '#6a6a74');   // the rack upright behind
-    P.R(cx - 30, benchY + 2, 3, gy - benchY - 2, '#3a3a44'); P.R(cx + 14, benchY + 2, 3, gy - benchY - 2, '#3a3a44');   // bench legs
-    P.R(cx - 34, benchY - 1, 52, 4, '#7a1f2a');                              // the padded bench
-    // him: head on the left, knees up, feet planted
-    P.B(cx + 8, benchY - 2, cx + 18, benchY - 10, 4.5, me.look.trunks);       // thigh in his shorts
-    P.B(cx + 18, benchY - 10, cx + 22, gy - 3, 4, skin);                      // shin down to the floor
-    P.R(cx + 19, gy - 4, 6, 3.5, '#24202c');
-    P.R(cx - 14, benchY - 7, 22, 6.5, skin);                                  // torso
-    P.R(cx + 2, benchY - 7.5, 9, 7, me.look.trunks);                          // shorts
-    P.R(cx - 25, benchY - 8, 9, 8, skin);                                     // head
-    if (hair !== 'none') P.R(cx - 26, benchY - 8, 3, 8, hair);
-    // the bar end-on: a big plate with a collar
-    g.fillStyle = pass ? OUTLINE : '#1d1d24'; g.beginPath(); g.arc(bar[0], bar[1], pass ? 7.5 : 7, 0, Math.PI * 2); g.fill();
-    if (!pass) { g.fillStyle = '#2e2e38'; g.beginPath(); g.arc(bar[0], bar[1], 5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 2, 0, Math.PI * 2); g.fill(); P.R(bar[0] - 5, bar[1] - 6, 3, 1, '#4a4a58'); }
-    if (S.reps >= 4 && !pass) { g.fillStyle = '#c42d2d'; g.beginPath(); g.arc(bar[0], bar[1], 3.5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 1.5, 0, Math.PI * 2); g.fill(); }
-    // arms up to the bar (the far one darker)
-    const sh = [cx - 11, benchY - 6];
-    const ef = joint(sh, [bar[0] - 1, bar[1] + 1], 8.5, 8.5, -1), en = joint([sh[0] + 2, sh[1]], [bar[0] + 1, bar[1] + 1], 8.5, 8.5, -1);
-    P.B(sh[0], sh[1], ef[0], ef[1], 3.5, shade(skin, .82)); P.B(ef[0], ef[1], bar[0] - 1, bar[1] + 1, 3, shade(skin, .82));
-    P.B(sh[0] + 2, sh[1], en[0], en[1], 3.5, skin); P.B(en[0], en[1], bar[0] + 1, bar[1] + 1, 3, skin);
+function drawRunner(g, S, ox, oy){
+  const me = G.fighters.me, k = RUN_K, top = S.top !== null && MG.time - S.top > .3;
+  const FL = footAt(S, 'L', ox, oy), FR = footAt(S, 'R', ox, oy);
+  const Hw = [(FL[0] + FR[0]) / 2 - 1, Math.max(FL[1], FR[1]) - 19 + (S.stumble > 0 ? 2 : 0)];
+  const lean = top ? 0 : 4, q = v => Math.round(v);
+  // world to body space: the hip sits at (35 + lean / 2, 66)
+  const toB = P => [35 + lean * .5 + (P[0] - Hw[0]) / k - 3, 66 + (P[1] - Hw[1]) / k - 7];
+  const [fK, fA] = runLeg([32 + lean * .5, 66], toB(FL), false), [nK, nA] = runLeg([38 + lean * .5, 66], toB(FR), true);
+  const sw = Math.sin(S.walk), J = { lean, cr:0, hx:S.stumble > 0 ? -2 : 0, hy:0, nK:nK.map(q), nA:nA.map(q), fK:fK.map(q), fA:fA.map(q) };
+  if (top) Object.assign(J, { nEl:[41, 16], nWr:[44, 4], nGl:[45, 0], fEl:[31, 16], fWr:[30, 4], fGl:[30, 0] });
+  else {
+    const arm = (Sh, a) => { const E = [Sh[0] + Math.sin(a) * 14, Sh[1] + Math.cos(a) * 14], f = a + 1.7, W = [E[0] + Math.sin(f) * 12, E[1] + Math.cos(f) * 12]; return [E.map(q), W.map(q), [q(W[0] + Math.sin(f) * 3), q(W[1] + Math.cos(f) * 3)]]; };
+    const n = arm([35, 28], Math.round(sw * 4) / 4 * .9), f = arm([33, 27], -Math.round(sw * 4) / 4 * .9);
+    Object.assign(J, { nEl:n[0], nWr:n[1], nGl:n[2], fEl:f[0], fWr:f[1], fGl:f[2] });
   }
-  P.R(cx - 19, benchY - 6, 1.5, 1, '#141414');                               // eye, straining
-  if (S.phase === 'grind' || tired > .6) { P.R(cx - 21, benchY - 9, .5, .5, '#ffffff'); P.R(cx - 13, benchY - 8, .5, .5, '#ffffff'); }   // sweat
+  const look = { ...lookStyle(me), trunks:'#8d8d96', band:'#6c6c78' };
+  // drawRig puts body (40, 95) at its x, y: line the hip up with the world hip
+  drawRig(g, Hw[0] - (35 + lean * .5 - 40) * k, Hw[1] + (95 - 66) * k, 1, 'dyn:' + JSON.stringify(J), look, { hands:true, noShadow:true }, 0, k);
 }
 function mresize(){
   const w = innerWidth, h = innerHeight, dpr = Math.min(3, devicePixelRatio || 1);
@@ -2891,14 +3235,17 @@ function calendarHTML(){
   const t = dateOf(G.day), y = t.getUTCFullYear(), m = t.getUTCMonth();
   const first = Date.UTC(y, m, 1), startDay = Math.round((first - BASE_DAY) / 864e5), lead = new Date(first).getUTCDay();
   const len = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-  const titles = new Set(G.card.filter(c => c.title).map(c => c.day));
+  const titles = new Set(G.card.filter(c => c.title).map(c => c.day)), rivals = new Set(G.card.filter(c => !c.title && (rivalOf(c.a) || rivalOf(c.b))).map(c => c.day));
   let cells = DOW.map(d => `<div class="dh">${d[0]}</div>`).join('');
   for (let i = 0; i < lead; i++) cells += '<div></div>';
   for (let d = 1; d <= len; d++) {
-    const day = startDay + d - 1, cls = [day < G.day ? 'past' : '', day === G.day ? 'today' : '', G.fight && G.fight.day === day ? 'fight' : '', titles.has(day) ? 'tf' : '', G.fighters.me.bday.m === m && G.fighters.me.bday.d === d ? 'bd' : ''].join(' ');
+    const day = startDay + d - 1, cls = [day < G.day ? 'past' : '', day === G.day ? 'today' : '', G.fight && G.fight.day === day ? 'fight' : '', titles.has(day) ? 'tf' : '', rivals.has(day) ? 'rv' : '', G.fighters.me.bday.m === m && G.fighters.me.bday.d === d ? 'bd' : ''].join(' ');
     cells += `<div class="cd ${cls}"><span>${d}</span></div>`;
   }
-  return `<div class="cal"><div class="rings"><i></i><i></i></div><div class="mh">${MONTH[m].toUpperCase()} <span>${y}</span></div><div class="grid">${cells}</div></div>`;
+  const big = G.card.filter(c => c.day >= G.day && (c.title || rivalOf(c.a) || rivalOf(c.b))).sort((a, b) => a.day - b.day).slice(0, 2);
+  const nm = id => esc(G.fighters[id].name.split(' ').slice(-1)[0]);
+  const up = big.map(c => `<div class="bigf"><b class="num">${fmtDate(c.day)}</b> ${c.title ? '<span class="beltchip">TITLE</span>' : '<span class="rvchip">RIVAL</span>'} ${nm(c.a)} vs ${nm(c.b)}</div>`).join('');
+  return `<div class="cal"><div class="rings"><i></i><i></i></div><div class="mh">${MONTH[m].toUpperCase()} <span>${y}</span></div><div class="grid">${cells}</div>${up}</div>`;
 }
 const VIEWS = {
   title(){
@@ -2944,7 +3291,7 @@ const VIEWS = {
     return `<div class="bar slim"><div><button class="btn sm" data-a="title">Menu</button></div><div class="title">${fmtDate(G.day, true)}</div><div class="box num">${money(G.cash)}</div></div>${notes}
       <div class="hub2"><div class="left">${calendarHTML()}<div class="next">${next}</div></div>
       <div class="right">
-        <div class="mecard"><div class="face">${face(me, 70)}</div><div class="grow">
+        <div class="mecard" data-a="me" role="button" tabindex="0" style="cursor:pointer"><div class="face">${face(me, 70)}</div><div class="grow">
           <div class="nm">${esc(me.name)} ${i === 0 ? '<span class="beltchip">CHAMP</span>' : ''}</div>
           <div class="muted num" style="font-size:13px">${rec(me)} (${me.ko} KO) &middot; ${rankLabel('me')} &middot; age ${me.age}</div>
           <div class="fatrow"><span class="label">Fatigue</span><div class="hbar"><i style="width:${G.fat.toFixed(0)}%;background:${barCol(100 - G.fat)}"></i></div></div>
@@ -2953,8 +3300,7 @@ const VIEWS = {
         <div class="ails">${ails.length ? ails.slice(0, 4).map(ailChip).join('') : '<span class="muted" style="font-size:12px">No injuries.</span>'}</div>
         <div class="acts">${acts}
           <button class="btn" data-a="mail">Mail${mailN ? ` <span class="badge2">${mailN}</span>` : ''}</button><button class="btn" data-a="rankings">Rankings</button>
-          <button class="btn" data-a="schedule">Schedule</button><button class="btn" data-a="team">Team</button>
-          <button class="btn" data-a="me">Ratings</button><button class="btn" data-a="log">Log</button>
+          <button class="btn" data-a="team">Team</button><button class="btn" data-a="log">Log</button>
         </div></div></div>`;
   },
   me(){
