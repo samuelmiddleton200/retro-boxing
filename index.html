@@ -1253,18 +1253,15 @@ function drawRef(g, ox, gy, dir, armUp){
 }
 const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
 function drawCardGirl(g, ox, gy, n, t){
-  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(ox + x), Math.round(gy + y), w, h); };
-  const skin = '#e1ac80', st = Math.sin(t * 12) * 1.5;
-  R(-7, -1, 14, 2, 'rgba(0,0,0,.2)');
-  R(-3 - st, -14, 2, 12, skin); R(1 + st, -14, 2, 12, skin);                 // legs, walking
-  R(-4 - st, -3, 3, 2, '#e24b3b'); R(1 + st, -3, 3, 2, '#e24b3b');
-  R(-4, -29, 8, 16, '#e24b3b'); R(-4, -22, 8, 1, '#ffd23f');                 // sparkly red outfit
-  R(-6, -45, 2, 17, skin); R(4, -45, 2, 17, skin);                           // both arms up holding the card
-  R(-3, -37, 7, 8, skin); R(-4, -38, 9, 3, '#3b2414'); R(-4, -36, 2, 9, '#3b2414');
-  R(2, -34, 1, 1, '#141414');
-  const s = String(n), w = s.length * 8 - 2 + 8;
-  R(-w / 2, -58, w, 14, '#f4f4f4'); R(-w / 2, -58, w, 1, '#ffd23f');
-  [...s].forEach((d, k) => { const pat = DIGITS[+d]; for (let i = 0; i < 15; i++) if (pat[i] === '1') R(-w / 2 + 4 + k * 8 + (i % 3) * 2, -56 + Math.floor(i / 3) * 2, 2, 2, '#1d1d1d'); });
+  const k = .72, fr = ['walk1', 'stand', 'walk2', 'stand'][Math.floor(t * 5) % 4];
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(ox - 8, gy - 1, 16, 2);
+  g.imageSmoothingEnabled = false; g.drawImage(girlFrame(fr), ox - 46 * k, gy - (95 + ROY) * k, RW * k, RH * k);
+  const s = String(n), w = 30, top = gy - 92 * k - 13;                        // the card, held up between her hands
+  g.fillStyle = '#1a0f14'; g.fillRect(ox - w / 2 - .5, top - .5, w + 1, 13);
+  g.fillStyle = '#f4f4f4'; g.fillRect(ox - w / 2, top, w, 12); g.fillStyle = '#e0b12d'; g.fillRect(ox - w / 2, top, w, 1.2);
+  g.fillStyle = '#d42d3a'; g.fillRect(ox - w / 2, top + 10.8, w, 1.2);
+  const dw = s.length * 4 - 1;
+  [...s].forEach((d, i) => { const pat = DIGITS[+d]; g.fillStyle = '#1d1d1d'; for (let j = 0; j < 15; j++) if (pat[j] === '1') g.fillRect(ox - dw * .75 + (i * 4 + (j % 3)) * 1.5, top + 2.5 + Math.floor(j / 3) * 1.5, 1.5, 1.5); });
 }
 
 /* ================= the fighter rig: the hand-drawn boxer, posed ================= */
@@ -2186,6 +2183,145 @@ const CUT_LABEL = { hood:'Hood', collar:'Collar', len:'Length', sleeve:'Sleeves'
 function robeRig(R){
   return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:R.hood || 'down', collar:R.collar || 'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:R.obi || 'plain', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
 }
+// ---- the round-card girl, hand-painted in the same style as the boxers ----
+// Front view, both arms up holding the card overhead. Sprite is RW x RH like the boxers; feet on body y 95.
+// d: { skin, hair, hairStyle:'curls'|'perm'|'teased'|'side', suit, pat, halter, belt, jacket, cutout, shoes, headband }
+function girlPalette(d){
+  const P = rigPalette({ skin:d.skin, hair:d.hair, trunks:d.suit, gloves:'#c0c0c8' });
+  const [u1, u2, u3, u4] = rampHsl(d.suit, [[0, 1, .68], [0, 1, .86], [0, 1, 1], [0, 1, 0, .55]]);
+  const [z1, z2, z3] = rampHsl(d.shoes || '#c8c8d0', [[0, 1, .55], [0, 1, 1], [0, 1, 0, .55]]);
+  return { ...P, u1, u2, u3, u4, z1, z2, z3, lip:'#c0304a', lipL:'#e05a6e', blush:rampHsl(d.skin, [[-8, 1.1, .92]])[0], lash:'#1a0f14', iris:'#3a6a8a' };
+}
+function girlDraw(d, frame = 'stand'){
+  const PAL = girlPalette(d), S = RigSprite(PAL), cx = 46;
+  const step = frame === 'walk1' ? 1 : frame === 'walk2' ? -1 : 0;
+  // ---- big hair, behind everything ----
+  S.begin();
+  const hs = d.hairStyle || 'curls', wide = hs === 'teased' ? 15 : hs === 'perm' ? 14 : 13, low = hs === 'side' ? 31 : hs === 'perm' ? 32 : 30;
+  S.ell('h2', cx, 18, wide, 12); S.poly('h2', [[cx - wide, 18], [cx - wide + 1, low], [cx + wide - 1, low], [cx + wide, 18]]);
+  for (let i = 0; i < 16; i++) {                                                    // curls bunched round the edge
+    const a = Math.PI * (.95 + i / 15 * 1.1), r = wide + .5;
+    S.ell(i % 3 ? 'h2' : 'h3', cx + Math.cos(a) * r * .95, 18 + Math.sin(a) * 11, 3, 3);
+  }
+  for (let y = 22; y < low; y += 4) { S.ell('h2', cx - wide + .5, y, 3, 2.6); S.ell('h2', cx + wide - .5, y, 3, 2.6); }
+  if (hs === 'side') { S.ell('h2', cx + 15, 30, 5, 8); S.ell('h3', cx + 16, 26, 2.5, 3); }
+  for (let i = 0; i < 26; i++) { const x = cx - wide + 2 + ((i * 7) % (wide * 2 - 3)), y = 9 + ((i * 11) % (low - 11)); S.dot(i % 2 ? 'h1' : 'h3', x, y, 2, 1); S.dot('h4', x + 1, y - 1, 1, 1); }
+  S.shade('h1', [[cx - wide - 3, 24], [cx - wide + 2, 24], [cx - wide + 2, low + 3], [cx - wide - 3, low + 3]]);
+  S.shade('h1', [[cx + wide - 2, 24], [cx + wide + 3, 24], [cx + wide + 3, low + 3], [cx + wide - 2, low + 3]]);
+  S.end();
+  // ---- arms up, holding the card ----
+  for (const sd of [-1, 1]) {
+    const Sh = [cx + sd * 8.5, 31], El = [cx + sd * 16.5, 18], Hd = [cx + sd * 15, 3];
+    S.begin(); S.limb(Sh, El, 4.6, 3.6, {}); S.limb(El, Hd, 3.6, 2.8, {}); S.ell('s4', Hd[0], Hd[1] - .5, 2, 2.2); S.dot('s5', Hd[0] - .5, Hd[1] - 2, 1, 1); S.end();
+    if (d.bracelet) { S.begin(); S.poly(d.bracelet, [[Hd[0] - 2, Hd[1] + 3], [Hd[0] + 2, Hd[1] + 3], [Hd[0] + 2, Hd[1] + 4.5], [Hd[0] - 2, Hd[1] + 4.5]]); S.end(); }
+  }
+  // ---- legs: long, one knee eases forward as she walks ----
+  for (const sd of [-1, 1]) {
+    const lift = step === sd ? 1 : 0, H = [cx + sd * 4.2, 61], K = [cx + sd * 3.8 - sd * lift * .6, 78 - lift * 1.5], A = [cx + sd * 3.2, 92 - lift * 3];
+    S.begin(); S.limb(H, K, 7.2, 4.6, { crease:false }); S.limb(K, A, 4.4, 2.6, {}); S.dot('s5', K[0] - sd * .5 - .5, K[1] - 1, 1, 2); S.end();
+    S.begin();                                                                       // heel: a slim pointed foot, strap, spike heel
+    const fx = A[0], fy = A[1];
+    S.poly('z2', [[fx - 1.5, fy], [fx + 1.5, fy], [fx + 1.6, fy + 3], [fx + .8, fy + 4.5], [fx - .8, fy + 4.5], [fx - 1.6, fy + 3]]);
+    S.dot('z3', fx - 1, fy + 1, 1, 2); S.dot('z1', fx - 1.5, fy + 2.5, 3, .6);
+    if (!lift) { S.poly('z1', [[fx - 2.5, fy + 2], [fx - 1.6, fy + 2], [fx - 1.8, fy + 4.6], [fx - 2.3, fy + 4.6]]); }
+    S.end();
+  }
+  // ---- torso ----
+  S.begin();
+  S.poly('s4', [[cx - 9.5, 30], [cx - 7, 29], [cx + 7, 29], [cx + 9.5, 30], [cx + 9.5, 35], [cx + 8.5, 43], [cx + 6, 51], [cx + 8, 56], [cx + 7.6, 62], [cx + 1, 67], [cx - 1, 67], [cx - 7.6, 62], [cx - 8, 56], [cx - 6, 51], [cx - 8.5, 43], [cx - 9.5, 35]]);
+  S.shade('s3', [[cx - 9.5, 34], [cx - 7.5, 34], [cx - 5, 51], [cx - 7, 57], [cx - 8, 56], [cx - 6, 51], [cx - 8.5, 43]]);   // her left side, away from the light
+  S.shade('s5', [[cx + 5, 31], [cx + 8, 31], [cx + 8, 34], [cx + 5, 33]]);           // collarbone catches the light
+  S.dot('s3', cx - 4, 31, 3, 1); S.dot('s3', cx + 2, 31, 3, 1);
+  S.end();
+  // ---- the suit ----
+  S.begin();
+  const vy = d.halter ? 41 : d.neck === 'plunge' ? 49 : d.neck === 'scoop' ? 40 : 45;                                                    // how low the neckline goes
+  const suit = [[cx - 9.5, 33], [cx - 6.5, 30], [cx - 4.5, 30], [cx, vy], [cx + 4.5, 30], [cx + 6.5, 30], [cx + 9.5, 33], [cx + 8.5, 43], [cx + 6, 51], [cx + 8, 55.5], [cx + 1.5, 67], [cx - 1.5, 67], [cx - 8, 55.5], [cx - 6, 51], [cx - 8.5, 43]];
+  if (d.halter) suit.splice(1, 5, [cx - 5, 34], [cx - 2, 28], [cx, vy], [cx + 2, 28], [cx + 5, 34]);
+  S.poly('u3', suit);
+  S.ell('u3', cx - 3.5, 38.5, 4.9, 4.3); S.ell('u3', cx + 3.5, 38.5, 4.9, 4.3);          // the cups
+  S.shade('u2', [[cx - 8, 37], [cx - 5, 39], [cx - 1.5, 39], [cx - 1.5, 41], [cx - 8, 41]]); S.shade('u2', [[cx + 1.5, 39], [cx + 5, 39], [cx + 8, 37], [cx + 8, 41], [cx + 1.5, 41]]);
+  S.shade('u4', [[cx + 4, 35], [cx + 6, 35], [cx + 6, 36], [cx + 4, 36]]); S.shade('u4', [[cx - 5, 35], [cx - 4, 35], [cx - 4, 36], [cx - 5, 36]]);
+  S.shade('u1', [[cx - 8, 41], [cx - 1, 41.5], [cx - 1, 42.5], [cx - 7.5, 42.5]]); S.shade('u1', [[cx + 1, 41.5], [cx + 8, 41], [cx + 7.5, 42.5], [cx + 1, 42.5]]);   // shadow under the bust
+  S.shade('u1', [[cx - 9, 43], [cx - 6.5, 43], [cx - 4.5, 51], [cx - 6.5, 55], [cx - 7.8, 55.5], [cx - 6, 51]]);
+  S.shade('u4', [[cx + 4, 46], [cx + 5.5, 46], [cx + 4.5, 52], [cx + 3.5, 52]]);
+  // pattern
+  const pat = d.pat || 'none';
+  if (pat === 'flag') { for (let i = 0; i < 5; i++) S.dot('#c42d3a', cx - 6, 44 + i * 2, 13, 1); S.shade('#2a3a8a', [[cx - 6.5, 43], [cx - 1, 43], [cx - 1, 48], [cx - 6.5, 48]]); for (const [x, y] of [[-5, 44], [-3, 44], [-4, 46], [-2, 46]]) S.dot('#f4f4f4', cx + x, y, 1, 1); }
+  else if (pat === 'lower') { for (let i = 0; i < 6; i++) S.dot(i % 2 ? '#f4f4f4' : '#c42d3a', cx - 9, 52 + i * 2, 18, 1); S.shade('#2a3a8a', [[cx - 9, 51], [cx - 2, 51], [cx - 2, 56], [cx - 9, 56]]); for (const [x, y] of [[-8, 52], [-6, 52], [-4, 52], [-7, 54], [-5, 54]]) S.dot('#f4f4f4', cx + x, y, 1, 1); }
+  else if (pat === 'sash') { S.poly('#c42d3a', [[cx + 6, 30], [cx + 9.5, 31], [cx - 6, 59], [cx - 9, 57]]); S.poly('#f4f4f4', [[cx + 7.2, 30.5], [cx + 8.4, 31], [cx - 7, 58.3], [cx - 8, 57.6]]); for (let i = 0; i < 4; i++) S.dot('#2a3a8a', cx + 5 - i * 4, 36 + i * 6, 2, 2); }
+  else if (pat === 'chest') { S.shade('#2a3a8a', [[cx - 8, 34], [cx - 4, 34], [cx - 4, 37], [cx - 8, 37]]); S.dot('#f4f4f4', cx - 7, 35, 1, 1); S.dot('#f4f4f4', cx - 5, 35, 1, 1); for (let i = 0; i < 3; i++) S.dot('#c42d3a', cx - 8, 38 + i * 1.6, 5, .8); }
+  else if (pat === 'sequin') { for (let y = 32; y < 66; y += 2) for (let x = cx - 9 + (y % 4 ? 1 : 0); x < cx + 9; x += 2) S.dot((x * 3 + y) % 5 ? 'u2' : 'u4', x, y, 1, 1); }
+  else if (pat === 'leopard') { for (let i = 0; i < 26; i++) { const x = cx - 8 + ((i * 7) % 16), y = 33 + ((i * 5) % 32); S.dot('u2', x, y, 2, 1); S.dot('#2a1a10', x, y + 1, 1, 1); S.dot('#2a1a10', x + 2, y, 1, 1); } }
+  else if (pat === 'stars') { S.shade('#1f3a8a', [[cx - 10, 28], [cx + 10, 28], [cx + 10, 44], [cx - 10, 44]]); for (const [x, y] of [[-6, 36], [5, 36], [-2, 39], [2, 33], [6, 40]]) { S.dot('#f4f4f4', cx + x, y - 1, 1, 3); S.dot('#f4f4f4', cx + x - 1, y, 3, 1); } for (let i = 0; i < 5; i++) S.shade(i % 2 ? '#f4f4f4' : '#c42d3a', [[cx - 10, 45 + i * 4], [cx + 10, 45 + i * 4], [cx + 10, 47 + i * 4], [cx - 10, 47 + i * 4]]); }
+  else if (pat === 'stripes') { for (const y of [44, 48]) S.shade('#f4f4f4', [[cx - 9, y], [cx + 9, y], [cx + 9, y + 1.5], [cx - 9, y + 1.5]]); }
+  else if (pat === 'lame') { for (let y = 31; y < 66; y += 3) S.shade('u4', [[cx - 9, y], [cx + 9, y + 1], [cx + 9, y + 1.6], [cx - 9, y + .6]]); }
+  if (d.cutout) { S.shade('s4', [[cx - 8.4, 47], [cx - 5.5, 47], [cx - 5.2, 53], [cx - 7, 54]]); S.shade('s4', [[cx + 5.5, 47], [cx + 8.4, 47], [cx + 7, 54], [cx + 5.2, 53]]); S.shade('s3', [[cx - 8.4, 47], [cx - 7.6, 47], [cx - 6.6, 53], [cx - 7, 54]]); }
+  if (d.strapStars) for (const sd of [-1, 1]) { S.dot('#2a3a8a', cx + sd * 5.5 - 1, 30, 2, 2); S.dot('#f4f4f4', cx + sd * 5.5 - .5, 30.5, 1, 1); }
+  if (d.cut === 'high') { S.shade('s4', [[cx - 8, 55.5], [cx - 4, 64], [cx - 1.5, 67], [cx - 8, 60]]); S.shade('s4', [[cx + 8, 55.5], [cx + 8, 60], [cx + 1.5, 67], [cx + 4, 64]]); }
+  if (d.belt) { S.shade(d.belt, [[cx - 6.5, 50], [cx + 6.5, 50], [cx + 6.8, 53], [cx - 6.8, 53]]); S.shade(d.buckle || '#fff3c0', [[cx - 1.5, 50], [cx + 1.5, 50], [cx + 1.5, 53], [cx - 1.5, 53]]); if (d.buckle) S.dot('#f4f4f4', cx - .5, 51, 1, 1); }
+  S.end();
+  // the cleavage: soft shadow down the middle of the neckline, a little light on each curve
+  S.begin();
+  S.poly('s4', [[cx - 3.6, 31.5], [cx + 3.6, 31.5], [cx + 2.4, 36], [cx + .7, vy - .5], [cx - .7, vy - .5], [cx - 2.4, 36]]);
+  S.ell('s4', cx - 2.6, 36.5, 2.4, 2.6); S.ell('s4', cx + 2.6, 36.5, 2.4, 2.6);               // the tops of her bust
+  S.shade('s5', [[cx - 4, 34], [cx - 2, 33.5], [cx - 1.4, 35.5], [cx - 3.4, 36]]); S.shade('s5', [[cx + 2, 33.5], [cx + 4, 34], [cx + 3.4, 36], [cx + 1.4, 35.5]]);
+  S.dot('s6', cx - 3, 34, 1, 1); S.dot('s6', cx + 2, 34, 1, 1);
+  S.shade('s3', [[cx - .9, 36], [cx + .9, 36], [cx + .5, vy - .5], [cx - .5, vy - .5]]); S.dot('s2', cx, vy - 3, 1, 2);
+  S.shade('s3', [[cx - 4.6, 37.5], [cx - 3, 39], [cx - 3.6, 39.5], [cx - 4.9, 38.5]]); S.shade('s3', [[cx + 3, 39], [cx + 4.6, 37.5], [cx + 4.9, 38.5], [cx + 3.6, 39.5]]);
+  S.end();
+  // a satin jacket worn open over the suit
+  if (d.jacket) {
+    const [j1, j2, j3] = rampHsl(d.jacket, [[0, 1, .7], [0, 1, 1], [0, 1, 0, .35]]);
+    for (const sd of [-1, 1]) {
+      S.begin();
+      S.poly(j2, [[cx + sd * 4, 29], [cx + sd * 11, 30], [cx + sd * 11.5, 40], [cx + sd * 10.5, 54], [cx + sd * 5.5, 54], [cx + sd * 6.5, 44], [cx + sd * 3.5, 33]]);
+      S.shade(j3, [[cx + sd * 6, 31], [cx + sd * 7.5, 31], [cx + sd * 7, 50], [cx + sd * 6, 50]]); S.shade(j1, [[cx + sd * 9.5, 32], [cx + sd * 11.5, 32], [cx + sd * 10.5, 54], [cx + sd * 9, 54]]);
+      S.shade('#f4f4f4', [[cx + sd * 5.5, 52], [cx + sd * 10.5, 52], [cx + sd * 10.5, 54], [cx + sd * 5.5, 54]]);
+      S.end();
+      S.begin(); S.limb([cx + sd * 9, 31], [cx + sd * 12.5, 21], 5.6, 4.6, {}); S.end();             // sleeves pushed up
+      S.begin(); S.poly(j2, [[cx + sd * 6.5, 28], [cx + sd * 12, 29], [cx + sd * 15, 22], [cx + sd * 11, 18]]); S.shade(j1, [[cx + sd * 11, 18], [cx + sd * 12, 18], [cx + sd * 15, 22], [cx + sd * 14, 23]]); S.end();
+    }
+  }
+  // ---- neck and head ----
+  S.begin();
+  S.poly('s4', [[cx - 2.5, 23], [cx + 2.5, 23], [cx + 2.8, 30], [cx - 2.8, 30]]); S.shade('s3', [[cx - 2.5, 23], [cx + 2.5, 23], [cx + 2.5, 26], [cx - 2.5, 26]]);
+  S.ell('s4', cx, 18.5, 5.4, 6.6);
+  S.shade('s5', [[cx + 1, 13], [cx + 4.5, 15], [cx + 4.5, 19], [cx + 2, 17]]);
+  S.shade('s3', [[cx - 5.5, 15], [cx - 3.5, 14], [cx - 3, 23], [cx - 5, 21]]);
+  S.dot('lash', cx - 3.5, 17, 3, 1); S.dot('lash', cx + 1, 17, 3, 1);                // lashes
+  S.dot('eye', cx - 3, 18, 2, 1); S.dot('iris', cx - 2.5, 18, 1, 1); S.dot('eye', cx + 1.5, 18, 2, 1); S.dot('iris', cx + 2, 18, 1, 1);
+  S.dot('h1', cx - 3.5, 15.5, 3, .6); S.dot('h1', cx + 1, 15.5, 3, .6);             // brows
+  S.dot('s3', cx, 19.5, 1, 2); S.dot('s5', cx - .5, 19, 1, 1);                      // nose
+  S.dot('blush', cx - 4, 20, 2, 1); S.dot('blush', cx + 2.5, 20, 2, 1);
+  S.dot('lip', cx - 1.5, 22, 3, 1); S.dot('lipL', cx - .5, 22, 1, 1); S.dot('lip', cx - 1, 23, 2, .7);
+  S.end();
+  // ---- the hair in front: bangs and curls framing the face ----
+  S.begin();
+  S.ell('h2', cx - 2, 11.5, 5, 3); S.ell('h2', cx + 3, 11, 4.5, 3); S.ell('h3', cx + 1, 10, 3, 1.6);
+  for (const [x, y] of [[-5.5, 14], [5.5, 14], [-6.5, 19], [6.5, 19], [-6, 24], [6, 24]]) S.ell(x < 0 ? 'h1' : 'h2', cx + x, y, 2, 2.4);
+  if (d.headband) { S.poly(d.headband, [[cx - 7, 12], [cx + 7, 12], [cx + 7, 13.5], [cx - 7, 13.5]]); }
+  S.dot('h4', cx + 2, 9.5, 2, 1); S.dot('h4', cx - 3, 10.5, 1, 1);
+  S.end();
+  if (d.earrings !== false) { S.begin(); for (const sd of [-1, 1]) { S.ell(d.earrings || '#e0b12d', cx + sd * 5.6, d.bigHoops ? 25 : 23.5, d.bigHoops ? 2.2 : 1.4, d.bigHoops ? 2.8 : 1.8); } S.end(); }
+  return S.canvas();
+}
+const G1 = { skin:'#e2a676', hair:'#ecc35a', hairStyle:'curls', suit:'#f6f4ef', pat:'flag', shoes:'#c8c8d0' };
+const GIRL_DESIGNS = [
+  ['The original', { ...G1 }],
+  ['Halter neck', { ...G1, halter:true, hairStyle:'teased' }],
+  ['Plunging V', { ...G1, neck:'plunge' }],
+  ['Stripes on the hips', { ...G1, pat:'lower', hairStyle:'perm' }],
+  ['Flag sash', { ...G1, pat:'sash' }],
+  ['Side curls, headband', { ...G1, hairStyle:'side', headband:'#c42d3a' }],
+  ['Star straps, big hoops', { ...G1, strapStars:true, bigHoops:true }],
+  ['High cut, star belt', { ...G1, cut:'high', belt:'#c42d3a', buckle:'#2a3a8a' }],
+  ['Scoop neck, chest flag', { ...G1, neck:'scoop', pat:'chest', hairStyle:'teased' }],
+  ['Red heels, gold cuffs', { ...G1, shoes:'#c42d3a', bracelet:'#e0b12d', hairStyle:'perm' }],
+];
+
+const CARD_GIRL = GIRL_DESIGNS[0][1], girlCache = new Map();
+function girlFrame(fr){ if (!girlCache.has(fr)) { const c = girlDraw(CARD_GIRL, fr), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(c, 0, 0); girlCache.set(fr, cp); } return girlCache.get(fr); }
 /* ================= sound ================= */
 let AC = null;
 function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
@@ -2904,7 +3040,7 @@ function draw(){
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (wide) drawSpot(gy, cam);
-  if (M.card) { g.save(); g.translate(M.card.x, gy + 8); g.scale(1.35, 1.35); drawCardGirl(g, 0, 0, M.card.n, M.time); g.restore(); }
+  if (M.card) drawCardGirl(g, M.card.x, gy, M.card.n, M.time);
   for (const p of parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
   // a big shot punches the camera in a touch
   ctx.imageSmoothingEnabled = false;
