@@ -3877,7 +3877,7 @@ const CONTROLS = `<div class="ctrls">
 </div><div class="muted" style="font-size:12px">You walk forward on your own. Get hurt and keep landing: the <span class="yellow">heart</span> bar fills.</div>`;
 function showControls(first){
   $('#over').hidden = false;
-  $('#over').innerHTML = `<div class="panel"><h2>HOW TO FIGHT</h2>${CONTROLS}<button class="btn go" data-f="${first ? 'tutok' : 'resume'}">${first ? 'Got it' : 'Back'}</button></div>`;
+  $('#over').innerHTML = `<div class="panel"><h2>HOW TO FIGHT</h2>${CONTROLS}<a class="btn" href="damage-table.pdf" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;color:#ffd23f">Damage table (every hit)</a><button class="btn go" data-f="${first ? 'tutok' : 'resume'}">${first ? 'Got it' : 'Back'}</button></div>`;
 }
 const STYLE_TIP = { brawler:'He loads up on hooks. Duck them and come back with your own.', speedster:'He\'s quick but light. Walk him to the ropes and dig to the body.', tank:'He soaks it up upstairs. Go to the body, the head will come.', counter:'He waits for you to miss. Don\'t lunge: jab, then go.' };
 function advice(){
