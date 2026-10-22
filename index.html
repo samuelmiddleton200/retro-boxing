@@ -652,6 +652,7 @@ function genFighter(base, age){
 const skillOf = f => clamp((ovr(f) - 28) / 60, 0, 1);       // how well the computer reads you
 const randomBday = () => { const d = ri(0, 364), t = dateOf(d); return { m:t.getUTCMonth(), d:t.getUTCDate() }; };
 function newCareer(name, nick, look, town){
+  setTimeout(bgKick, 0);                                                  // a new career starts the music too
   G = { v:2, nextId:1, day:0, cash:500, fat:0, gym:0, trainer:0, mail:[], card:[], fight:null, fighters:{}, ladder:[], pool:[], log:[], best:null, titles:0, defenses:0, over:false, nrWins:0, declines:0, notes:[] };
   G.fighters.me = { id:'me', me:true, robe:{ color:look.trunks === '#f4f4f4' ? '#e0b12d' : look.trunks, trim:'#1d1d1d', emblem:'glove', tier:0, owned:[0] }, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, grit:40 }, age:21, bday:randomBday(), w:0, l:0, d:0, ko:0, look, ail:{} };
   for (let i = 0; i <= 30; i++) {                             // 0 is the champion, 1-30 the rankings
@@ -2995,7 +2996,15 @@ function bgResume(){
   if (!BG.el.src) bgNext(); else BG.el.play().catch(() => {});
 }
 // browsers only allow sound after the first touch, so the music starts on it
-addEventListener('pointerdown', () => bgStart(), { capture:true }); addEventListener('keydown', () => bgStart(), { capture:true });
+// phones only count a finished tap (not a touch-down) as permission, so every kind of tap unlocks the sound and nudges the song
+function bgKick(){
+  if (!SOUND || !G) return;                                               // the music starts once you're in your save
+  if (BG.on && BG.paused && !M) { bgResume(); return; }
+  bgStart(); const a = ac();
+  if (a && a.state !== 'running') a.resume().catch(() => {});
+  if (BG.on && !BG.paused && BG.el.paused && BG.el.src) BG.el.play().catch(() => {});
+}
+for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(ev, bgKick, { capture:true, passive:true });
 function musPlay(k){
   if (k === 'fight') bgPause();
   musStop(.4); MUS.want = k;
@@ -4649,9 +4658,9 @@ ui.addEventListener('click', e => {
   const a = b.dataset.a, n = +b.dataset.n, k = b.dataset.k;
   if (a !== 'del' && a !== 'retire') armed = null;
   switch (a) {
-    case 'title': SLOT = null; G = null; screen = 'title'; break;
+    case 'title': SLOT = null; G = null; screen = 'title'; bgPause(); break;
     case 'newslot': SLOT = n; draft = { name:'', nick:'', town:'', look:{ skin:SKINS[1], hair:HAIRS[0], trunks:KITS[0], gloves:GLOVES[0] } }; screen = 'create'; break;
-    case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } else { migrate(); checkStory(); save(); } break;
+    case 'load': SLOT = n; G = slotLoad(n); screen = 'hub'; if (!G) { screen = 'title'; SLOT = null; } else { migrate(); checkStory(); save(); bgKick(); } break;
     case 'del': e.stopPropagation(); if (armed === 'del' + n) { resetSlot(n); armed = null; } else armed = 'del' + n; break;
     case 'look': draft.look[k] = b.dataset.v; break;
     case 'start': { const nm = (draft.name || '').trim() || 'ROOKIE'; newCareer(nm, (draft.nick || '').trim(), { ...draft.look }, (draft.town || '').trim()); save(); screen = 'hub'; break; }
