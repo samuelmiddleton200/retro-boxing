@@ -3127,10 +3127,10 @@ const MINIS = {
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
   weights: {
-    name:'Pull-ups', how:'Tap as fast as you can to pull your chin over the bar. Each rep takes more taps than the last; more Stamina means fewer taps. Stop tapping and you sink. 30 seconds: get as many as you can.', dur:30,
+    name:'Pull-ups', how:'Tap as fast as you can to pull your chin over the bar. Each rep takes one more tap than the last; more Stamina means fewer taps. Stop tapping and you sink. 30 seconds: get as many as you can.', dur:30,
     init:() => {
       const sta = G.fighters.me.rat.sta;
-      return { reps:0, h:0, taps:0, base:clamp(Math.round(12 - (sta - 40) / 10), 6, 12), inc:Math.max(1, Math.round(2 - (sta - 40) / 50)), phase:'pull', t:0, last:-1, shake:0 };
+      return { reps:0, h:0, taps:0, base:clamp(Math.round(12 - (sta - 40) / 10), 6, 12), inc:1, phase:'pull', t:0, last:-1, shake:0 };
     },
     update(S, dt){
       S.t += dt; S.shake = Math.max(0, S.shake - dt * 4);
@@ -3157,7 +3157,7 @@ const MINIS = {
       MR(cx + 43, gy - 63, 11, 2, '#e8e2cc');
       if (S.phase === 'pull' && S.reps === 0 && S.taps === 0 && MG.time % .8 < .5) { mg.fillStyle = '#fff'; mg.font = 'bold 9px monospace'; mg.textAlign = 'center'; mg.fillText('TAP!', cx - 40, gy - 50); mg.textAlign = 'left'; }
     },
-    grade:s => s >= 12 ? 'S' : s >= 10 ? 'A' : s >= 8 ? 'B' : s >= 5 ? 'C' : 'F',
+    grade:s => s >= 15 ? 'S' : s >= 12 ? 'A' : s >= 9 ? 'B' : s >= 6 ? 'C' : 'F',
     hud:S => `${S.reps} reps · next: ${S.base + S.inc * S.reps} taps`,
   },
 };
