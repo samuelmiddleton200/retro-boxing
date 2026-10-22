@@ -190,7 +190,7 @@ img.pt{image-rendering:pixelated;display:block}
 /* --- story --- */
 .iv{display:flex;flex-direction:column;align-items:center;gap:1.2dvh;height:calc(100dvh - 6px);overflow:hidden;padding:1dvh 4px 0}
 .ivscene{position:relative;height:44dvh;flex:none;border:3px solid #fff;border-radius:6px;overflow:hidden;background:#141a38}
-.ivscene img{display:block;height:100%;width:auto;image-rendering:pixelated}
+.ivscene canvas{display:block;height:100%;width:auto;aspect-ratio:200/128;image-rendering:pixelated}
 .ivtag{position:absolute;left:0;right:0;bottom:0;background:#c42d2d;color:#fff;font-size:clamp(9px,2.4dvh,12px);letter-spacing:2px;text-align:center;padding:2px 0}
 .ivq,.ivans,.ivyou,.ivreact{width:min(820px,100%)}
 .ivq{color:#fff;font-size:clamp(12px,4.2dvh,19px);line-height:1.2;text-align:center;padding:0 6px;flex:none}
@@ -2577,7 +2577,8 @@ function pressScene(){
   P.x.drawImage(interviewerDraw(), 60 - FOOTX, 118 - FOOTY);
   const boxer = rigFrame(lookStyle(me), 'robe', { robe:robeRig(robeOf(me)) });
   P.x.save(); P.x.translate(132, 0); P.x.scale(-1, 1); P.x.drawImage(boxer, -FOOTX, 118 - FOOTY); P.x.restore();
-  return P.c.toDataURL();
+  const c = document.createElement('canvas'); c.width = P.c.width; c.height = P.c.height; c.getContext('2d').drawImage(P.c, 0, 0);   // a canvas, not an image: nothing for the phone to load, so it's there on the first question
+  return c;
 }
 
 // ---- the questions ----
@@ -4412,6 +4413,7 @@ function emblemIcon(k){
 function render(){
   ui.dataset.screen = screen;
   ui.innerHTML = (VIEWS[screen] || VIEWS.title)();
+  { const sc = ui.querySelector('.ivscene'); if (sc && ivImg) sc.prepend(ivImg); }
   if (screen === 'create') { const i = $('#nmIn'); i && i.addEventListener('input', () => { draft.name = i.value.toUpperCase().slice(0, 16); }); const n = $('#nkIn'); n && n.addEventListener('input', () => { draft.nick = n.value.slice(0, 14); }); const w = $('#twIn'); w && w.addEventListener('input', () => { draft.town = w.value.slice(0, 16); }); }
 }
 const ailChip = ([k, v]) => `<span class="ail t${tierOf(v)}">${AIL[k].name}: ${AIL[k].tiers[tierOf(v)]}</span>`;
@@ -4584,7 +4586,7 @@ const VIEWS = {
       ? `<div class="ivyou">&ldquo;${esc(Q.a[I.picked])}&rdquo;</div><div class="ivreact">${I.log[I.log.length - 1].map((t, j) => `<div class="${j ? 'muted' : ''}">${j ? '' : 'Lenny: '}${esc(t)}</div>`).join('')}</div>
          <button class="btn go ivnext" data-a="ivnext">${I.i >= I.qs.length - 1 ? 'That\'s a wrap' : 'Next question'}</button>`
       : `<div class="ivans">${order.map(k => `<button class="ivbtn" data-a="iv" data-k="${k}">&ldquo;${esc(Q.a[k])}&rdquo;</button>`).join('')}</div>`;
-    return `<div class="iv"><div class="ivscene"><img src="${ivImg}" alt=""><div class="ivtag">FIGHT TALK &middot; LENNY MARSH, CH. 6${per ? ` &middot; <span style="color:#ffd23f">${per.toUpperCase()}</span>` : ''}</div></div>
+    return `<div class="iv"><div class="ivscene"><div class="ivtag">FIGHT TALK &middot; LENNY MARSH, CH. 6${per ? ` &middot; <span style="color:#ffd23f">${per.toUpperCase()}</span>` : ''}</div></div>
       <div class="ivq">&ldquo;${esc(Q.q)}&rdquo;</div>${body}
       <div class="dots">${I.qs.map((_, j) => `<i class="${j <= I.i ? 'on' : ''}"></i>`).join('')}</div></div>`;
   },
