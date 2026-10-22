@@ -2073,14 +2073,13 @@ function robeRamp(c){ return rampHsl(c, [[-8, .9, .55], [0, 1, 1], [5, .95, 0, .
 function rigRobe(S, T, H, robe){
   const st = robe.style || 'satin', C = robeRamp(robe.color), R = robeRamp(robe.trim || '#f4f4f4');
   const [d, b, l, hi] = C;
-  const hood = (c = C) => {                                               // a loose hood: covers all the hair, a shadowed lining round the face, drapes to the shoulders
+  const hood = (c = C) => {                                               // hugs the head, opening behind the forehead and cheek so the whole face shows
     S.begin();
-    S.poly(c[1], [H(24, 18), H(24.5, 7), H(28, 0), H(33, -4.5), H(40, -5.5), H(46, -3.5), H(49.5, 1), H(50.5, 6), H(48.5, 8.5), H(44, 7), H(40, 7.5), H(37.5, 10), H(36.5, 15), H(37.5, 20.5), H(41, 23), H(37, 25), H(31, 26.5), H(26, 26), H(23.5, 23)]);
-    S.shade(c[0], [H(23.5, 8), H(29, 1), H(31, 25), H(24, 25)]);
-    S.shade(c[2], [H(31, -2.5), H(40, -4.5), H(46, -2.5), H(40, -1.5), H(34, -.5)]); S.dot(c[3], RO + 40, -4, 3, 1);
-    S.shade(c[0], [H(37.5, 10), H(44, 7.5), H(48.5, 8.5), H(48.5, 10), H(44, 8.8), H(39, 11), H(38, 16), H(37, 16)]);   // the lining in shadow
-    S.line(c[0], [H(30, 3), H(33, 15)]); S.line(c[0], [H(35, -1), H(36.5, 6)]); S.line(c[2], [H(27, 10), H(28, 20)]);
-    S.line(R[1], [H(37.5, 10), H(43.5, 7.2), H(48.5, 8.5)]);
+    S.poly(c[1], [H(27, 16), H(27.5, 7), H(30, 2), H(34, -1), H(39, -2), H(44, -.5), H(47, 2.5), H(47.5, 5.5), H(45.5, 6.2), H(42, 5.6), H(39, 7), H(37, 10), H(36, 14), H(36.5, 19), H(38.5, 22.5), H(35, 25), H(30, 26), H(26, 24.5)]);
+    S.shade(c[0], [H(26.5, 8), H(30, 3), H(31.5, 25.5), H(26, 24.5)]);
+    S.shade(c[2], [H(33, 0), H(39, -1.2), H(44, .5), H(39, .4)]); S.dot(c[3], RO + 39, -1, 3, 1);
+    S.line(c[0], [H(45.5, 6), H(42, 5.6), H(39, 7.2), H(37.2, 10), H(36.3, 14), H(36.8, 19)]);   // the edge of the opening
+    S.line(c[0], [H(31, 5), H(33, 14)]);
     S.end();
   };
   const body = (len, flare = 2, c = C) => {
@@ -2254,14 +2253,14 @@ function rigRobe(S, T, H, robe){
 
 // the player's robe choices -> the kimono painter
 const ROBE_CUTS = {
-  hood:[['none', 'No hood'], ['up', 'Hood up'], ['pointed', 'Pointed'], ['deep', 'Deep'], ['down', 'Hood down']],
+  hood:[['none', 'No hood'], ['up', 'Hood up'], ['down', 'Hood down']],
   len:[['long', 'Ankle'], ['knee', 'Knee']],
   sleeve:[['slim', 'Slim'], ['wide', 'Wide'], ['hem', 'To the hem']],
   motif:[['none', 'Plain'], ['dragon', 'Dragon'], ['tiger', 'Tiger'], ['flames', 'Flames'], ['koi', 'Koi'], ['bolt', 'Lightning'], ['blossom', 'Blossom'], ['stars', 'Stars']],
 };
 const CUT_LABEL = { hood:'Hood', collar:'Collar', len:'Length', sleeve:'Sleeves', obi:'Belt', motif:'Back art' };
 function robeRig(R){
-  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:R.hood || 'down', collar:'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:'none', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
+  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:({ deep:'up', pointed:'up' })[R.hood] || R.hood || 'down', collar:'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:'none', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
 }
 // ---- the round-card girl, hand-painted in the same style as the boxers ----
 // Front view, both arms up holding the card overhead. Sprite is RW x RH like the boxers; feet on body y 95.
