@@ -2945,10 +2945,10 @@ const MINIS = {
     hud:S => `${S.hits} in a row`,
   },
   speed: {
-    name:'Speed bag', how:'You\'re looking right at the bag. Tap to hit it. Like a real speed bag it rattles three times: off the far side, back off your side, off the far side again, then it comes to you. Tap again just as it comes back (when the ring closes). Every clean hit speeds it up. No clock: keep it going until you miss.', dur:Infinity,
+    name:'Speed bag', how:'You\'re looking right at the bag. Tap to hit it. Like a real speed bag it rattles three times: off the far side, back off your side, off the far side again, then it comes to you. Tap again as it comes back down to you: anywhere from halfway down to halfway back out counts (the ring turns gold). Every clean hit speeds it up. No clock: keep it going until you miss.', dur:Infinity,
     init:() => {
       const r = G.fighters.me.rat, wide = 1 + Math.max(0, r.spd - 40) / 120;     // faster hands: a bigger window
-      return { live:false, t:0, T:1.5, bn:0, hits:0, combo:0, best:0, good:.085 * wide, perf:.035 * wide, hand:0, punch:0, wob:0, flash:0 };
+      return { live:false, t:0, T:1.5, bn:0, hits:0, combo:0, best:0, wide, hand:0, punch:0, wob:0, flash:0 };
     },
     update(S, dt){
       S.punch = Math.max(0, S.punch - dt); S.flash = Math.max(0, S.flash - dt); S.wob *= Math.exp(-dt * 3);
@@ -2957,7 +2957,7 @@ const MINIS = {
       S.t += dt;
       const b = Math.min(3, Math.floor(S.t / S.T * 4));                        // three rattles off the board before it comes back to you
       if (b > S.bn) { S.bn = b; thud(.1, true); S.flash = .05; }
-      if (S.t > S.T + S.good) {                                                // it came back and you weren't there
+      if (S.t > S.T * 1.125) {                                                // it came back and you weren't there
         S.live = false; S.over = .9; S.wob = 1; miniPop('MISSED', 'r');
       }
     },
@@ -2966,11 +2966,11 @@ const MINIS = {
       if (S.over != null) return;
       if (!S.live) { S.live = true; S.t = 0; S.bn = 0; thud(.2, true); return; }      // get it going
       const d = Math.abs(S.t - S.T);
-      if (d <= S.good) {
-        const perfect = d <= S.perf;
+      if (d <= S.T * .125) {                                                   // the back half of its drop, or the front half of the next swing out
+        const perfect = d <= S.T * .04 * S.wide;
         S.hits++; S.combo++; S.best = Math.max(S.best, S.combo); MG.score += perfect ? 3 : 1;
         miniPop(perfect ? (S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT') : 'GOOD', perfect ? 'y' : '');
-        S.T = Math.max(.72, S.T * .96); S.t = 0; S.bn = 0; S.flash = .1; thud(.2, true);
+        S.T = Math.max(.34, S.T * .95); S.t = 0; S.bn = 0; S.flash = .1; thud(.2, true);
       } else { S.live = false; S.over = .9; S.wob = 1; miniPop(S.t < S.T ? 'TOO EARLY' : 'TOO LATE', 'r'); }
     },
     draw(S){
@@ -2984,7 +2984,7 @@ const MINIS = {
         const q = clamp(S.t / S.T, 0, 1.2) * 4, seg = Math.min(3, Math.floor(q)), f = Math.min(1, q - seg), PTS = [0, 1, -1, 1, 0];
         const a = PTS[seg], b = PTS[seg + 1];
         away = a + (b - a) * Math.sin(f * Math.PI / 2) ** 2;
-        if (q > 4) away = 0;
+        if (q > 4) away = Math.sin(Math.min(1, (q - 4)) * Math.PI / 2) ** 2;           // missed: it swings on out past you
       }
       const near = Math.max(0, -away), far = Math.max(0, away);
       const sc = 1 - far * .5 + near * .2, by = 27 + (1 - far) * 22 - far * 2 - near * 30 + Math.sin(MG.time * 9) * S.wob * 3, bxo = Math.sin(MG.time * 7) * S.wob * 6;
@@ -3005,7 +3005,7 @@ const MINIS = {
       // the timing ring: it closes on the bag as it swings back to you
       if (S.live && S.t > S.T * .75) {
         const k = clamp((S.T - S.t) / (S.T * .25), 0, 1), rr = 18 + k * 30, gx = cx + bxo, gyy = 27 + 22 + 18;
-        mg.strokeStyle = Math.abs(S.t - S.T) <= S.good ? '#ffd23f' : 'rgba(255,255,255,.7)'; mg.lineWidth = 1.5;
+        mg.strokeStyle = Math.abs(S.t - S.T) <= S.T * .125 ? '#ffd23f' : 'rgba(255,255,255,.7)'; mg.lineWidth = 1.5;
         mg.beginPath(); mg.arc(gx, gyy, rr, 0, Math.PI * 2); mg.stroke();
       }
       // your gloves at the bottom of the screen; the punching one snaps up toward the bag
