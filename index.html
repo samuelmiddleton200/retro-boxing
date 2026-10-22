@@ -749,7 +749,7 @@ function runCard(){
 // someone calls you out
 const CHALLENGE_LINES = ['Says you\'re all hype and he wants to prove it.', 'Thinks you\'re an easy payday.', 'Wants your spot in the rankings.', 'Called you out on the radio this morning.', 'His manager rang the gym: name the date.'];
 function maybeChallenge(){
-  if (allFights().length >= 3 || !dateOptions().length) return;
+  if (!dateOptions().length) return;
   const due = grudgeDue();
   if (due && !G.mail.some(m => m.id === due.id)) {
     const R = RIVALS[due.key], title = rankOf('me') === 0 && rankOf(due.id) >= 0 && rankOf(due.id) <= 6;
@@ -851,7 +851,7 @@ function newDay(){
   }
   maybeChallenge();
   checkStory();
-  if (!G.fight) for (const f of Object.values(G.fighters)) if (f.grudgeLater && !booked(f.id) && !G.mail.some(m => m.id === f.id)) {   // he hasn't forgotten what you said
+  for (const f of Object.values(G.fighters)) if (f.grudgeLater && !booked(f.id) && !G.mail.some(m => m.id === f.id)) {   // he hasn't forgotten what you said
     f.grudgeLater = false; const title = rankOf(f.id) === 0 || rankOf('me') === 0;
     G.mail.unshift({ type:'ch', id:f.id, exp:G.day + 10, grudge:true, title, msg:pick(ANGRY_MAIL), purse:Math.round(purseFor(f.id, title) * 1.3 / 100) * 100, rounds:Math.max(roundsFor(f.id, title), 4) }); break;
   }
@@ -2967,7 +2967,37 @@ function musLoad(a){
     fetch(k + '-music.mp3').then(r => r.arrayBuffer()).then(b => a.decodeAudioData(b)).then(b => { MUS.buf[k] = b; if (MUS.want === k) musPlay(k); }).catch(() => {});
   }
 }
+// ---- background music, everywhere outside the fights: the four songs in a random order, each with its own 5s fade in and out ----
+// 1 Training Montage, 2 War, 3 Going the Distance, 4 the Rocky Balboa theme. Streamed, at half the volume of the punches.
+const SONGS = ['song1.mp3', 'song2.mp3', 'song3.mp3', 'song4.mp3'];
+const BG = { el:null, gain:null, order:[], i:0, on:false, paused:false, last:null };
+function bgNext(){
+  if (BG.i >= BG.order.length) { let o; do { o = [0, 1, 2, 3].sort(() => Math.random() - .5); } while (BG.last != null && o[0] === BG.last); BG.order = o; BG.i = 0; }
+  const k = BG.order[BG.i++]; BG.last = k; BG.el.src = SONGS[k]; BG.el.play().catch(() => {});
+}
+function bgStart(){
+  if (BG.on || !SOUND) return; const a = ac(); if (!a) return;
+  BG.on = true; BG.el = new Audio(); BG.el.preload = 'auto';
+  const src = a.createMediaElementSource(BG.el); BG.gain = a.createGain(); BG.gain.gain.value = .5;
+  src.connect(BG.gain).connect(a.destination);
+  BG.el.addEventListener('ended', bgNext);
+  if (M && !M.offer.spar) { BG.paused = true; return; }                  // a fight is on: wait for it to finish
+  bgNext();
+}
+function bgPause(){
+  if (!BG.on || BG.paused) return; BG.paused = true;
+  const t = AC.currentTime; BG.gain.gain.cancelScheduledValues(t); BG.gain.gain.setValueAtTime(BG.gain.gain.value, t); BG.gain.gain.linearRampToValueAtTime(0, t + 1.5);
+  setTimeout(() => { if (BG.paused) BG.el.pause(); }, 1600);
+}
+function bgResume(){
+  if (!BG.on || !BG.paused || !SOUND) return; BG.paused = false;
+  const t = AC.currentTime; BG.gain.gain.cancelScheduledValues(t); BG.gain.gain.setValueAtTime(0, t); BG.gain.gain.linearRampToValueAtTime(.5, t + 3);
+  if (!BG.el.src) bgNext(); else BG.el.play().catch(() => {});
+}
+// browsers only allow sound after the first touch, so the music starts on it
+addEventListener('pointerdown', () => bgStart(), { capture:true }); addEventListener('keydown', () => bgStart(), { capture:true });
 function musPlay(k){
+  if (k === 'fight') bgPause();
   musStop(.4); MUS.want = k;
   if (!SOUND) return; const a = ac(); if (!a) return; musLoad(a);
   const b = MUS.buf[k]; if (!b) return;                                  // starts by itself the moment it has loaded
@@ -3027,7 +3057,7 @@ const AI_TELL = { jab:1.35, hook:1.55, upper:1.55 };
 const SLIP_T = .42, SLIP_BACK = 10, DUCK_T = .45, EVADE_CD = .3, EVADE_COST = 4, OPEN_T = .6;
 const WALK = 17, CLOSE = 31, MIN_GAP = 22, ROPE_IN = 15;
 const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6, AILX = .55;
-const ROUND_SECS = 180, CLOCK_X = 3;                       // a 3:00 round lasts 60 real seconds
+const ROUND_SECS = 180, CLOCK_X = 6;                       // a 3:00 round lasts 30 real seconds
 const LH = 120;
 let CROWD = [], M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
 const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('canvas'), g = low.getContext('2d');
@@ -3434,7 +3464,7 @@ function quitFight(){
   M.result = { winSide:1, how:'RTD' }; leaveFight();
 }
 function leaveFight(){
-  musStop(1.2);
+  musStop(1.2); setTimeout(bgResume, 900);
   if (M.offer.spar) {
     const me = M.f[0], o = M.f[1], S = { landed:me.landed, taken:o.landed, hpLeft:Math.max(0, me.hp) / me.hpMax, ail:me.ail, won:!!(M.result && M.result.winSide === 0), secs:(ROUND_SECS - M.clock) / CLOCK_X };
     M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true; $('#game').hidden = true; $('#ui').hidden = false;
@@ -3779,7 +3809,7 @@ function frame(now){
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (MG) { miniUpdate(dt); if (MG) miniDraw(); }
-  if (!M) { if (MUS.src) musStop(); return; }                                // left the fight any way at all: the music goes
+  if (!M) { if (MUS.src) { musStop(); setTimeout(bgResume, 900); } return; }                                // left the fight any way at all: the music goes
   if (!M.paused) update(dt);
   if (!M) return;
   draw(); hud();
@@ -3875,7 +3905,7 @@ $('#over').addEventListener('click', e => {
   else if (a === 'tutok') { G.tutDone = true; save(); $('#over').hidden = true; if (M.offer.spar) sparIntro(); else startWalkout(); last = performance.now(); }
   else if (a === 'howto') showControls(false);
   else if (a === 'resume') { armed = null; M.paused = false; $('#over').hidden = true; last = performance.now(); }
-  else if (a === 'sound') { SOUND = !SOUND; try { localStorage.setItem('retroboxing.sound', SOUND ? 'on' : 'off'); } catch {} showPause(); }
+  else if (a === 'sound') { SOUND = !SOUND; try { localStorage.setItem('retroboxing.sound', SOUND ? 'on' : 'off'); } catch {} if (BG.el) { if (SOUND && !BG.paused) BG.el.play().catch(() => {}); else BG.el.pause(); } if (!SOUND) musStop(.2); showPause(); }
   else if (a === 'quit') { if (armed === 'quit') { armed = null; quitFight(); } else { armed = 'quit'; showPause(); } }
 });
 $('#pauseBtn').addEventListener('click', () => { if (M && !M.paused && $('#over').hidden) { armed = null; showPause(); } });
@@ -4491,7 +4521,7 @@ const VIEWS = {
       return `<div class="mrow ${m.grudge ? 'grudge' : ''} ${m.title ? 'title' : ''}"><div class="face">${face(f, 60)}</div><div class="grow">
         <div class="nm">${esc(f.name)} <span class="muted num">${rankShort(m.id)} &middot; ${rec(f)} &middot; OVR ${ovr(f)}</span> ${m.title ? '<span class="beltchip">TITLE</span>' : m.grudge ? `<span class="ail t3">${m.rematch ? 'REMATCH' : 'GRUDGE'}</span>` : ''}</div>
         <div class="ds">&ldquo;${esc(m.msg)}&rdquo;</div><div class="muted num" style="font-size:12px">${m.rounds} rounds &middot; purse <b class="yellow">${money(m.purse)}</b> &middot; answer by ${fmtDate(m.exp)}</div></div>
-        <div class="col"><button class="btn sm go" data-a="accept" data-k="${k}" ${G.fight ? 'disabled' : ''}>Accept</button><button class="btn sm" data-a="decline" data-k="${k}">Decline</button></div></div>`;
+        <div class="col"><button class="btn sm go" data-a="accept" data-k="${k}" ${dateOptions().length ? '' : 'disabled'}>Accept</button><button class="btn sm" data-a="decline" data-k="${k}">Decline</button></div></div>`;
     }).join('');
     return `${bar('Mail')}<div class="mail">${items || '<div class="panel muted">No mail. Challenges come in every few days, or call someone out from the rankings.</div>'}</div>`;
   },
