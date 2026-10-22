@@ -2488,7 +2488,7 @@ const MINIS = {
     },
     update(S, dt){
       if (!S.missed) { S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; } }
-      S.v += (-S.a * 22 - S.v * 1.6) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
+      S.v += (-S.a * 12 - S.v * 1.1) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
       for (const p of S.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; } S.puffs = S.puffs.filter(p => p.life > 0);
       if (S.missed && S.hitT <= 0) return true;
     },
@@ -2496,17 +2496,20 @@ const MINIS = {
       if (S.missed || S.hitT > .14) return;
       S.hitT = .28; S.hand = 1 - S.hand;
       const d = Math.abs(S.mark - S.zc);
-      if (d < S.pw) { S.hits++; MG.score += 2; S.v += 2.6; thud(1, false); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
-      else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += 1.5; thud(.55, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
+      if (d < S.pw) { S.hits++; MG.score += 2; S.v += 1.5; thud(1, false); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
+      else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += .9; thud(.55, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
       else { S.missed = true; S.hitT = 1.1; S.v += .3; thud(.1, true); miniPop('MISSED', 'r'); return; }
       for (let i = 0; i < 6; i++) S.puffs.push({ x:0, y:rnd(-6, 6), vx:rnd(6, 22), vy:rnd(-10, 6), life:rnd(.2, .45) });
       S.speed *= 1.035; S.zc = rnd(.25, .75);
     },
     draw(S){
       gymBg(); const gy = mgy(), cx = Math.round(MW / 2), P = painter(mg);
-      const top = 6, bx = cx + 4 + S.a * 10, by = top + 16, squash = S.hitT > .18 ? 1.5 : 0;
+      const top = 6, squash = S.hitT > .18 ? 1.5 : 0, ang = clamp(S.a, -.16, .55);
       MR(cx - 30, top - 2, 60, 3, '#3a2a22'); MR(cx - 30, top - 2, 60, 1, '#5a4232');                     // the beam
-      for (let i = 0; i < 14; i += 2) MR(cx + 4 + S.a * 10 * i / 14, top + i, 1.5, 1.5, '#a0a0a8');      // chain
+      // the bag swings from the beam like a pendulum: chain stays straight, the whole thing tilts
+      mg.save(); mg.translate(cx + 4, top + 1); mg.rotate(-ang);
+      const bx = 0, by = 16;
+      for (let i = 0; i < 14; i += 2) MR(-.75, i, 1.5, 1.5, (i / 2) % 2 ? '#7a7a82' : '#a0a0a8');     // chain
       for (const pass of [true, false]) {
         P.set(pass);
         P.R(bx - 2.5, by - 2, 5, 3, '#4a4a52');                                                         // the swivel
@@ -2518,7 +2521,9 @@ const MINIS = {
           P.R(bx - 3, by + 47, 6, 1.5, '#4a4a52');
         }
       }
-      for (const p of S.puffs) MR(bx - 8 + p.x * .3 - 2, by + 18 + p.y, 1.5, 1.5, 'rgba(240,230,210,.8)');
+      mg.restore();
+      const hx = cx + 4 + Math.sin(ang) * 34 - 8, hy = top + 1 + Math.cos(ang) * 34;               // where the glove meets the bag
+      for (const p of S.puffs) MR(hx + p.x * .3 - 2, hy + p.y, 1.5, 1.5, 'rgba(240,230,210,.8)');
       const fr = S.hitT > .14 && !S.missed ? (S.hand ? 'hookH' : 'jabH') : S.missed ? 'hurt' : (Math.sin(MG.time * 4) > 0 ? 'guard' : 'guard2');
       drawRig(mg, cx - 19, gy, 1, fr, lookStyle(G.fighters.me), {}, 0, .5);
       // the timing bar
