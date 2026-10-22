@@ -2015,7 +2015,7 @@ const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('ca
 function mkF(src, side, user, opt = {}){
   const boost = (user ? opt.myGrit : opt.theirGrit) || 0, r = boost ? { ...src.rat, grit:Math.min(99, src.rat.grit + boost) } : src.rat, ail = user ? { ...(src.ail || {}) } : {};
   const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && opt.id && G.restedOn === G.day - 1 && fat <= 25;
-  const hpMax = 70 + r.grit * .6, stMax = (50 + r.sta * .7) * (1 - fat / 300);
+  const hpMax = (70 + r.grit * .6) * 2, stMax = (50 + r.sta * .7) * (1 - fat / 300);
   return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
     pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250), sharp,
     state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0, weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
