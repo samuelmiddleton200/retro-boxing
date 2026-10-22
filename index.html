@@ -828,11 +828,11 @@ function purseFor(id, title){
 /* ================= training and rest days ================= */
 // every training day builds a spread of ratings and tires you out by its own amount
 const TRAIN = {
-  bag:    { name:'Heavy bag',   gym:0, fat:18, gain:{ pow:1.2, sta:.35, grit:.15 }, desc:'Sit down on your punches. Power.' },
-  run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:1.2, grit:.35, spd:.15 }, desc:'Run the city, then the stairs. Stamina.' },
-  weights:{ name:'Pull-ups',    gym:0, fat:30, gain:{ pow:.9, grit:.8 },            desc:'Chin over the bar till it burns. Power, Grit.' },
-  speed:  { name:'Speed bag',   gym:0, fat:12, gain:{ spd:1.2, sta:.3 },            desc:'Rhythm and fast hands. Speed.' },
-  spar:   { name:'Sparring',    gym:0, fat:34, gain:{ pow:.45, spd:.45, sta:.45, grit:.45 }, desc:'One real round in headgear. A bit of everything.' },
+  bag:    { name:'Heavy bag',   gym:0, fat:18, gain:{ pow:3, sta:1, grit:2 }, desc:'Sit down on your punches. Power 3, Grit 2, Stamina 1.' },
+  run:    { name:'Roadwork',    gym:0, fat:20, gain:{ sta:3, spd:2, grit:1 }, desc:'Run the stairs. Stamina 3, Speed 2, Grit 1.' },
+  weights:{ name:'Pull-ups',    gym:0, fat:30, gain:{ grit:3, sta:1, pow:2 },      desc:'Chin over the bar till it burns. Grit 3, Power 2, Stamina 1.' },
+  speed:  { name:'Speed bag',   gym:0, fat:12, gain:{ spd:3, sta:2, grit:1 },      desc:'Rhythm and fast hands. Speed 3, Stamina 2, Grit 1.' },
+  spar:   { name:'Sparring',    gym:0, fat:34, gain:{ pow:2, spd:2, sta:2, grit:2 }, desc:'One real round in headgear. 2 to everything.' },
 };
 const TRAIN_ORDER = ['bag', 'speed', 'run', 'weights', 'spar'];
 const GRADE_Q = { S:1, A:.8, B:.6, C:.4, F:.15 };
@@ -851,8 +851,8 @@ const TRAINERS = [
 function trainGain(k, q){
   const T = TRAIN[k], me = G.fighters.me, tr = TRAINERS[G.trainer], out = {};
   for (const [r, b] of Object.entries(T.gain)) {
-    const dim = clamp(1.45 - me.rat[r] / 100, .3, 1.05);                  // harder to improve near the top
-    const v = .65 * b * q * (1 + tr.gain) * dim * (1 - G.fat / 200) * (k === 'spar' ? 1 + .15 * Math.max(0, G.gym - 2) : 1);
+    const dim = clamp(1.4 - me.rat[r] / 100, .3, 1);                       // full gains up to 40, harder near the top
+    const v = b * q * (1 + tr.gain) * dim * (1 - G.fat / 200) * (k === 'spar' ? 1 + .15 * Math.max(0, G.gym - 2) : 1);
     me.rat[r] = Math.min(99, me.rat[r] + v); out[r] = v;
   }
   const before = G.fat;
