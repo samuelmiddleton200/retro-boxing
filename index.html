@@ -628,10 +628,12 @@ function genLook(){
 }
 function sizeOf(f){
   if (!f) return { ht:70, wt:180 };
-  if (!f.ht) {
+  if (!f.ht || !f.sz2) {
+    f.sz2 = true;
     if (f.me) { f.ht = 70; f.wt = 180; }
     else { let h = 7; for (const ch of String(f.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-      f.ht = 68 + (h % 11); if (f.ht === 77) f.ht = 76;
+      const r = G && G.ladder ? G.ladder.indexOf(f.id) : -1;
+      f.ht = r >= 0 && r <= 10 ? 73 + (h % 6) : 68 + (h % 11); if (f.ht === 77) f.ht = 76;
       f.wt = Math.round(Math.min(240, Math.max(170, 170 + (f.ht - 68) * 7 + ((h >>> 8) % 13) - 4))); }
   }
   return f;
@@ -1545,7 +1547,9 @@ function rigDraw(look, frame, o = {}){
   const hip = (x) => [x + t * .5, 66 + cr];
   // ---- far arm (behind everything) ----
   const fSh = [33 + t, 27 + cr];
-  S.begin(); S.limb([RO + fSh[0], fSh[1]], [RO + J.fEl[0] + t, J.fEl[1] + cr], 7, 5.5, { dark:true }); S.limb([RO + J.fEl[0] + t, J.fEl[1] + cr], [RO + J.fWr[0] + t, J.fWr[1] + cr], 5.5, 4.5, { dark:true }); S.end();
+  S.begin(); S.limb([RO + fSh[0], fSh[1]], [RO + J.fEl[0] + t, J.fEl[1] + cr], 7, 5.5, { dark:true });
+  { const a = [RO + fSh[0], fSh[1]], b = [RO + J.fEl[0] + t, J.fEl[1] + cr], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1; let nx = -dy / L, ny = dx / L; if (nx > 0) { nx = -nx; ny = -ny; }
+    S.ell('s2', a[0] + dx * .42 + nx * 2.8, a[1] + dy * .42 + ny * 2.8, 2.8, 3.2); } S.limb([RO + J.fEl[0] + t, J.fEl[1] + cr], [RO + J.fWr[0] + t, J.fWr[1] + cr], 5.5, 4.5, { dark:true }); S.end();
   rigCuff(S, [RO + J.fWr[0] + t, J.fWr[1] + cr], [RO + J.fEl[0] + t, J.fEl[1] + cr]);
   (o.hands ? rigFist : rigGlove)(S, RO + J.fGl[0] + t, J.fGl[1] + cr, true, o.rage);
   // ---- legs ----
@@ -1611,6 +1615,10 @@ function rigDraw(look, frame, o = {}){
   const nS = [RO + 35 + t, 28 + cr], nE = [RO + J.nEl[0] + t, J.nEl[1] + cr], nW = [RO + J.nWr[0] + t, J.nWr[1] + cr];
   S.begin();
   S.limb(nS, nE, 8.5, 6.5, { crease:true });
+  { const dx = nE[0] - nS[0], dy = nE[1] - nS[1], L = Math.hypot(dx, dy) || 1; let nx = -dy / L, ny = dx / L; if (nx > 0) { nx = -nx; ny = -ny; }   // the back of the arm
+    const cx = nS[0] + dx * .42 + nx * 3.4, cy = nS[1] + dy * .42 + ny * 3.4;
+    S.ell('s3', cx, cy, 3.4, 3.8); S.shadeE('s2', cx + nx * 1.6, cy + ny * 1.6, 2, 2.6); S.dot('s4', cx - nx * .5 - 1, cy - 2.5, 1, 2);
+    S.line('s2', [[cx - nx * 2.6, cy - ny * 2.6 - 2.5], [cx - nx * 2.6, cy - ny * 2.6 + 2.5]]); }
   S.limb(nE, nW, 6.4, 5, {});
   S.ell('s4', nS[0], nS[1], 7, 6);
   S.shade('s5', [[nS[0], nS[1] - 6], [nS[0] + 5, nS[1] - 5], [nS[0] + 7, nS[1] - 1], [nS[0] + 2, nS[1] - 2]]); S.dot('s6', nS[0] + 3, nS[1] - 5, 2, 1);
@@ -3000,9 +3008,10 @@ const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('ca
 function mkF(src, side, user, opt = {}){
   const boost = (user ? opt.myGrit : opt.theirGrit) || 0, r = boost ? { ...src.rat, grit:Math.min(99, src.rat.grit + boost) } : src.rat, ail = user ? { ...(src.ail || {}) } : {};
   const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && opt.id && G.restedOn === G.day - 1 && fat <= 25;
-  const hpMax = (70 + r.grit * .6) * (opt.spar && !user ? 1 : 2), stMax = (50 + r.sta * .7) * (1 - fat / 300);
+  const wt = sizeOf(src).wt, bulk = (wt - 180) / 60;                          // 0 at 180 lb, 1 at 240
+  const hpMax = (70 + r.grit * .6) * (opt.spar && !user ? 1 : 2) * (1 + .1 * bulk), stMax = (50 + r.sta * .7) * (1 - fat / 300);
   return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
-    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250) * (1 + .08 * ((user && G.gear && G.gear.shoes) || 0)), gear:user ? { ...(G.gear || {}) } : {}, sharp,
+    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1) * (1 + .12 * bulk), sm:(1.25 - .5 * r.spd / 100) * (1 + .086 * bulk), lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1) * (1 + .086 * bulk), walkV:WALK * (.8 + r.spd / 250) * (1 - .086 * bulk) * (1 + .08 * ((user && G.gear && G.gear.shoes) || 0)), gear:user ? { ...(G.gear || {}) } : {}, sharp,
     state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0, weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
     x:0, walk:0, pinned:false, ail, rock:0, maxRock:0, unanswered:0, streak:0, lastLand:-9, foldAt:0, gprog:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
     ai:{ next:rnd(.9, 1.6), seen:0, react:0, reacted:false, punished:0, blockUntil:0 } };
@@ -4491,7 +4500,7 @@ const VIEWS = {
     return `${bar(o.title ? 'Title fight' : 'Tale of the tape')}
       <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div>${sharp ? '<div class="label good">Sharp: rested and ready</div>' : G.fat > 40 ? '<div class="label bad">Tired</div>' : ''}${o.myGrit ? `<div class="label good">+${o.myGrit} Grit: he moved the date</div>` : ''}</div>
       <div class="panel">${RK.map(row).join('')}
-        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}${line(ftIn(sizeOf(me).ht), 'Height', ftIn(sizeOf(f).ht))}${line(sizeOf(me).wt + ' lb', 'Weight', sizeOf(f).wt + ' lb')}
+        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}${line(ftIn(sizeOf(me).ht), 'Height', ftIn(sizeOf(f).ht))}${line(sizeOf(me).wt + ' lb', 'Weight', sizeOf(f).wt + ' lb')}${sizeOf(f).wt - sizeOf(me).wt >= 20 ? '<div class="muted" style="text-align:center;font-size:12px">He\'s bigger: he hits harder and takes more, but he\'s slower.</div>' : sizeOf(me).wt - sizeOf(f).wt >= 8 ? '<div class="muted" style="text-align:center;font-size:12px">He\'s smaller and quicker, but he can\'t take as much.</div>' : ''}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
       <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>${o.theirGrit ? `<div class="label bad">+${o.theirGrit} Grit: you moved the date</div>` : ''}
         <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>${o.weak ? `<div class="panel" style="margin-top:8px"><span class="label">From the tape</span> ${esc(o.weak)}</div>` : ''}`;
