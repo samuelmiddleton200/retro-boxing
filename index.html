@@ -2402,6 +2402,8 @@ function girlFrame(fr){ if (!girlCache.has(fr)) { const c = girlDraw(CARD_GIRL, 
 /* ================= sound ================= */
 let AC = null;
 function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC) setTimeout(() => sfxLoad(AC), 0); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+// the speed bag: your fist is a heavy clip, the board rattles are the jab clip; dry, no echo
+function bagSfx(set, gain){ if (!SOUND) return; const a = ac(); if (!a) return; sfxLoad(a); sfxPlay(a, set, 1.02 + Math.random() * .08, gain, [outBus(a)], 0); }
 function thud(power, blocked){
   if (!SOUND) return; const a = ac(); if (!a) return; sfxLoad(a);
   sfxPlay(a, blocked || power < .5 ? 'light' : 'heavy', blocked ? .8 : .95 + Math.random() * .1, blocked ? .45 : .5 + power * .5, [outBus(a)], blocked ? 1400 : 0);
@@ -3513,7 +3515,7 @@ const MINIS = {
       if (!S.live) return;
       S.t += dt;
       const b = Math.min(3, Math.floor(S.t / S.T * 4));                        // three rattles off the board before it comes back to you
-      if (b > S.bn) { S.bn = b; thud(.1, true); S.flash = .05; }
+      if (b > S.bn) { S.bn = b; bagSfx('light', .7); S.flash = .05; }
       if (S.t > S.T * 1.125) {                                                // it came back and you weren't there
         S.live = false; S.over = .9; S.wob = 1; miniPop('MISSED', 'r');
       }
@@ -3521,13 +3523,13 @@ const MINIS = {
     tap(S){
       S.hand = 1 - S.hand; S.punch = .12;
       if (S.over != null) return;
-      if (!S.live) { S.live = true; S.t = 0; S.bn = 0; thud(.2, true); return; }      // get it going
+      if (!S.live) { S.live = true; S.t = 0; S.bn = 0; bagSfx('heavy', .9); return; }      // get it going
       const d = Math.abs(S.t - S.T);
       if (d <= S.T * .125) {                                                   // the back half of its drop, or the front half of the next swing out
         const perfect = d <= S.T * .04 * S.wide;
         S.hits++; S.combo++; S.best = Math.max(S.best, S.combo); MG.score += perfect ? 3 : 1;
         miniPop(perfect ? (S.combo >= 5 ? `PERFECT x${S.combo}` : 'PERFECT') : 'GOOD', perfect ? 'y' : '');
-        S.T = Math.max(.34, S.T * .95); S.t = 0; S.bn = 0; S.flash = .1; thud(.2, true);
+        S.T = Math.max(.34, S.T * .95); S.t = 0; S.bn = 0; S.flash = .1; bagSfx('heavy', .9);
       } else { S.live = false; S.over = .9; S.wob = 1; miniPop(S.t < S.T ? 'TOO EARLY' : 'TOO LATE', 'r'); }
     },
     draw(S){
