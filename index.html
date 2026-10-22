@@ -4073,7 +4073,8 @@ const MINIS = {
       }
       S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
       const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
-      S.camX += (tx - S.camX) * (1 - Math.exp(-dt * 2.2)); S.camY += (ty - S.camY) * (1 - Math.exp(-dt * 2.2));
+      S.camX += (tx - S.camX) * (1 - Math.exp(-dt * 7)); S.camY += (ty - S.camY) * (1 - Math.exp(-dt * 7));
+      S.camX = clamp(S.camX, hp[0] - MW * .6, hp[0] - MW * .25); S.camY = clamp(S.camY, hp[1] - LH * .7, hp[1] - LH * .35);   // however fast he runs, he never leaves the screen
       if (S.top !== null && MG.time - S.top > 2.8) return true;
     },
     tap(S, x, y, side){
@@ -4114,7 +4115,7 @@ const MINIS = {
         }
       }
     },
-    grade:s => s <= 10.5 ? 'S' : s <= 13 ? 'A' : s <= 16 ? 'B' : s <= 22 ? 'C' : 'F',
+    grade:s => s <= 6.5 ? 'S' : s <= 7.8 ? 'A' : s <= 9 ? 'B' : s <= 11 ? 'C' : 'F',
     score:S => S.top !== null ? S.top : 999,
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
