@@ -640,7 +640,7 @@ function sizeOf(f){
 }
 const ftIn = n => `${Math.floor(n / 12)}'${n % 12}"`;
 // how much bigger to draw him: taller is taller, heavier is broader
-function scaleOf(f){ const z = sizeOf(f), hs = z.ht / 70, ws = hs * Math.pow((z.wt / z.ht / z.ht) / (180 / 4900), .7); return { hs, ws }; }
+function scaleOf(f){ const z = sizeOf(f), hs = 1 + (z.ht / 70 - 1) * 1.6, ws = hs * Math.pow((z.wt / z.ht / z.ht) / (180 / 4900), 1.4); return { hs, ws }; }
 function genFighter(base, age){
   const style = pick(Object.keys(STYLES)), m = STYLES[style].mod, rat = {};
   for (const k of RK) rat[k] = clamp(Math.round(base + m[k] + rnd(-5, 5)), 15, 99);
@@ -1546,6 +1546,8 @@ function rigDraw(look, frame, o = {}){
   const T = (x, y) => [RO + x + t, y + cr];                                   // torso space
   const style = look.style || (look.hair === 'none' ? 'bald' : look.flat ? 'flat' : 'spiky');
   const hip = (x) => [x + t * .5, 66 + cr];
+  const H = (x, y) => [RO + x + hx, y + hy];
+  if (!o.layer || o.layer === 'back') {
   // ---- far arm (behind everything) ----
   const fSh = [33 + t, 27 + cr];
   S.begin(); S.limb([RO + fSh[0], fSh[1]], [RO + J.fEl[0] + t, J.fEl[1] + cr], 7, 5.5, { dark:true });
@@ -1585,8 +1587,9 @@ function rigDraw(look, frame, o = {}){
   S.dot('y3', RO + 28 + t, 50 + cr, 16, 1); S.dot('y1', RO + 27 + t, 53 + cr, 18, 1); S.dot('y1', RO + 27 + t, 51 + cr, 3, 2);
   S.line('y2', [[RO + 44 + t, 55 + cr], [RO + 45 + tt, 65 + cr]]);
   S.end();
-  // ---- head ----
-  const H = (x, y) => [RO + x + hx, y + hy];
+  }
+  // ---- head (its own layer, so a bigger man keeps a normal-sized head) ----
+  if (!o.layer || o.layer === 'head') {
   S.begin();
   S.poly('s4', [H(32, 9), H(34, 5), H(38, 3), H(43, 4), H(46, 7), H(47, 10), H(47, 12), H(48, 13), H(49, 14), H(48, 15), H(47, 15), H(47, 18), H(45, 20), H(41, 21), H(37, 20), H(34, 17), H(32, 13)]);
   S.shade('s3', [H(32, 9), H(37, 7), H(38, 19), H(34, 17), H(32, 13)]);
@@ -1612,6 +1615,8 @@ function rigDraw(look, frame, o = {}){
   S.end();
   if (o.headgear) { S.begin(); S.poly('g2', [H(31, 10), H(32, 3), H(38, 0), H(44, 1), H(47, 5), H(46, 8), H(40, 7), H(37, 11), H(36, 17), H(32, 15)]); S.shade('g3', [H(37, 1), H(44, 2), H(45, 5), H(38, 4)]); S.end(); }
   else if (!(o.robe && o.robe.v && ['up', 'pointed', 'deep'].includes(o.robe.v.hood))) rigHair(S, hx, hy, style);   // under a hood the hair is hidden
+  }
+  if (!o.layer || o.layer === 'front') {
   // ---- near arm: big shoulder, upper arm, forearm, cuff, glove ----
   const nS = [RO + 35 + t, 28 + cr], nE = [RO + J.nEl[0] + t, J.nEl[1] + cr], nW = [RO + J.nWr[0] + t, J.nWr[1] + cr];
   S.begin();
@@ -1642,13 +1647,14 @@ function rigDraw(look, frame, o = {}){
     S.end();
     S.begin(); S.poly(c2, [H(29, 12), H(30, 2), H(37, -2), H(44, -1), H(47, 3), H(46, 7), H(39, 6), H(37, 14), H(33, 19)]); S.shade(c1, [H(29, 4), H(33, 2), H(35, 18), H(30, 15)]); S.shade(c3, [H(38, -1), H(44, 0), H(45, 3), H(39, 2)]); S.end();
   }
-  return S.canvas();
+  }
+  const cv = S.canvas(); cv.neck = [RO + 39 + hx, 20 + hy]; return cv;     // where the head sits on the neck
 }
 // cache: one canvas per fighter look + pose + damage step
 const rigCache = new Map();
 function rigKey(look, frame, o){
   const q = v => v > .7 ? 3 : v > .45 ? 2 : v > .15 ? 1 : 0;
-  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim + (o.robe.style || '') + JSON.stringify(o.robe.v || {}) : ''}|${o.hands ? 1 : 0}`;
+  return `${o.layer || ''}|${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim + (o.robe.style || '') + JSON.stringify(o.robe.v || {}) : ''}|${o.hands ? 1 : 0}`;
 }
 function rigFrame(look, frame, o = {}){
   const k = rigKey(look, frame, o);
@@ -1656,7 +1662,7 @@ function rigFrame(look, frame, o = {}){
   if (!c) {
     if (rigCache.size > 500) rigCache.clear();
     const q = { ...o, swell:[0, .2, .5, .8][[0, .15, .45, .7].filter(v => (o.swell || 0) > v).length - 1] || 0 };
-    const src = rigDraw(look, frame, q), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(src, 0, 0);
+    const src = rigDraw(look, frame, q), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(src, 0, 0); cp.neck = src.neck;
     c = cp; rigCache.set(k, c);
   }
   return c;
@@ -1668,7 +1674,15 @@ function drawRig(g, x, gy, dir, frame, look, o = {}, ang = 0, k = RIGS){
   if (!o.noShadow) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(x - 18 * k / .75 + (ang ? Math.sin(ang) * 33 * k / .75 : 0), gy - 1, 36 * k / .75 + Math.abs(Math.sin(ang || 0)) * 33 * k / .75, 2); }
   g.save(); g.translate(x, gy - (o.lift || 0)); if (ang) g.rotate(ang); if (dir < 0) g.scale(-1, 1);
   const hs = o.hs || 1, ws = o.ws || 1;
-  g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k * ws, -FOOTY * k * hs, RW * k * ws, RH * k * hs);
+  g.imageSmoothingEnabled = false;
+  if (Math.abs(hs - 1) < .01 && Math.abs(ws - 1) < .01) g.drawImage(c, -FOOTX * k, -FOOTY * k, RW * k, RH * k);
+  else {                                                                    // a bigger (or smaller) body, the same size head on top of it
+    const back = rigFrame(look, frame, { ...o, layer:'back' }), head = rigFrame(look, frame, { ...o, layer:'head' }), front = rigFrame(look, frame, { ...o, layer:'front' });
+    const N = head.neck, dx = (N[0] - FOOTX) * (ws - 1), dy = (N[1] - FOOTY) * (hs - 1);
+    g.drawImage(back, -FOOTX * k * ws, -FOOTY * k * hs, RW * k * ws, RH * k * hs);
+    g.drawImage(head, (dx - FOOTX) * k, (dy - FOOTY) * k, RW * k, RH * k);
+    g.drawImage(front, -FOOTX * k * ws, -FOOTY * k * hs, RW * k * ws, RH * k * hs);
+  }
   g.restore();
 }
 // generated fighters get one of the hand-drawn haircuts
