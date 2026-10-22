@@ -2358,7 +2358,7 @@ const GIRL_DESIGNS = [
   ['Red heels, gold cuffs', { ...G1, shoes:'#c42d3a', bracelet:'#e0b12d' }],
 ];
 
-const CARD_GIRL = GIRL_DESIGNS[0][1], girlCache = new Map();
+const CARD_GIRL = GIRL_DESIGNS[9][1], girlCache = new Map();
 function girlFrame(fr){ if (!girlCache.has(fr)) { const c = girlDraw(CARD_GIRL, fr), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(c, 0, 0); girlCache.set(fr, cp); } return girlCache.get(fr); }
 /* ================= sound ================= */
 let AC = null;
@@ -2371,6 +2371,56 @@ function thud(power, blocked){
   const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = blocked ? 2200 : 700 + power * 500;
   const v = a.createGain(); v.gain.value = blocked ? .35 : .5 + power * .25;
   s.connect(f).connect(v).connect(a.destination); s.start();
+}
+// ---- fight impacts: layered so a punch cracks, smacks and thumps, and the big ones boom round the arena ----
+let OUT = null, ECHO = null;
+function outBus(a){
+  if (!OUT) {
+    OUT = a.createDynamicsCompressor(); OUT.threshold.value = -16; OUT.knee.value = 10; OUT.ratio.value = 5; OUT.attack.value = .002; OUT.release.value = .2; OUT.connect(a.destination);
+    const d = a.createDelay(.5), fb = a.createGain(), lp = a.createBiquadFilter();            // a short slap-back off the arena roof
+    d.delayTime.value = .11; fb.gain.value = .32; lp.type = 'lowpass'; lp.frequency.value = 1800;
+    d.connect(lp).connect(fb).connect(d); lp.connect(OUT); ECHO = d;
+  }
+  return OUT;
+}
+function noiseHit(a, t0, len, type, freq, q, gain, decay, dest){
+  const b = a.createBuffer(1, Math.floor(a.sampleRate * len), a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * decay);
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const v = a.createGain(); v.gain.value = gain;
+  s.connect(f).connect(v); for (const x of dest) v.connect(x); s.start(t0);
+}
+function drop(a, t0, f0, f1, len, gain, dest, shape){                       // a sine thump that falls in pitch
+  const o = a.createOscillator(), v = a.createGain(); o.type = 'sine';
+  o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + len * .7);
+  v.gain.setValueAtTime(gain, t0); v.gain.exponentialRampToValueAtTime(.0008, t0 + len);
+  let node = o;
+  if (shape) { const w = a.createWaveShaper(), c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 2.6); } w.curve = c; node = o.connect(w); }
+  node.connect(v); for (const x of dest) v.connect(x); o.start(t0); o.stop(t0 + len + .02);
+}
+function punchSound(pt, head, big){
+  if (!SOUND) return; const a = ac(); if (!a) return;
+  const out = outBus(a), t0 = a.currentTime, P = pt === 'jab' ? .55 : pt === 'hook' ? .85 : 1, B = big ? 1.35 : 1, j = 1 + (Math.random() - .5) * .12;
+  noiseHit(a, t0, .045, 'highpass', (head ? 2200 : 1300) * j, .7, .9 * P * B, 9, [out]);                 // the leather crack
+  noiseHit(a, t0, .12, 'bandpass', (head ? 950 : 620) * j, 1.1, .85 * P * B, 6, [out]);                   // the smack
+  drop(a, t0, (head ? 150 : 115) * j, 42, .22 + P * .08, 1.1 * P * B, [out], true);                       // the thump in your chest
+  if (pt !== 'jab' || big) {
+    drop(a, t0 + .005, 70, 34, .45 + (big ? .25 : 0), .9 * P * B, [out, ECHO], false);                   // sub boom
+    noiseHit(a, t0, .4, 'lowpass', 420, .5, .45 * P * B, 5, [out, ECHO]);                                 // the arena takes the hit
+  }
+  if (big) noiseHit(a, t0 + .01, .09, 'highpass', 3600, .5, .5, 7, [out, ECHO]);                         // a sharper snap on the big ones
+}
+function blockSound(){
+  if (!SOUND) return; const a = ac(); if (!a) return;
+  const out = outBus(a), t0 = a.currentTime;
+  noiseHit(a, t0, .08, 'lowpass', 1100, .7, .7, 7, [out]); drop(a, t0, 200, 90, .12, .5, [out], false);
+}
+function canvasSlam(){
+  if (!SOUND) return; const a = ac(); if (!a) return;
+  const out = outBus(a), t0 = a.currentTime;
+  drop(a, t0, 95, 30, .7, 1.3, [out, ECHO], true); noiseHit(a, t0, .5, 'lowpass', 500, .6, .9, 4, [out, ECHO]);
+  noiseHit(a, t0 + .02, .12, 'bandpass', 1500, .8, .4, 6, [out]);                                          // the ropes and the boards rattle
 }
 function bell(times = 1){
   if (!SOUND) return; const a = ac(); if (!a) return;
@@ -2478,7 +2528,7 @@ function resolve(a, d){
   if (guarded) {
     const sore = Math.max(A(d, 'ribs'), A(d, 'liver')) / 100;             // a beaten-up body can't hold the guard up as well
     dmg *= GUARD[a.pt] * (1 + Math.min(.8, sore * 1.2)) * (head ? 1 : 1 + A(d, 'ribs') / 120);
-    d.st = Math.max(0, d.st - P.cost * .6); thud(.2, true); push(d, 1.5);
+    d.st = Math.max(0, d.st - P.cost * .6); blockSound(); push(d, 1.5);
     sparks(hitX, hitY, 3, '#bfe6ff');
     if (a.pt !== 'jab') addAil(a, 'hand', .5);
     flurry(a);
@@ -2514,7 +2564,7 @@ function resolve(a, d){
     if (a.pt !== 'jab') addAil(a, 'hand', .3);
     if (a.user && a.hp < a.hpMax * .4) addHeart(.07);
     const big = a.pt !== 'jab' || tag;
-    thud(a.pt === 'jab' ? .2 : a.pt === 'hook' ? .6 : 1, false);
+    punchSound(a.pt, head, !!tag || a.rage > 0);
     sparks(hitX, hitY, big ? 9 : 4, big ? '#ffd23f' : '#ffffff');
     if (head && (A(d, 'cut') || A(d, 'nose') > 40)) sparks(hitX, hitY + 2, 4, '#c41e1e');
     M.shake = Math.max(M.shake, big ? .22 : .07);
@@ -2650,7 +2700,7 @@ function knockdown(d, a){
 }
 function land(d){
   const a = M.f[1 - d.side];
-  d.state = 'down'; thud(1, false); M.shake = .35; M.zoom = Math.max(M.zoom || 0, .06); M.flashes += 20; hype(.6);
+  d.state = 'down'; canvasSlam(); M.shake = .35; M.zoom = Math.max(M.zoom || 0, .06); M.flashes += 20; hype(.6);
   sparks(d.x + away(d) * 34 * (d.fallFwd ? -1 : 1), M.gy - 2, 10, '#cfc9b4');
   if (d.kdR >= 3) { banner('T.K.O.!', 'y'); return finish(a.side, 'TKO'); }
   banner('DOWN!', 'y');
@@ -3358,8 +3408,8 @@ const MINIS = {
       S.hitT = .28; S.hand = 1 - S.hand;
       const z = S.z.find(z => !z.hit && Math.abs(S.mark - z.c) < S.zw / 2), d = z ? Math.abs(S.mark - z.c) : 1;
       if (z) z.hit = true;
-      if (d < S.pw) { S.hits++; MG.score += 2; S.v += 1.5; thud(1, false); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
-      else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += .9; thud(.55, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
+      if (d < S.pw) { S.hits++; MG.score += 2; S.v += 1.5; punchSound('hook', false, true); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
+      else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += .9; punchSound('jab', false, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
       else { S.missed = true; S.hitT = 1.1; S.v += .3; thud(.1, true); miniPop('MISSED', 'r'); return; }
       for (let i = 0; i < 6; i++) S.puffs.push({ x:0, y:rnd(-6, 6), vx:rnd(6, 22), vy:rnd(-10, 6), life:rnd(.2, .45) });
       S.speed = Math.min(1.6, S.speed * 1.018);
