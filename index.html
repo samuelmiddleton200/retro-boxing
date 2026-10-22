@@ -1347,6 +1347,8 @@ const RIG = {
   knee:{ cr:10, lean:4, hx:2, nEl:[40, 50], nWr:[46, 54], nGl:[49, 55], fWr:[41, 54], fGl:[43, 55], nK:[47, 84], nA:[40, 88], fK:[31, 92], fA:[25, 88] },
   win:{ nEl:[41, 16], nWr:[44, 4], nGl:[45, -3], fEl:[31, 16], fWr:[30, 4], fGl:[30, -3] },
   robe:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58] },
+  hop:{ cr:-1, nK:[42, 75], nA:[41, 86], fK:[34, 75], fA:[33, 86] },                              // up on the toes, mid-bounce
+  land:{ cr:2, nK:[43, 77], fK:[33, 77], nGl:[50, 22], fGl:[44, 23] },                                // knees soak up the landing
 };
 // hair styles, drawn by hand in the same way as the spiky original
 function rigHair(S, hx, hy, style){
@@ -1549,7 +1551,7 @@ const RIGS = .75;                                           // world units per s
 function drawRig(g, x, gy, dir, frame, look, o = {}, ang = 0, k = RIGS){
   const c = rigFrame(look, frame, o);
   if (!o.noShadow) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(x - 18 * k / .75 + (ang ? Math.sin(ang) * 33 * k / .75 : 0), gy - 1, 36 * k / .75 + Math.abs(Math.sin(ang || 0)) * 33 * k / .75, 2); }
-  g.save(); g.translate(x, gy); if (ang) g.rotate(ang); if (dir < 0) g.scale(-1, 1);
+  g.save(); g.translate(x, gy - (o.lift || 0)); if (ang) g.rotate(ang); if (dir < 0) g.scale(-1, 1);
   g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k, -FOOTY * k, RW * k, RH * k);
   g.restore();
 }
@@ -2457,7 +2459,7 @@ function update(dt){
   for (const f of M.f) animate(f, dt);
   moveRef(dt);
   // a rolling recording of the last two seconds, for the knockout replay
-  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat, frame:f.frame })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat, frame:f.frame, lift:f.lift, sway:f.sway })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
   M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 2.2) M.buf.shift();
   if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
 }
@@ -2525,6 +2527,15 @@ function animate(f, dt){
   f.moving = Math.max(0, (f.moving || 0) - dt);
   animatePose(f, dt);
   f.frame = frameOf(f);
+  f.lift = 0; f.sway = (f.sway || 0) * Math.exp(-dt * 6);
+  if (f.state === 'idle' && !(f.rock > 55) && M.phase !== 'walkout') {
+    const en = clamp(f.st / f.stMax, .2, 1), hz = (f.rage > 0 ? 2.9 : 2.3) * (.7 + en * .3);
+    f.bph = ((f.bph == null ? f.side * .5 : f.bph) + dt * hz) % 1;
+    const ph = f.bph, amp = (f.moving > 0 ? 3 : 2.4) * (.35 + en * .65);
+    f.lift = Math.sin(ph * Math.PI) * amp;
+    if (!(f.moving > 0)) f.frame = ph < .13 || ph > .9 ? 'land' : f.lift > amp * .6 ? 'hop' : f.frame;
+    f.sway += ((f.moving > 0 ? 0 : Math.sin(M.time * 1.25 + f.side * 2.1) * 2 + Math.sin(M.time * 3.1 + f.side) * .6) - f.sway) * (1 - Math.exp(-dt * 8));
+  }
 }
 function animatePose(f, dt){
   f.jit = 0; f.sweat = f.st < f.stMax * .45 || M.round > 2;
@@ -2635,7 +2646,7 @@ function draw(){
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
     const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeOf(f.src) : null };
-    drawRig(g, f.x + (f.jit || 0), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), o, f.ang || 0);
+    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (M.card) { g.save(); g.translate(M.card.x, gy + 8); g.scale(1.35, 1.35); drawCardGirl(g, 0, 0, M.card.n, M.time); g.restore(); }
