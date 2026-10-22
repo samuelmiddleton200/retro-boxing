@@ -3550,9 +3550,11 @@ function update(dt){
   for (const f of M.f) animate(f, dt);
   moveRef(dt);
   // a rolling recording of the last two seconds, for the knockout replay
-  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat, frame:f.frame, lift:f.lift, sway:f.sway })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
-  M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 12) M.buf.shift();   // the replay starts 12 s before the knockdown punch
-  if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
+  const live = M.phase === 'fight' || M.phase === 'falling' || (M.capture && M.time < M.capture.until);   // only the action, not the breaks between rounds
+  if (live) M.rec = (M.rec || 0) + dt;
+  const snap = { t:M.rec || 0, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat, frame:f.frame, lift:f.lift, sway:f.sway })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  if (live) { M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.rec - 12) M.buf.shift(); }   // the replay starts 12 s before the knockdown punch
+  if (live && M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
 }
 function moveRef(dt){
   const R = M.ref, [a, b] = M.f;
