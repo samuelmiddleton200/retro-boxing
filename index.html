@@ -3164,6 +3164,20 @@ function drawRunner(g, S, ox, oy){
   // drawRig puts body (40, 95) at its x, y: line the hip up with the world hip
   drawRig(g, Hw[0] - (35 + lean * .5 - 40) * k, Hw[1] + (95 - 66) * k, 1, 'dyn:' + JSON.stringify(J), look, { hands:true, noShadow:true }, 0, k);
 }
+// pull-ups, side on: a bar hung from the ceiling, seen end-on; him hanging from it in hand wraps
+function drawPullup(cx, gy, S){
+  const k = .6, BX = cx + 6, BY = 30, tired = S.reps / S.max;
+  const n = Math.round(clamp(S.h, 0, 1) * 12), J = rigPullJ(n / 12);
+  const shake = (S.phase === 'up' || S.phase === 'grind') && tired > .3 ? Math.sin(MG.time * 47) * tired * .5 : 0;
+  mg.fillStyle = 'rgba(0,0,0,.3)'; mg.fillRect(BX - 14, gy - 1, 22, 2);                          // his shadow on the floor
+  // a bar hung from two straps off the ceiling beam, seen a little from the side
+  MR(BX - 16, 0, 32, 3, '#3a2a22'); MR(BX - 16, 2.5, 32, .5, '#1a1210');
+  for (const sx of [BX - 9, BX + 9]) { MR(sx - .5, 3, 1.5, BY - 3, '#2a2b31'); mg.fillStyle = '#6a6d78'; mg.fillRect(sx - .5, 3, .5, BY - 3); MR(sx - 1.5, BY - 1.5, 3.5, 3, '#2a2b31'); }
+  MR(BX - 11, BY - 1, 22, 2.5, '#1a0f14'); MR(BX - 10.5, BY - .5, 21, 1.5, '#b8b8c4'); mg.fillStyle = '#e8e8f0'; mg.fillRect(BX - 10.5, BY - .5, 21, .5);
+  for (const tx of [BX - 4, BX + 2]) { mg.fillStyle = '#3a3a44'; mg.fillRect(tx, BY - .5, 2, 1.5); }    // grip tape
+  drawRig(mg, BX - (J.nGl[0] - 40) * k + shake, BY + (95 - J.nGl[1]) * k, 1, 'pull' + n, lookStyle(G.fighters.me), { hands:true, noShadow:true }, 0, k);
+  if (S.phase === 'grind' || tired > .6) if (MG.time % .5 < .25) { mg.fillStyle = '#ffffff'; mg.fillRect(BX + 1, BY - 6 + (95 - J.nGl[1]) * 0, .5, .5); }
+}
 function mresize(){
   const w = innerWidth, h = innerHeight, dpr = Math.min(3, devicePixelRatio || 1);
   mcv.width = Math.round(w * dpr); mcv.height = Math.round(h * dpr);
@@ -3328,7 +3342,7 @@ const VIEWS = {
     const me = G.fighters.me, tr = TRAINERS[G.trainer];
     const cards = TRAIN_ORDER.map(k => {
       const T = TRAIN[k], locked = G.gym < T.gym;
-      const gains = Object.entries(T.gain).map(([r, v]) => `<span>${RNAME[r]} ${'+'.repeat(v >= 1 ? 3 : v >= .6 ? 2 : 1)}</span>`).join('');
+      const gains = Object.entries(T.gain).map(([r, v]) => `<span>${RNAME[r]} +${v}</span>`).join('');
       return `<button class="dcard ${locked ? 'lock' : ''}" data-a="${locked ? 'team' : 'drill'}" data-k="${k}">
         <div class="nm">${T.name}</div><div class="ds">${T.desc}</div><div class="gn">${gains}</div>
         <div class="ft">${locked ? 'Needs ' + GYMS[T.gym].name : 'Fatigue +' + Math.round(T.fat * (1 - tr.fat))}</div></button>`;
