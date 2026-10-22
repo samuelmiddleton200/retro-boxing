@@ -189,16 +189,16 @@ img.pt{image-rendering:pixelated;display:block}
 
 /* --- story --- */
 .iv{display:flex;flex-direction:column;align-items:center;gap:10px;height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:6px 4px 24px}
-.ivscene{position:relative;width:min(300px,46%);flex:none;border:3px solid #fff;border-radius:6px;overflow:hidden;background:#141a38}
+.ivscene{position:relative;width:min(470px,64%);flex:none;border:3px solid #fff;border-radius:6px;overflow:hidden;background:#141a38}
 .ivscene img{display:block;width:100%;image-rendering:pixelated}
 .ivtag{position:absolute;left:0;right:0;bottom:0;background:#c42d2d;color:#fff;font-size:12px;letter-spacing:2px;text-align:center;padding:4px 0}
 .ivwho{text-align:center}
 .ivq,.ivans,.ivyou,.ivreact{width:min(780px,100%)}
 .ivq{color:#fff;font-size:19px;line-height:1.3;text-align:center;padding:0 6px}
-.ivans{display:grid;gap:9px}
-.ivbtn{background:#fff;color:#16101a;border:3px solid #fff;border-radius:8px;padding:11px 14px;font:inherit;font-size:17px;line-height:1.3;text-align:left;cursor:pointer;box-shadow:0 4px 0 #0b0926}
+.ivans{display:grid;gap:5px}
+.ivbtn{background:#fff;color:#16101a;border:2px solid #fff;border-radius:7px;padding:4px 12px;font:inherit;font-size:17px;line-height:1.3;text-align:left;cursor:pointer;box-shadow:0 4px 0 #0b0926}
 .ivbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #0b0926}
-.ivyou{background:#fff;color:#16101a;border-radius:8px;padding:11px 14px;font-size:17px;line-height:1.3}
+.ivyou{background:#fff;color:#16101a;border-radius:7px;padding:4px 12px;font-size:17px;line-height:1.3}
 .ivreact{display:grid;gap:4px;font-size:16px;text-align:center}
 .ivnext{flex:none}
 .story{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px;align-items:center;min-height:calc(100dvh - 40px)}
@@ -1403,6 +1403,13 @@ const RIG = {
   robeW1:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58], nK:[43, 76], nA:[44, 88], fK:[33, 77], fA:[31, 88] },
   robeW2:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58], nK:[40, 77], nA:[38, 88], fK:[36, 76], fA:[35, 88] },
 };
+// every punch can also be thrown with the other hand: the same shape on the far arm, the near arm back on guard
+for (const k of ['jabW', 'jabH', 'jabBW', 'jabBH', 'hookW', 'hookH', 'hookBW', 'hookBH', 'upW', 'upH']) {
+  const J = RIG[k], o = { ...J }; for (const j of ['nEl', 'nWr', 'nGl', 'fEl', 'fWr', 'fGl']) delete o[j];
+  if (J.nGl) { o.fEl = [J.nEl[0] - 2, J.nEl[1]]; o.fWr = [J.nWr[0] - 2, J.nWr[1]]; o.fGl = [J.nGl[0] - 2, J.nGl[1]]; }
+  if (J.fGl) { o.nEl = [J.fEl[0] + 2, J.fEl[1]]; o.nWr = [J.fWr[0] + 2, J.fWr[1]]; o.nGl = [J.fGl[0] + 2, J.fGl[1]]; }
+  RIG['F' + k] = o;
+}
 // hair styles, drawn by hand in the same way as the spiky original
 function rigHair(S, hx, hy, style){
   const X = (x, y) => [RO + x + hx, y + hy];
@@ -2516,50 +2523,187 @@ const TONES = {
   low:   { label:'Low blow',   beef:40,  hype:7, react:['Hey, hey, keep it clean, this is a family show!', 'We... might have to bleep some of that.', 'That\'s personal. That\'s really personal.'] },
 };
 const PERSONA = { nice:'The Gentleman', cold:'The Iceman', loud:'The Loudmouth', trash:'The Trash Talker', low:'The Villain' };
-const QS = {
-  self:{
-    q:['People keep asking me the same thing about you. Who is {ME} becoming?', 'A few months ago nobody knew your name. Tell the folks at home who {ME} is.', 'What does {ME} want to be remembered as?', 'Your old neighborhood in {TOWN} is watching this morning. Anything for them?', 'What drives you? What gets you up at five in the morning?', 'Some say you\'re a flash in the pan. What do you say?', 'Where do you see yourself a year from today?', 'What\'s changed about you since you turned pro?', 'If you could tell the whole division one thing, what would it be?', 'Is the money changing you yet?'],
-    a:{ nice:['Just a kid from {TOWN} who works hard. I owe it all to my trainer and this city.', 'I\'m still learning. Every fight teaches me something new.', 'I want people to say I gave everything every single night.', 'To everybody back home: thank you. I carry you into that ring.', 'Same guy as always. Up early, run, train, sleep, do it again.', 'Maybe. I\'ll keep working and let the fights answer that.', 'Hopefully a better fighter, and still a good man.', 'I\'m grateful. A lot of guys never get this shot.', 'Respect every fighter, fear none. That\'s all.', 'The money\'s nice. The work is what matters.'],
-        cold:['Becoming? I already am. They\'ll understand when the bell rings.', 'I don\'t talk about it. I train.', 'Remembered? Ask the men I\'ve hit.', 'Five in the morning, the road is quiet. I like it quiet.', 'Flash in the pan. Hm. We\'ll see who is still standing.', 'A year from now? Same place. Higher up.', 'Nothing has changed. That should worry them.', 'One thing: I\'m coming. That\'s it.', 'Money doesn\'t hit back. Men do.', 'I have nothing to prove to you, Lenny. Only to them.'],
-        loud:['I\'m becoming the main event! Every man in the top ten knows my name now, and they HATE it!', 'The next champion of the world, that\'s who! Write it down, Lenny!', 'Remembered? I\'m gonna be a statue in {TOWN}! Pigeons and everything!', 'Get up at five? I get up at four just to make the rest of these bums look lazy!', 'Flash in the pan? I\'m the whole kitchen, baby!', 'A year from today I\'m sitting on top of this division with my feet up!', 'What changed? I got BETTER, and everybody can see it!', 'Tell the division? Line up! Take a number! I\'ll get to all of you!', 'Changing me? It\'s making me LOUDER!', 'I am the best thing to happen to this sport in twenty years!'],
-        trash:['Somebody with a better jab and a better face than anyone in the top ten. Low bar, honestly.', 'The guy every fighter\'s manager prays he never has to call.', 'Remembered as the one who made the rest of these guys look like amateurs.', 'Five a.m.? Half these clowns are still out partying at five a.m.', 'If I\'m a flash in the pan, the rest of this division is the burnt bits stuck to the bottom.', 'A year from now some of these guys will be selling insurance. I\'ll be a client.', 'What changed? I stopped being polite about how bad these guys are.', 'One thing for the division: practice your falling. You\'ll need it.', 'Money? I\'d fight half these guys for free just to embarrass them.', 'The whole top ten is a bunch of tomato cans with nice robes.'],
-        low:['Every man ranked above me is a paycheck with legs. I\'m cashing all of them.', 'The one who sends half these bums back to their day jobs.', 'Remembered as the guy who ended careers. Plural.', 'I get up early because I sleep like a baby. These guys? Their wives tell me they don\'t.', 'Flash in the pan? Their careers are the flash. Mine is the fire.', 'A year from now these bums will be fighting in parking lots for bus fare.', 'I\'ve seen their gyms. I\'ve seen their trainers. I\'d be embarrassed too.', 'To the division: your managers are lying to you, and you know it.', 'I\'m buying a house. I\'ll use their purses for the garage.', 'Most of them only box because nobody would hire them for anything else.'] } },
-  next:{
-    q:['{X} in {N} days. What do you see when you watch his tape?', '{X} told us he\'s taking you seriously. Are you taking him seriously?', 'Give us a prediction for you and {X}.', 'Some people are picking {X} in this one. What do they see that you don\'t?', '{X} says he\'s been sparring with heavier guys to get ready for you. Worried?', 'Fight\'s in {N} days. How\'s camp going?', 'What\'s the key to beating {X}?', '{X}\'s trainer says you can\'t take a punch. Your reply?', 'Is {X} the toughest man you\'ve faced?', 'Last question about {X}: how does it end?'],
-    a:{ nice:['He\'s a real fighter and I respect him. May the best man win.', 'Tough man, good record. It\'s going to be a war and I\'m honored to be in it.', 'People can pick who they like. He earned the respect.', 'Smart. If I were him I\'d do the same. It\'ll be a great fight.', 'Camp\'s been hard, the way it should be. He deserves my best.', 'Stay disciplined. He punishes mistakes, so I can\'t make any.', 'His trainer knows boxing. We\'ll find out together.', 'He might be. That\'s why I trained like he is.', 'It ends with us hugging in the middle of the ring.', 'I\'ve watched him since amateurs. Good fighter, good man.'],
-        cold:['I see a man with {N} days left to enjoy.', 'I don\'t watch his tape. He should be watching mine.', 'Prediction? Pain.', 'They see what they want. I see what will happen.', 'Heavier men don\'t worry me. He should worry.', 'Camp is quiet. Quiet is good.', 'Hit him. Keep hitting him.', 'Then he should test it. Once.', 'No. Not after Saturday he won\'t be.', 'On the canvas.'],
-        loud:['I see a guy who\'s about to get famous, for being the one I flattened!', 'Prediction? Early night! Somebody tell the card girl to stretch, she won\'t be working long!', 'They see a guy who\'s gonna be on his back looking at the lights!', 'Spar with whoever he wants! Spar with a truck! Won\'t help him!', 'Camp? Camp\'s been PERFECT! I\'m in the best shape of my LIFE!', 'The key? SHOW UP! That\'s all I gotta do!', 'Can\'t take a punch? I eat punches for breakfast and ask for seconds!', 'Toughest? He\'s gonna be the SHORTEST! Shortest night of his career!', 'It ends with my hand in the air and the whole place going crazy!', 'He took this fight? Somebody check his head, he must already be hurt!'],
-        trash:['I see a slow, sloppy fighter who punches like he\'s carrying groceries.', 'He\'s got a face for radio and a chin made of glass. I\'m going to check both.', 'People picking him also pick horses with three legs.', 'Heavier guys? Good, maybe he\'ll finally learn what getting hit feels like.', 'Camp\'s been great. I hear his camp has been mostly naps.', 'The key is not laughing when he tries to throw combinations.', 'His trainer\'s been wrong about everything else, why stop now?', 'Toughest? He\'s not even the toughest guy in his own family.', 'It ends with him asking his corner what round it is.', 'His footwork looks like a man looking for his car keys.'],
-        low:['His record is padded with cab drivers and his manager knows it. After me he goes back to driving one.', 'Everybody in his own gym says he\'s a bum. I\'m just the first one saying it on TV.', 'His people are picking him because they need the purse to pay their bar tab.', 'Sparring heavier guys? Must be the only way he gets any attention.', 'My camp is great. His camp is two guys and a dog, and the dog quit.', 'The key is remembering he quits when it gets hard. He always has.', 'His trainer should save his breath for the eulogy of that career.', 'Toughest? He\'s soft. He\'s been soft since juniors and everybody knows it.', 'It ends with his kids changing the channel.', 'He\'s a coward with a nice robe, and on Saturday everybody will see it.'] } },
-  champ:{
-    q:['{X} holds the title. Could you take it from him today?', 'The champ, {X}, was asked about you. He laughed. Your reaction?', 'What do you think of the champion, {X}?', 'Would you take a title shot against {X} if it came tomorrow?', '{X} says the title picture is crowded and you\'re at the back of the line. Fair?'],
-    a:{ nice:['He\'s the champ for a reason. One day I\'d love to earn that shot.', 'I\'ve got a lot of respect for {X}. I\'m not there yet.', 'Great champion. Great for the sport.', 'If they call, I\'ll answer. With respect.', 'That\'s fair. I have to earn my way up. I will.'],
-        cold:['Let him laugh. It\'s the last thing he\'ll do with that belt.', 'Today, no. Soon.', 'He is a champion. For now.', 'Tomorrow is fine.', 'Lines move.'],
-        loud:['That belt is keeping MY spot warm! Tell him to polish it for me!', 'Laughing? He won\'t be laughing when I\'m wearing his gold!', 'The champ? He\'s a placeholder! I\'m the real thing!', 'Tomorrow? I\'d fight him TONIGHT! In the parking lot!', 'Back of the line? I\'m cutting the line, Lenny! Watch me!'],
-        trash:['He\'s been ducking real fighters for years. That belt\'s more scared than he is.', 'The champ? He\'s a paper champion with a cardboard chin.', 'He fights like he\'s scared of messing up his hair.', 'He\'d need a month\'s notice and a doctor\'s note.', 'The only line he\'s worried about is the one at the buffet.'],
-        low:['He only holds it because nobody good will fight a guy that boring.', 'His whole career is a protected bum on a lucky streak.', 'His promoter picks his opponents out of hospital beds.', 'He\'d say no. He says no to everyone who can actually fight.', 'He\'s hiding behind that belt like a kid behind his mother.'] } },
-  near:{
-    q:['{X} is ranked right above you, and he says you\'re a "protected fighter." Your answer?', '{X} has been talking about you on the radio all week. Want to answer him?', 'Would you fight {X} next?', 'Who wins between you and {X}?', '{X} says you\'ve never been in a real fight. True?', 'Fans want you and {X}. Do you?'],
-    a:{ nice:['He\'s entitled to his opinion. If the fight happens, I\'ll be ready.', 'I\'ve got nothing bad to say about {X}. Good fighter.', 'If my team makes it, I\'d be honored.', 'It\'d be close. He\'s good. I think I edge it.', 'Every fight\'s been real to me. He\'ll see that someday maybe.', 'Whatever the fans want, I\'m happy to give them.'],
-        cold:['He talks a lot for a man who has never been hit by me.', 'Tell him I heard. That\'s all.', 'Next. Or later. Doesn\'t matter.', 'Me.', 'He will be in one.', 'I want everybody. He is just next.'],
-        loud:['Next? I\'d fight him TONIGHT! Bring him down here right now!', 'He wants my attention? Now he\'s got it, and he\'s gonna regret it!', 'Book it! BOOK IT! Somebody call his manager right now!', 'Who wins? ME! Next question!', 'Real fight? I\'ll show him a REAL fight! First round!', 'The fans want it? Then the fans are gonna GET it!'],
-        trash:['He\'s ranked above me the way a ladder is ranked above a floor. For now.', 'I\'ve seen better footwork at a church dance.', 'I\'d fight him, but I\'d feel bad taking candy from a baby.', 'I win. He leaves with a headache and a participation trophy.', 'Real fight? He\'s never been in a real fight that he didn\'t lose.', 'The fans want it because they want to see him embarrassed.'],
-        low:['He\'s been ducking me for months and his own mother knows it.', 'The only thing protected around here is his glass jaw.', 'He won\'t sign. Cowards don\'t sign.', 'I win, and his sponsors drop him by Monday.', 'He talks big on the radio because nobody can see him shaking.', 'He\'s a fraud and the whole division knows it.'] } },
-  lastW:{
-    q:['You beat {X} last time out. What did you learn about yourself?', 'Your win over {X}. Was it as easy as it looked?', '{X} says he wants a rematch. Interested?', 'What was going through your head when you beat {X}?'],
-    a:{ nice:['{X} is a tough man and he pushed me. I learned a lot in there.', 'Credit to {X}. He made me work for every round.', 'If he wants it, he\'s earned the right to ask.', 'Mostly relief. He\'s really good.'],
-        cold:['I learned it went exactly how I said it would.', 'It was work. I finished the work.', 'Rematch. Same ending.', 'Nothing. I don\'t think in there.'],
-        loud:['Easy? I made it look easy because I AM that good!', 'I learned I\'m the best thing to happen to this sport in years!', 'A rematch? He wants to go to sleep twice? Sure!', 'I was thinking about what to buy with the purse!'],
-        trash:['Easy. I\'ve had tougher sparring sessions with my cornerman.', 'He should get his money back from whoever trained him.', 'Rematch? He couldn\'t win the first one, what\'s he gonna do, bring a friend?', 'I was thinking I\'ve seen tougher heavy bags.'],
-        low:['He was a stepping stone and he knew it walking in.', 'I\'d feel bad for him if he wasn\'t such a nobody.', 'He wants a rematch because nobody else will give him a payday.', 'I was thinking he should retire before he gets hurt for real.'] } },
-  lastL:{
-    q:['You lost to {X}. What went wrong?', 'Tough loss to {X}. Do you want him again?', 'How do you bounce back from the {X} fight?', 'What did {X} do better than you?'],
-    a:{ nice:['He was the better man that night. I\'ll go back to work.', 'No excuses. Congratulations to {X}.', 'Back to the gym. That\'s the only way.', 'He was sharper. I\'ll be sharper next time.'],
-        cold:['Nothing went wrong. Something got started.', 'Yes. And next time is different.', 'Quietly.', 'One night. That\'s all he had.'],
-        loud:['Lucky punch! Give me the rematch and I\'ll prove it to the whole world!', 'He knows he got lucky! Ask him, he won\'t look you in the eye!', 'Bounce back? I\'m gonna BOUNCE right through the whole division!', 'Better? Nothing! He got the decision, that\'s all he got!'],
-        trash:['He won ugly. The judges must have had money on him.', 'He ran for half the fight. That\'s not boxing, that\'s jogging.', 'Easy. I stop fighting guys who hug for twelve rounds.', 'He was better at running away, I\'ll give him that.'],
-        low:['He cheated. Thumbs, elbows, the whole bag. Everybody saw it.', 'He couldn\'t beat me in a straight fight and his corner knows it.', 'I bounce back. His career peaked that night and it\'s all downhill.', 'He bought those judges dinner. Ask around.'] } },
+const QB = {
+  self:[
+    { q:'People keep asking me the same thing about you. Who is {ME} becoming?',
+      nice:'Just a kid from {TOWN} who works hard. I owe it all to my trainer and this city.', cold:'Becoming? I already am. They\'ll understand when the bell rings.',
+      loud:'I\'m becoming the main event! Every man in the top ten knows my name now, and they HATE it!', trash:'Somebody with a better jab and a better face than anyone in the top ten. Low bar, honestly.',
+      low:'The man who\'s going to send half this division back to their day jobs.' },
+    { q:'A few months ago nobody knew your name. Tell the folks at home who {ME} is.',
+      nice:'A hard worker who\'s still learning. Every fight teaches me something new.', cold:'They\'ll find out. I don\'t introduce myself. I show them.',
+      loud:'The next champion of the world, that\'s who! Write it down, Lenny!', trash:'The guy every fighter\'s manager prays he never has to call.',
+      low:'The guy who\'s about to make a lot of these bums very poor.' },
+    { q:'What does {ME} want to be remembered as?',
+      nice:'I want people to say I gave everything, every single night.', cold:'Remembered? Ask the men I\'ve hit.',
+      loud:'Remembered? I\'m going to be a statue in {TOWN}! Pigeons and everything!', trash:'As the one who made the rest of these guys look like amateurs.',
+      low:'As the man who ended careers. Plural.' },
+    { q:'Your old neighborhood in {TOWN} is watching this morning. Anything for them?',
+      nice:'To everybody back home: thank you. I carry you into that ring every time.', cold:'They know. I don\'t need to say it on TV.',
+      loud:'{TOWN}! This one\'s for YOU! Your boy is coming home with the gold!', trash:'Don\'t worry, {TOWN}: I\'m the only fighter from back home anybody needs to know.',
+      low:'To everybody back home who said I\'d never make it: keep watching. Enjoy the view from down there.' },
+    { q:'What drives you? What gets you up at five in the morning?',
+      nice:'My family, my trainer, and knowing somebody out there is working harder.', cold:'The road is quiet at five. I like it quiet.',
+      loud:'Five? I get up at FOUR just to make the rest of these bums look lazy!', trash:'Knowing half these clowns are still out partying at five a.m.',
+      low:'Picturing the faces of the guys ranked above me. Gets me out of bed every time.' },
+    { q:'Some say you\'re a flash in the pan. What do you say?',
+      nice:'Maybe. I\'ll keep working and let the fights answer that.', cold:'Flash in the pan. Hm. We\'ll see who is still standing.',
+      loud:'Flash in the pan? I\'m the whole kitchen, baby!', trash:'If I\'m the flash, the rest of this division is the burnt bits stuck to the bottom.',
+      low:'Their careers are the flash. Mine is the fire.' },
+    { q:'Where do you see yourself a year from today?',
+      nice:'Hopefully a better fighter, and still a good man.', cold:'Same place. Higher up.',
+      loud:'Sitting on top of this division with my feet up and a belt on my lap!', trash:'A year from now some of these guys will be selling insurance. I\'ll be a client.',
+      low:'Watching these bums fight in parking lots for bus fare.' },
+    { q:'What\'s changed about you since you turned pro?',
+      nice:'I listen more. My trainer has taught me a lot about patience.', cold:'Nothing has changed. That should worry them.',
+      loud:'I got BETTER, and everybody can see it!', trash:'I stopped being polite about how bad these guys are.',
+      low:'I stopped pretending these guys are any good. They aren\'t.' },
+    { q:'If you could tell the whole division one thing, what would it be?',
+      nice:'Respect every fighter, fear none. That\'s all.', cold:'One thing: I\'m coming. That\'s it.',
+      loud:'Line up! Take a number! I\'ll get to all of you!', trash:'Practice your falling. You\'re going to need it.',
+      low:'Your managers are lying to you, and you know it.' },
+    { q:'Is the money changing you yet?',
+      nice:'The money\'s nice. The work is what matters.', cold:'Money doesn\'t hit back. Men do.',
+      loud:'Changing me? It\'s making me LOUDER!', trash:'Money? I\'d fight half these guys for free just to embarrass them.',
+      low:'I\'m buying a house. I\'ll use their purses to pay for the garage.' },
+    { q:'Who\'s the toughest man you\'ve ever faced?',
+      nice:'Every one of them. Nobody gets in that ring who isn\'t tough.', cold:'Nobody yet.',
+      loud:'Toughest? ME in the mirror at five in the morning!', trash:'Nobody. I\'ve had tougher arguments with my barber.',
+      low:'Nobody. They\'re all soft, they just hide it with nice robes.' },
+    { q:'What would you be doing if you weren\'t a fighter?',
+      nice:'Probably working the docks with my uncle. I\'m lucky I found this.', cold:'I don\'t think about that.',
+      loud:'There IS no other job for me! I was BORN in a boxing ring!', trash:'Coaching. Half these guys could use a teacher.',
+      low:'Same as half the top ten should be doing: something else.' },
+  ],
+  next:[
+    { q:'{X} in {N} days. What do you see when you watch his tape?',
+      nice:'A real fighter. I respect him a lot. May the best man win.', cold:'I see a man with {N} days left to enjoy.',
+      loud:'I see a guy who\'s about to get famous, for being the one I flattened!', trash:'I see a slow, sloppy fighter who punches like he\'s carrying groceries.',
+      low:'A padded record. Cab drivers and has-beens. After me he goes back to driving one.' },
+    { q:'{X} told us he\'s taking you seriously. Are you taking him seriously?',
+      nice:'Absolutely. Tough man, good record. It\'s going to be a war and I\'m honored.', cold:'He should. I take everyone seriously. Then I hurt them.',
+      loud:'Seriously? I\'m taking his spot, his purse AND his lunch money!', trash:'Seriously? I\'m trying not to laugh every time I see him shadowbox.',
+      low:'He\'s scared, that\'s what "serious" means coming out of his camp.' },
+    { q:'Give us a prediction for you and {X}.',
+      nice:'A great fight for the fans. I think I find a way to win it.', cold:'Prediction? Pain.',
+      loud:'Early night! Somebody tell the card girl to stretch, she won\'t be working long!', trash:'He\'s on the canvas before the popcorn gets cold.',
+      low:'He gets hurt, he quits, and everybody finally sees who he really is.' },
+    { q:'Some people are picking {X} in this one. What do they see that you don\'t?',
+      nice:'People can pick who they like. He\'s earned the respect.', cold:'They see what they want. I see what will happen.',
+      loud:'They\'re seeing a guy who\'s about to be on his back looking at the lights!', trash:'People picking him also pick horses with three legs.',
+      low:'His own people are picking him because they need the purse to pay their bar tab.' },
+    { q:'{X} says he\'s been sparring with heavier guys to get ready for you. Worried?',
+      nice:'Smart. If I were him I\'d do the same. It\'ll be a great fight.', cold:'Heavier men don\'t worry me. He should worry.',
+      loud:'Spar with whoever he wants! Spar with a truck! Won\'t help him!', trash:'Good. Maybe he\'ll finally learn what getting hit feels like.',
+      low:'Heavier guys? Must be the only way he gets anybody to look at him.' },
+    { q:'Fight\'s in {N} days. How\'s camp going?',
+      nice:'Hard, the way it should be. He deserves my best and he\'ll get it.', cold:'Camp is quiet. Quiet is good.',
+      loud:'PERFECT! I\'m in the best shape of my LIFE!', trash:'Great. I hear his camp has been mostly naps.',
+      low:'Mine\'s great. His camp is two guys and a dog, and the dog quit.' },
+    { q:'What\'s the key to beating {X}?',
+      nice:'Stay disciplined. He punishes mistakes, so I can\'t make any.', cold:'Hit him. Keep hitting him.',
+      loud:'The key? SHOW UP! That\'s all I gotta do!', trash:'Not laughing when he tries to throw combinations.',
+      low:'Remembering he quits when it gets hard. He always has.' },
+    { q:'{X}\'s trainer says you can\'t take a punch. Your reply?',
+      nice:'His trainer knows boxing. I guess we\'ll find out together.', cold:'Then he should test it. Once.',
+      loud:'Can\'t take a punch? I eat punches for breakfast and ask for seconds!', trash:'His trainer\'s been wrong about everything else, why stop now?',
+      low:'His trainer should save his breath for the eulogy of that career.' },
+    { q:'Is {X} the toughest man you\'ve faced?',
+      nice:'He might be. That\'s why I trained like he is.', cold:'No. Not after this week, he won\'t be.',
+      loud:'Toughest? He\'s gonna be the SHORTEST! Shortest night of his career!', trash:'He\'s not even the toughest guy in his own family.',
+      low:'He\'s soft. He\'s been soft since juniors and everybody knows it.' },
+    { q:'Last question about {X}: how does it end?',
+      nice:'With the two of us hugging in the middle of the ring, whatever happens.', cold:'On the canvas.',
+      loud:'With my hand in the air and the whole place going crazy!', trash:'With him asking his corner what round it is.',
+      low:'With his kids changing the channel.' },
+  ],
+  champ:[
+    { q:'{X} holds the title. Could you take it from him today?',
+      nice:'Not today. He\'s the champ for a reason. One day I\'d love to earn that shot.', cold:'Today, no. Soon.',
+      loud:'Today? That belt is keeping MY spot warm! Tell him to polish it for me!', trash:'He\'s been ducking real fighters for years. That belt\'s more scared than he is.',
+      low:'He only holds it because nobody good will fight a guy that boring.' },
+    { q:'The champ, {X}, was asked about you. He laughed. Your reaction?',
+      nice:'Fair enough. I haven\'t done anything to make him stop laughing yet.', cold:'Let him laugh. It\'s the last thing he\'ll do with that belt.',
+      loud:'Laughing? He won\'t be laughing when I\'m wearing his gold!', trash:'Laughing is the most exercise he\'s had in months.',
+      low:'He laughs because he\'s nervous. Cowards always laugh.' },
+    { q:'What do you think of the champion, {X}?',
+      nice:'Great champion. Great for the sport. I\'ve got a lot of respect for him.', cold:'He is a champion. For now.',
+      loud:'He\'s a placeholder! I\'m the real thing!', trash:'A paper champion with a cardboard chin.',
+      low:'His promoter picks his opponents out of hospital beds.' },
+    { q:'Would you take a title shot against {X} if it came tomorrow?',
+      nice:'If they call, I\'ll answer. With respect.', cold:'Tomorrow is fine.',
+      loud:'Tomorrow? I\'d fight him TONIGHT! In the parking lot!', trash:'I would. He\'d need a month\'s notice and a doctor\'s note.',
+      low:'I would. He\'d say no. He says no to everyone who can actually fight.' },
+    { q:'{X} says the title picture is crowded and you\'re at the back of the line. Fair?',
+      nice:'That\'s fair. I have to earn my way up. I will.', cold:'Lines move.',
+      loud:'Back of the line? I\'m cutting the line, Lenny! Watch me!', trash:'The only line he\'s worried about is the one at the buffet.',
+      low:'He keeps the line long so he never has to fight anybody in it.' },
+  ],
+  near:[
+    { q:'{X} is ranked right above you, and he says you\'re a "protected fighter." Your answer?',
+      nice:'He\'s entitled to his opinion. If the fight happens, I\'ll be ready.', cold:'He talks a lot for a man who has never been hit by me.',
+      loud:'Protected? Take the protection away! Put us in the ring TONIGHT!', trash:'He\'s ranked above me the way a ladder is ranked above a floor. For now.',
+      low:'The only thing protected around here is his glass jaw.' },
+    { q:'{X} has been talking about you on the radio all week. Want to answer him?',
+      nice:'I\'ve got nothing bad to say about {X}. Good fighter.', cold:'Tell him I heard. That\'s all.',
+      loud:'He wants my attention? Now he\'s got it, and he\'s gonna regret it!', trash:'He talks better than he fights. Not hard, honestly.',
+      low:'He talks big on the radio because nobody can see him shaking.' },
+    { q:'Would you fight {X} next?',
+      nice:'If my team makes it, I\'d be honored.', cold:'Next. Or later. Doesn\'t matter.',
+      loud:'Book it! BOOK IT! Somebody call his manager right now!', trash:'Sure, but I\'d feel bad taking candy from a baby.',
+      low:'I would. He won\'t sign. Cowards don\'t sign.' },
+    { q:'Who wins between you and {X}?',
+      nice:'It\'d be close. He\'s good. I think I edge it.', cold:'Me.',
+      loud:'Who wins? ME! Next question!', trash:'I win. He leaves with a headache and a participation trophy.',
+      low:'I win, and his sponsors drop him by Monday.' },
+    { q:'{X} says you\'ve never been in a real fight. True?',
+      nice:'Every fight\'s been real to me. Maybe he\'ll see that someday.', cold:'He will be in one.',
+      loud:'Real fight? I\'ll show him a REAL fight! First round!', trash:'He\'s never been in a real fight that he didn\'t lose.',
+      low:'Says the man whose whole record is guys his manager paid to lie down.' },
+    { q:'Fans want you and {X}. Do you?',
+      nice:'Whatever the fans want, I\'m happy to give them.', cold:'I want everybody. He is just next.',
+      loud:'The fans want it? Then the fans are gonna GET it!', trash:'The fans want it because they want to see him embarrassed.',
+      low:'Of course. Everybody wants to see a fraud get exposed.' },
+  ],
+  lastW:[
+    { q:'You beat {X} last time out. What did you learn about yourself?',
+      nice:'{X} is a tough man and he pushed me. I learned I can dig deep.', cold:'I learned it went exactly how I said it would.',
+      loud:'I learned I\'m the best thing to happen to this sport in years!', trash:'I learned I\'ve had tougher sparring sessions with my cornerman.',
+      low:'I learned nothing. He was a stepping stone and he knew it walking in.' },
+    { q:'Your win over {X}. Was it as easy as it looked?',
+      nice:'Not at all. Credit to {X}. He made me work for every round.', cold:'It was work. I finished the work.',
+      loud:'Easy? I made it look easy because I AM that good!', trash:'Easier. He should get his money back from whoever trained him.',
+      low:'Easy. I\'d feel bad for him if he wasn\'t such a nobody.' },
+    { q:'{X} says he wants a rematch. Interested?',
+      nice:'If he wants it, he\'s earned the right to ask.', cold:'Rematch. Same ending.',
+      loud:'A rematch? He wants to go to sleep twice? Sure!', trash:'He couldn\'t win the first one. What\'s he gonna do, bring a friend?',
+      low:'He wants a rematch because nobody else will give him a payday.' },
+    { q:'What was going through your head when you beat {X}?',
+      nice:'Mostly relief. He\'s really good.', cold:'Nothing. I don\'t think in there.',
+      loud:'What I was going to buy with the purse!', trash:'That I\'ve seen tougher heavy bags.',
+      low:'That he should retire before he gets hurt for real.' },
+  ],
+  lastL:[
+    { q:'You lost to {X}. What went wrong?',
+      nice:'He was the better man that night. I\'ll go back to work.', cold:'Nothing went wrong. Something got started.',
+      loud:'Lucky punch, that\'s what! Give me the rematch and I\'ll prove it!', trash:'He won ugly. The judges must have had money on him.',
+      low:'He cheated. Thumbs, elbows, the whole bag. Everybody saw it.' },
+    { q:'Tough loss to {X}. Do you want him again?',
+      nice:'One day, if he\'ll have me. Congratulations to him.', cold:'Yes. And next time is different.',
+      loud:'Want him? I NEED him! He knows he got lucky!', trash:'Sure. This time I\'ll bring running shoes, since that\'s what he likes.',
+      low:'Yes. He couldn\'t beat me in a straight fight and his corner knows it.' },
+    { q:'How do you bounce back from the {X} fight?',
+      nice:'Back to the gym. That\'s the only way.', cold:'Quietly.',
+      loud:'Bounce back? I\'m gonna BOUNCE right through the whole division!', trash:'Easy. I stop fighting guys who hug for twelve rounds.',
+      low:'Easy. His career peaked that night and it\'s all downhill for him.' },
+    { q:'What did {X} do better than you?',
+      nice:'He was sharper. I\'ll be sharper next time.', cold:'One night. That\'s all he had.',
+      loud:'Better? Nothing! He got the decision, that\'s all he got!', trash:'He was better at running away, I\'ll give him that.',
+      low:'He bought those judges dinner. Ask around.' },
+  ],
 };
+// the shape the builder reads: QS[kind] = { q:[...], a:{ tone:[...] } }, index for index
+const QS = Object.fromEntries(Object.entries(QB).map(([k, list]) => [k, { q:list.map(x => x.q), a:Object.fromEntries(['nice', 'cold', 'loud', 'trash', 'low'].map(t => [t, list.map(x => x[t])])) }]));
+
 const ANGRY_MAIL = ['Heard what you said on Sunday. Name the date.', 'Watched Fight Talk. You\'re going to eat those words.', 'Said you wanted my attention. You\'ve got it.', 'Nobody talks about me like that on TV. Let\'s settle it.'];
 function fillQ(t, ctx){ return t.replace(/\{X\}/g, ctx.X || '').replace(/\{N\}/g, ctx.N || '').replace(/\{ME\}/g, ctx.ME).replace(/\{TOWN\}/g, ctx.TOWN); }
 function buildInterview(){
@@ -2611,6 +2755,69 @@ function finishInterview(){
 }
 
 let ivImg = null;
+// ---- the referee: hand-painted like the boxers. White shirt, black bow tie, black trousers, grey hair ----
+// pose 'stand' (arms down) or 'count' (near arm straight up, counting)
+const REF_LOOK = { skin:'#e2ae84', hair:'#a8a8b0', style:'short', trunks:'#1d1d24', gloves:'#c0c0c8' };
+const refCache = {};
+function refDraw(pose){
+  if (refCache[pose]) return refCache[pose];
+  const PAL = { ...rigPalette(REF_LOOK), w1:'#c8c8d4', w2:'#ececf2', w3:'#ffffff', k1:'#141418', k2:'#2a2a34', k3:'#4a4a58' }, S = RigSprite(PAL), T = (x, y) => [RO + x, y], H = T;
+  const count = pose === 'count';
+  // far arm, hanging behind him
+  S.begin(); S.poly('w1', [T(31, 23), T(36, 23), T(36, 33), T(32, 33)]); S.end();
+  S.begin(); S.limb(T(34, 33), T(35, 48), 4.4, 3.6, { dark:true }); S.ell('s3', RO + 35.5, 50, 2.4, 2.6); S.end();
+  // trousers and shoes
+  S.begin(); S.poly('k2', [T(30, 54), T(37, 54), T(36, 90), T(31, 90)]); S.end();
+  S.begin(); S.poly('k1', [T(30, 89), T(37, 89), T(41, 91), T(41, 94), T(30, 94)]); S.dot('k3', RO + 33, 90, 4, 1); S.end();
+  S.begin(); S.poly('k1', [T(36, 54), T(44, 54), T(44, 90), T(37, 90)]); S.shade('k2', [T(41.5, 56), T(43, 56), T(43, 89), T(41.5, 89)]); S.line('k3', [T(40, 58), T(40, 88)]); S.end();
+  S.begin(); S.poly('k1', [T(36, 89), T(44, 89), T(49, 91), T(49, 94), T(36, 94)]); S.dot('k3', RO + 40, 90, 6, 1); S.dot('k3', RO + 46, 91, 2, 1); S.end();
+  // neck, then the white shirt, belt and bow tie
+  S.begin(); S.poly('s4', [T(35, 16), T(41, 16), T(42, 23), T(35, 23)]); S.shade('s3', [T(35, 16), T(38, 16), T(38, 23), T(35, 23)]); S.end();
+  S.begin();
+  S.poly('w2', [T(29, 21), T(34, 18), T(42, 19), T(46, 22), T(47, 30), T(46.5, 40), T(46, 50), T(45, 55), T(29, 55), T(28, 46), T(27.5, 34), T(27.5, 26)]);
+  S.shade('w1', [T(27, 22), T(32, 20), T(33, 55), T(27, 55)]);
+  S.shade('w3', [T(42, 23), T(45, 24), T(45.5, 38), T(43.5, 38)]);
+  S.line('w1', [T(38, 25), T(37, 36), T(39, 47)]); S.line('w1', [T(44, 42), T(44.5, 52)]);                     // creases in the shirt
+  S.dot('w1', RO + 45, 30, 1, 1); S.dot('w1', RO + 45, 37, 1, 1); S.dot('w1', RO + 45, 44, 1, 1);             // buttons
+  S.shade('k1', [T(28.5, 51), T(45.5, 51), T(45.3, 54), T(28.5, 54)]); S.dot('#c8c8d0', RO + 43, 52, 2, 1);  // belt and buckle
+  S.poly('w3', [T(40, 18.5), T(44, 20), T(43, 23), T(40.5, 21.5)]);                                          // collar
+  S.end();
+  S.begin(); S.poly('k1', [T(42, 20.5), T(46, 19), T(46, 23.5), T(44, 22.5), T(42, 24.5)]); S.dot('k3', RO + 45, 20, 1, 1); S.end();   // bow tie
+  // head: the same hand-drawn profile as the fighters, short grey hair
+  S.begin();
+  S.poly('s4', [H(32, 9), H(34, 5), H(38, 3), H(43, 4), H(46, 7), H(47, 10), H(47, 12), H(48, 13), H(49, 14), H(48, 15), H(47, 15), H(47, 18), H(45, 20), H(41, 21), H(37, 20), H(34, 17), H(32, 13)]);
+  S.shade('s3', [H(32, 9), H(37, 7), H(38, 19), H(34, 17), H(32, 13)]);
+  S.shade('s2', [H(37, 19), H(45, 19), H(44, 21), H(38, 21)]);
+  S.shade('s5', [H(43, 7), H(46, 8), H(46, 11), H(43, 10)]); S.shade('s5', [H(43, 14), H(46, 15), H(46, 17), H(43, 16)]);
+  S.dot('s6', RO + 48, 13); S.dot('s5', RO + 47, 12); S.dot('s2', RO + 47, 15, 1, 1);
+  S.line('s3', [H(42, 13), H(43, 16)]);
+  S.poly('s3', [H(35, 11), H(37, 11), H(38, 14), H(36, 16), H(35, 15)]); S.dot('s2', RO + 36, 12, 1, 3);
+  S.dot('eye', RO + 42, 11, 3, 2); S.dot('iris', RO + 44, 11, 1, 2); S.dot('K', RO + 41, 10, 5, 1); S.dot('s2', RO + 42, 13, 3, 1);
+  S.line('h1', [H(40, 8), H(43, 9), H(46, 9)]); S.dot('h1', RO + 41, 9, 4, 1);
+  S.line('s1', [H(44, 18), H(46, 18)]); S.dot('s2', RO + 45, 19);
+  S.dot('s2', RO + 39, 6, 3, 1); S.dot('s3', RO + 40, 7, 2, 1);                                               // lines on his forehead
+  S.end();
+  rigHair(S, 0, 0, 'short');
+  // near arm: short white sleeve, bare forearm; straight up when he counts
+  if (count) {
+    S.begin(); S.poly('w2', [T(31, 22), T(40, 20), T(44, 13), T(39, 10), T(33, 17)]); S.shade('w1', [T(31, 22), T(34, 21), T(36.5, 13), T(33, 17)]); S.shade('w3', [T(40, 18), T(43, 13), T(42, 12), T(39.5, 17)]); S.end();
+    S.begin(); S.limb(T(41, 12), T(44, -4), 4.6, 3.8, {}); S.end();
+    S.begin(); S.ell('s4', RO + 44.5, -7, 2.6, 3.2); S.dot('s5', RO + 44, -10, 1, 1); S.dot('s5', RO + 45.5, -10, 1, 1); S.dot('s3', RO + 43, -6, 1, 2); S.end();   // an open hand, fingers up
+  } else {
+    S.begin(); S.poly('w2', [T(31, 22), T(40, 21), T(41, 30), T(39, 35), T(34, 35), T(32, 30)]); S.shade('w1', [T(31, 22), T(34, 22), T(35, 35), T(34, 35), T(32, 30)]); S.shade('w3', [T(38, 23), T(40, 23), T(40, 31), T(39, 31)]); S.end();
+    S.begin(); S.limb(T(37, 34), T(41, 48), 4.8, 3.8, { crease:true }); S.end();
+    S.begin(); S.ell('s4', RO + 41.5, 50.5, 2.5, 2.8); S.dot('s3', RO + 40.5, 52, 2, 1); S.end();
+  }
+  return refCache[pose] = S.canvas();
+}
+// in the ring, at the fighters' scale, facing whoever he's watching
+function drawRefRig(g, x, gy, dir, armUp){
+  const c = refDraw(armUp ? 'count' : 'stand'), k = RIGS;
+  g.save(); g.translate(x, gy); if (dir < 0) g.scale(-1, 1);
+  g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k, -FOOTY * k, RW * k, RH * k);
+  g.restore();
+}
+
 /* ================= sound ================= */
 let AC = null;
 function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC) setTimeout(() => sfxLoad(AC), 0); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
@@ -2758,6 +2965,7 @@ function punch(f, type, tgt){
   const P = FT[type], cost = f.rage > 0 ? 0 : P.cost;
   f.weak = f.st < cost; f.st = Math.max(0, f.st - cost);
   f.state = 'wind'; f.t = 0; f.pt = type; f.tgt = type === 'upper' ? 'head' : (tgt || 'head'); f.pid = ++punchSeq; f.whiff = false;
+  f.hand = f.hand ? 0 : 1;                                                       // left, right, left: both hands work
   // a swollen eye shortens how long you get to see his punch coming (shut: no warning at all on the hook); studying tape lengthens it
   const eye = A(M.f[0], 'eye'), tape = (!M.offer.spar && G.fight && G.fight.tape) || 0;
   let tell = 1;
@@ -2961,13 +3169,12 @@ function aiThink(f, o, dt){
 function knockdown(d, a){
   d.hp = 0; d.state = 'down'; d.t = 0; d.kd++; d.kdR++; d.blockHeld = false; d.rage = 0; d.gprog = 0; d.foldAt = 0;
   a.state = 'idle'; a.blockHeld = false;
-  if (M.offer.spar) { banner('THAT\'S ENOUGH', 'y'); return finish(a.side, 'STOP'); }
+  { const cx = Math.round(LW / 2), edge = away(d) < 0 ? cx - ringHalf() - 6 : cx + ringHalf() + 6; d.fallFwd = !!d.fold || Math.abs(edge - d.x) < 92; }
+  if (M.offer.spar) { fitDown(d, 10); banner('THAT\'S ENOUGH', 'y'); return finish(a.side, 'STOP'); }   // sparring stops right there, on the canvas
   M.shake = .3; M.flashes += 25; hype(.9);
   M.capture = { frames:M.buf.slice(), until:M.time + 1.9 };                // keep this for the replay, the fall included
   // he doesn't drop like a stone: he staggers, teeters, then goes over (or folds to his knees from a liver shot)
-  d.state = 'falling'; d.fallT = 0; d.fallFwd = !!d.fold; d.T1 = d.fold ? .55 : rnd(.55, .9);
-  { const cx = Math.round(LW / 2), edge = away(d) < 0 ? cx - ringHalf() - 6 : cx + ringHalf() + 6;   // no room behind him: he pitches forward
-    if (Math.abs(edge - d.x) < 92) d.fallFwd = true; }
+  d.state = 'falling'; d.fallT = 0; d.T1 = d.fold ? .55 : rnd(.55, .9);   // (which way he goes was decided above)
   M.phase = 'falling'; M.downSide = d.side;
   fxAt(pick(['OHHH!', 'HE\'S HURT!', 'OHHH NO!']), rnd(.25, .75), rnd(.1, .22), 'y');
 }
@@ -3253,8 +3460,9 @@ function targetPose(f){
 }
 function frameOf(f){
   const st = f.state, body = f.tgt === 'body';
-  const hit = f.pt === 'jab' ? (body ? 'jabBH' : 'jabH') : f.pt === 'hook' ? (body ? 'hookBH' : 'hookH') : 'upH';
-  const wind = f.pt === 'jab' ? (body ? 'jabBW' : 'jabW') : f.pt === 'hook' ? (body ? 'hookBW' : 'hookW') : 'upW';
+  const F = f.hand ? 'F' : '';                                                       // which hand he's throwing with
+  const hit = F + (f.pt === 'jab' ? (body ? 'jabBH' : 'jabH') : f.pt === 'hook' ? (body ? 'hookBH' : 'hookH') : 'upH');
+  const wind = F + (f.pt === 'jab' ? (body ? 'jabBW' : 'jabW') : f.pt === 'hook' ? (body ? 'hookBW' : 'hookW') : 'upW');
   switch (st) {
     case 'wind': return wind;
     case 'hit': return hit;
@@ -3395,7 +3603,7 @@ function draw(){
     const t0 = M.rFrames[0].t + M.rt, fr = M.rFrames.find(x => x.t >= t0) || M.rFrames[M.rFrames.length - 1];
     view = fr.f.map((v, i) => ({ ...v, src:M.f[i].src })); parts = fr.parts; ref = fr.ref;
   }
-  if (M.phase !== 'walkout' && M.phase !== 'tut') { g.save(); g.translate(ref.x, gy - 5); g.scale(1.35, 1.35); drawRef(g, 0, 0, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0); g.restore(); }
+  if (M.phase !== 'walkout' && M.phase !== 'tut') drawRefRig(g, ref.x, gy, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
     const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src)) : null };
