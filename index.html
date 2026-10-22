@@ -1150,8 +1150,9 @@ function robeOf(f){
       counter:{ hood:['none', 'pointed'], collar:['shawl', 'band'], len:['long'], sleeve:['wide'], obi:['bow', 'plain'], motif:['koi', 'blossom'] },
     }[f.style] || {};
     const pick2 = (k, i) => { const l = FIT[k]; return l ? l[(h >>> i) % l.length] : pk(k, i); };
-    Object.assign(f.robe, f.me ? { hood:'up', collar:'band', len:'long', sleeve:'wide', obi:'plain', motif:'dragon' } : { hood:pick2('hood', 1), collar:pick2('collar', 4), len:pick2('len', 7), sleeve:pick2('sleeve', 9), obi:pick2('obi', 12), motif:pick2('motif', 15) });
+    Object.assign(f.robe, f.me ? { hood:'down', collar:'band', len:'long', sleeve:'wide', obi:'plain', motif:'dragon' } : { hood:pick2('hood', 1), collar:pick2('collar', 4), len:pick2('len', 7), sleeve:pick2('sleeve', 9), obi:pick2('obi', 12), motif:pick2('motif', 15) });
   }
+  if (f.robe && f.me && !f.robe.cut2) { if (f.robe.hood === 'up') f.robe.hood = 'down'; f.robe.cut2 = true; }   // the pick: robe 5, hood down
   if (f.robe) return f.robe;
   const i = G ? rankOf(f.id) : -1;
   f.robe = { color:f.look.trunks === '#f4f4f4' ? '#d8d8d8' : f.look.trunks, trim:f.look.trunks === '#1d1d1d' ? '#e0b12d' : '#1d1d1d', emblem:pick(Object.keys(EMBLEMS)), tier:i === 0 ? 3 : i > 0 && i <= 5 ? 2 : i > 0 && i <= 15 ? 1 : 0 };
@@ -2177,7 +2178,7 @@ const ROBE_CUTS = {
 };
 const CUT_LABEL = { hood:'Hood', collar:'Collar', len:'Length', sleeve:'Sleeves', obi:'Belt', motif:'Back art' };
 function robeRig(R){
-  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:R.hood || 'up', collar:R.collar || 'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:R.obi || 'plain', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
+  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:R.hood || 'down', collar:R.collar || 'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:R.obi || 'plain', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
 }
 /* ================= sound ================= */
 let AC = null;
