@@ -3090,9 +3090,9 @@ function mkF(src, side, user, opt = {}){
   const boost = (user ? opt.myGrit : opt.theirGrit) || 0, r = boost ? { ...src.rat, grit:Math.min(99, src.rat.grit + boost) } : src.rat, ail = user ? { ...(src.ail || {}) } : {};
   const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && opt.id && G.restedOn === G.day - 1 && fat <= 25;
   const wt = sizeOf(src).wt, bulk = (wt - 180) / 60;                          // 0 at 180 lb, 1 at 240
-  const hpMax = (70 + r.grit * .6) * (opt.spar && !user ? 1 : 2) * (1 + .1 * bulk), stMax = (50 + r.sta * .7) * (1 - fat / 300);
+  const hpMax = (70 + r.grit * .6) * (opt.spar && !user ? 1 : 2) * (1 + .15 * bulk), stMax = (50 + r.sta * .7) * (1 - fat / 300);
   return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
-    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1) * (1 + .12 * bulk), sm:(1.25 - .5 * r.spd / 100) * (1 + .086 * bulk), lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1) * (1 + .086 * bulk), walkV:WALK * (.8 + r.spd / 250) * (1 - .086 * bulk) * (1 + .08 * ((user && G.gear && G.gear.shoes) || 0)), gear:user ? { ...(G.gear || {}) } : {}, sharp,
+    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1) * (1 + .6 * bulk), sm:(1.25 - .5 * r.spd / 100) * (1 + .22 * bulk), lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1) * (1 + .22 * bulk), walkV:WALK * (.8 + r.spd / 250) * (1 - .15 * bulk) * (1 + .08 * ((user && G.gear && G.gear.shoes) || 0)), gear:user ? { ...(G.gear || {}) } : {}, sharp,
     state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0, weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
     x:0, walk:0, pinned:false, ail, rock:0, maxRock:0, unanswered:0, streak:0, lastLand:-9, foldAt:0, gprog:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
     ai:{ next:rnd(.9, 1.6), seen:0, react:0, reacted:false, punished:0, blockUntil:0 } };
