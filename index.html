@@ -4123,7 +4123,7 @@ const MINIS = {
         }
       }
     },
-    grade:s => s <= 18.5 ? 'S' : s <= 20 ? 'A' : s <= 22 ? 'B' : s <= 25 ? 'C' : 'F',
+    grade:s => s <= 14 ? 'S' : s <= 15.5 ? 'A' : s <= 16.8 ? 'B' : s <= 18 ? 'C' : 'F',
     score:S => S.top !== null ? S.top : 999,
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
