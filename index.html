@@ -4060,13 +4060,13 @@ const MINIS = {
     hud:S => S.live ? (S.combo > 1 ? `Combo ${S.combo}` : 'Keep it going') : 'Tap to start it',
   },
   run: {
-    name:'Roadwork', how:'Run the stairs to the top. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
-    init:() => ({ rate:(() => { const r = G.fighters.me.rat; return 11 + Math.max(0, r.spd - 40) * .25 + Math.max(0, r.sta - 40) * .25; })(), step:0, total:120, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
+    name:'Roadwork', how:'Run the stairs to the top. Take them two at a time: tap LEFT for your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
+    init:() => ({ rate:(() => { const r = G.fighters.me.rat; return 22 + Math.max(0, r.spd - 40) * .5 + Math.max(0, r.sta - 40) * .5; })(), step:0, total:120, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
       for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
         const t = S['f' + k], a = S['a' + k];
-        if (a < t) { S['a' + k] = Math.min(t, a + dt * S.rate); S['m' + k] = (S['a' + k] - (t - 2)) / 2; } else S['m' + k] = 0;
+        if (a < t) { S['a' + k] = Math.min(t, a + dt * S.rate); S['m' + k] = (S['a' + k] - (t - 4)) / 4; } else S['m' + k] = 0;
       }
       S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
       const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
@@ -4077,9 +4077,9 @@ const MINIS = {
       if (S.top !== null || S.stumble > 0) return;
       const foot = side < 0 ? 'L' : 'R';
       if (S['f' + foot] > S['f' + (foot === 'L' ? 'R' : 'L')]) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }   // that foot is already in front
-      S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 1);
+      S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 2);           // two at a time: skip a step
       S.step = Math.max(S.fL, S.fR);
-      if (S.fL >= S.total && S.fR >= S.total - 1 || S.fR >= S.total && S.fL >= S.total - 1) { S.fL = S.fR = S.total; }
+      if (Math.max(S.fL, S.fR) >= S.total) { S.fL = S.fR = S.total; }
       if (S.step >= S.total && S.top === null) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
     },
     draw(S){
@@ -4101,12 +4101,17 @@ const MINIS = {
       for (let c = 0; c < 6; c++) { MR(bx + 6 + c * 14, by - 66, 6, 66, '#ece6d2'); MR(bx + 7 + c * 14, by - 66, 1, 66, '#d0c8b0'); MR(bx + 10 + c * 14, by - 66, 1, 66, '#d0c8b0'); MR(bx + 5 + c * 14, by - 68, 8, 2, '#f4efe0'); }
       MR(bx + 2, by - 4, 86, 4, '#c8c0aa');
       drawRunner(mg, S, -cX, -cY);
-      if (S.top === null) {                                                     // which foot is next
+      if (S.top === null) {                                                     // the two foot pads: tap that side of the screen; the next foot glows
         const nx = S.fL <= S.fR ? 0 : 1;
-        MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)');
+        for (const sd of [0, 1]) {
+          const x = sd ? MW - 42 : 4, on = sd === nx;
+          mg.fillStyle = on ? 'rgba(255,210,63,.55)' : 'rgba(255,255,255,.16)'; mg.fillRect(x, LH - 26, 38, 22);
+          mg.fillStyle = on ? '#ffd23f' : 'rgba(255,255,255,.5)'; mg.fillRect(x, LH - 26, 38, 1); mg.fillRect(x, LH - 5, 38, 1); mg.fillRect(x, LH - 26, 1, 22); mg.fillRect(x + 37, LH - 26, 1, 22);
+          mg.fillStyle = on ? '#1a0f14' : 'rgba(255,255,255,.7)'; mg.font = 'bold 12px monospace'; mg.textAlign = 'center'; mg.fillText(sd ? 'R' : 'L', x + 19, LH - 10); mg.textAlign = 'left';
+        }
       }
     },
-    grade:s => s <= 20 ? 'S' : s <= 25 ? 'A' : s <= 31 ? 'B' : s <= 42 ? 'C' : 'F',
+    grade:s => s <= 10.5 ? 'S' : s <= 13 ? 'A' : s <= 16 ? 'B' : s <= 22 ? 'C' : 'F',
     score:S => S.top !== null ? S.top : 999,
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
@@ -4160,7 +4165,7 @@ function joint(A, Bp, a, b, bend){
   const k = Math.acos(clamp((a * a + d * d - b * b) / (2 * a * d || 1), -1, 1)), t = ang - k * bend;
   return [A[0] + Math.cos(t) * a, A[1] + Math.sin(t) * a];
 }
-const footAt = (S, k, ox, oy) => { const i = S['a' + k], m = S['m' + k] || 0; return [i * RUN_SX + RUN_SX * .5 + ox, -i * RUN_SY + oy - Math.sin(clamp(m, 0, 1) * Math.PI) * 3.5]; };
+const footAt = (S, k, ox, oy) => { const i = S['a' + k], m = S['m' + k] || 0; return [i * RUN_SX + RUN_SX * .5 + ox, -i * RUN_SY + oy - Math.sin(clamp(m, 0, 1) * Math.PI) * 6]; };   // a high knee to clear the step
 function runnerHip(S){ const L = footAt(S, 'L', 0, 0), R = footAt(S, 'R', 0, 0); return [(L[0] + R[0]) / 2 - 1, (L[1] + R[1]) / 2 - 20]; }
 // the stair runner: the hand-drawn fighter in grey trunks and hand wraps; each leg is solved to the step its foot is on
 const RUN_K = .6;
