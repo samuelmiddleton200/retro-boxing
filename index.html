@@ -188,18 +188,17 @@ img.pt{image-rendering:pixelated;display:block}
 .tline span:nth-child(2){font-family:var(--px);font-size:10px;color:var(--muted);align-self:center}
 
 /* --- story --- */
-.iv{display:flex;flex-direction:column;align-items:center;gap:10px;height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:6px 4px 24px}
-.ivscene{position:relative;width:min(470px,64%);flex:none;border:3px solid #fff;border-radius:6px;overflow:hidden;background:#141a38}
-.ivscene img{display:block;width:100%;image-rendering:pixelated}
-.ivtag{position:absolute;left:0;right:0;bottom:0;background:#c42d2d;color:#fff;font-size:12px;letter-spacing:2px;text-align:center;padding:4px 0}
-.ivwho{text-align:center}
-.ivq,.ivans,.ivyou,.ivreact{width:min(780px,100%)}
-.ivq{color:#fff;font-size:19px;line-height:1.3;text-align:center;padding:0 6px}
-.ivans{display:grid;gap:5px}
-.ivbtn{background:#fff;color:#16101a;border:2px solid #fff;border-radius:7px;padding:4px 12px;font:inherit;font-size:17px;line-height:1.3;text-align:left;cursor:pointer;box-shadow:0 4px 0 #0b0926}
-.ivbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #0b0926}
-.ivyou{background:#fff;color:#16101a;border-radius:7px;padding:4px 12px;font-size:17px;line-height:1.3}
-.ivreact{display:grid;gap:4px;font-size:16px;text-align:center}
+.iv{display:flex;flex-direction:column;align-items:center;gap:1.2dvh;height:calc(100dvh - 6px);overflow:hidden;padding:1dvh 4px 0}
+.ivscene{position:relative;height:44dvh;flex:none;border:3px solid #fff;border-radius:6px;overflow:hidden;background:#141a38}
+.ivscene img{display:block;height:100%;width:auto;image-rendering:pixelated}
+.ivtag{position:absolute;left:0;right:0;bottom:0;background:#c42d2d;color:#fff;font-size:clamp(9px,2.4dvh,12px);letter-spacing:2px;text-align:center;padding:2px 0}
+.ivq,.ivans,.ivyou,.ivreact{width:min(820px,100%)}
+.ivq{color:#fff;font-size:clamp(12px,4.2dvh,19px);line-height:1.2;text-align:center;padding:0 6px;flex:none}
+.ivans{display:grid;gap:.8dvh;flex:none}
+.ivbtn{background:#fff;color:#16101a;border:2px solid #fff;border-radius:7px;padding:.5dvh 12px;font:inherit;font-size:clamp(11px,3.7dvh,17px);line-height:1.15;text-align:left;cursor:pointer;box-shadow:0 3px 0 #0b0926}
+.ivbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #0b0926}
+.ivyou{background:#fff;color:#16101a;border-radius:7px;padding:.6dvh 12px;font-size:clamp(11px,3.7dvh,17px);line-height:1.2}
+.ivreact{display:grid;gap:.5dvh;font-size:clamp(11px,3.4dvh,16px);text-align:center}
 .ivnext{flex:none}
 .story{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px;align-items:center;min-height:calc(100dvh - 40px)}
 .story .face{border:3px solid var(--white);border-radius:6px;background:var(--blue-dd);overflow:hidden}
@@ -4438,8 +4437,7 @@ const VIEWS = {
       ? `<div class="ivyou">&ldquo;${esc(Q.a[I.picked])}&rdquo;</div><div class="ivreact">${I.log[I.log.length - 1].map((t, j) => `<div class="${j ? 'muted' : ''}">${j ? '' : 'Lenny: '}${esc(t)}</div>`).join('')}</div>
          <button class="btn go ivnext" data-a="ivnext">${I.i >= I.qs.length - 1 ? 'That\'s a wrap' : 'Next question'}</button>`
       : `<div class="ivans">${order.map(k => `<button class="ivbtn" data-a="iv" data-k="${k}">&ldquo;${esc(Q.a[k])}&rdquo;</button>`).join('')}</div>`;
-    return `<div class="iv"><div class="ivscene"><img src="${ivImg}" alt=""><div class="ivtag">SUNDAY MORNING &middot; FIGHT TALK</div></div>
-      <div class="label ivwho">Lenny Marsh &middot; Channel 6${per ? ` &middot; they call you <b class="yellow">${per}</b>` : ''}</div>
+    return `<div class="iv"><div class="ivscene"><img src="${ivImg}" alt=""><div class="ivtag">FIGHT TALK &middot; LENNY MARSH, CH. 6${per ? ` &middot; <span style="color:#ffd23f">${per.toUpperCase()}</span>` : ''}</div></div>
       <div class="ivq">&ldquo;${esc(Q.q)}&rdquo;</div>${body}
       <div class="dots">${I.qs.map((_, j) => `<i class="${j <= I.i ? 'on' : ''}"></i>`).join('')}</div></div>`;
   },
