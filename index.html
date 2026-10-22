@@ -3130,7 +3130,7 @@ function resolve(a, d){
   if (Math.abs(d.x - a.x) > P.reach * (.7 + .3 * scaleOf(a.src).hs)) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
-  let dmg = P.dmg * a.pm * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
+  let dmg = P.dmg * a.pm * (a.user ? 1 : 1 + .3 * skillOf(a.src)) * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
   const guarded = d.state === 'block' && (d.guard === 'high') === head;
   if (guarded) {
     const sore = Math.max(A(d, 'ribs'), A(d, 'liver')) / 100;             // a beaten-up body can't hold the guard up as well
@@ -3292,13 +3292,13 @@ function aiThink(f, o, dt){
   if (AI.next <= 0 && (f.state === 'idle' || f.state === 'block') && !f.blockHeld) {
     const tired = f.st < f.stMax * .22;
     if ((tired || (f.pinned && f.hp < f.hpMax * .35)) && Math.random() < .6) { f.blockHeld = true; f.guard = Math.random() < .7 ? 'high' : 'low'; AI.blockUntil = M.time + rnd(.6, 1.2); AI.next = rnd(.6, 1.1); return; }
-    const w = { ...S.w };
+    const w = { ...S.w }; w.jab *= 1 - .45 * sk;                          // the good ones don't just paw with the jab
     if (o.blockT > .7) { w.upper += .5; w.jab *= .5; }                     // you've been sitting behind the gloves
     const x = Math.random() * (w.jab + w.hook + w.upper);
     const t = x < w.jab ? 'jab' : x < w.jab + w.hook ? 'hook' : 'upper';
     if (!inRange(t)) { AI.next = .12; return; }                            // walk in first
     punch(f, t, pickTgt());
-    AI.next = (Math.random() < .3 ? rnd(.15, .3) : rnd(.6, 1.6) / S.agg * (1.3 - sk * .45));
+    AI.next = (Math.random() < .3 + sk * .25 ? rnd(.15, .3) : rnd(.45, 1.2) / S.agg * (1.3 - sk * .55));   // the best men throw in bunches
   }
 }
 
