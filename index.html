@@ -882,7 +882,7 @@ function trainGain(k, q){
 const REST = {
   sleep:{ name:'Sleep in',   fat:35, desc:'Clears the most fatigue.' },
   ice:  { name:'Ice bath',   fat:20, heal:{ eye:1.6, ribs:1.4, liver:1.4, hand:1.5, jaw:1.3, nose:1.2 }, desc:'Swelling and bruises go down faster.' },
-  tape: { name:'Study tape', fat:15, desc:'Learn his habits: his punches show a bit earlier. Up to 3 times.', needFight:true },
+  tape: { name:'Study tape', fat:15, desc:'Learn his habits: his punches show a bit earlier. Study all 5 days and you find his biggest weakness.', needFight:true },
 };
 const TREAT = {
   massage:{ name:'Sports massage', cost:300,  fat:15, fix:{ ribs:6, liver:14 }, desc:'Deep tissue work on the back and sides. Loosens tired muscles and moves the bruising out of the ribs and liver.' },
@@ -917,13 +917,28 @@ function heal(rest, act, treats){
     A[k] -= amt; if (A[k] < 1) delete A[k];
   }
 }
+// what five days of tape show: the real hole in his game, read from his ratings and his style
+function weaknessOf(o){
+  const r = o.rat, avg = RK.reduce((a, k) => a + r[k], 0) / 4, low = RK.reduce((a, k) => r[k] < r[a] ? k : a, 'pow'), st = STYLES[o.style] || {};
+  if (avg - r[low] >= 3) return {
+    sta:'He\'s got a weak midsection and no gas tank. Body shots drain him fast. Aim for the body, and he\'ll fade in the late rounds.',
+    grit:'He\'s got a weak chin. He can\'t take much upstairs. Load up on hooks and uppercuts to the head.',
+    spd:'He\'s slow. You\'ll see everything coming. Slip, then make him pay with counters.',
+    pow:'He can\'t punch. His shots won\'t hurt you much. Walk him down and trade with him.',
+  }[low];
+  if ((st.dodge || 0) < .3) return 'He doesn\'t move his head. He just walks in. The jab will land all night: double it up.';
+  return 'He\'s got no real hole, but he lets his hands drop after he throws. Make him miss, then counter.';
+}
 function restDay(act, treats){
   const before = { fat:G.fat, ail:{ ...G.fighters.me.ail } };
   const cost = treats.reduce((s, t) => s + TREAT[t].cost, 0);
   if (cost > G.cash) return null;
   G.cash -= cost;
   G.fat = Math.max(0, G.fat - REST[act].fat - treats.reduce((s, t) => s + (TREAT[t].fat || 0), 0));
-  if (act === 'tape' && G.fight) G.fight.tape = Math.min(3, (G.fight.tape || 0) + 1);
+  if (act === 'tape' && G.fight) {
+    G.fight.tape = Math.min(5, (G.fight.tape || 0) + 1);
+    if (G.fight.tape >= 5 && !G.fight.weak) { const o = G.fighters[G.fight.id]; G.fight.weak = weaknessOf(o); storyBeat([['news', `Five days of tape on ${o.name}. Your trainer stops the projector.`], ['news', `"${G.fight.weak}"`]]); }
+  }
   heal(true, act, treats);
   G.restedOn = G.day;
   newDay(); save();
@@ -4120,7 +4135,7 @@ const VIEWS = {
   },
   rest(){
     const me = G.fighters.me, A = me.ail;
-    const acts = Object.entries(REST).filter(([, R]) => !R.needFight || G.fight).map(([k, R]) => `<button class="rcard ${restPick === k ? 'on' : ''}" data-a="restpick" data-k="${k}"><div class="nm">${R.name}</div><div class="ds">${R.desc}</div><div class="ft">Fatigue -${R.fat}${k === 'tape' && G.fight ? ` &middot; studied ${G.fight.tape || 0}/3` : ''}</div></button>`).join('');
+    const acts = Object.entries(REST).filter(([, R]) => !R.needFight || G.fight).map(([k, R]) => `<button class="rcard ${restPick === k ? 'on' : ''}" data-a="restpick" data-k="${k}"><div class="nm">${R.name}</div><div class="ds">${R.desc}</div><div class="ft">Fatigue -${R.fat}${k === 'tape' && G.fight ? ` &middot; studied ${G.fight.tape || 0}/5` : ''}</div></button>`).join('');
     const useful = t => { const T = TREAT[t]; return T.mult || T.fat || Object.keys(T.fix || {}).some(k => A[k] >= 1); };
     const treats = Object.entries(TREAT).filter(([t]) => useful(t)).map(([t, T]) => `<button class="trow2 ${treatPick.has(t) ? 'on' : ''}" data-a="treat" data-k="${t}" ${G.cash < T.cost && !treatPick.has(t) ? 'disabled' : ''}>
       <span class="ck">${treatPick.has(t) ? '&#10003;' : ''}</span><span class="grow"><b>${T.name}</b> <span class="muted">${T.desc}</span></span><b class="num yellow">${money(T.cost)}</b></button>`).join('');
@@ -4178,7 +4193,7 @@ const VIEWS = {
         ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
       <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>${o.theirGrit ? `<div class="label bad">+${o.theirGrit} Grit: you moved the date</div>` : ''}
-        <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>`;
+        <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>${o.weak ? `<div class="panel" style="margin-top:8px"><span class="label">From the tape</span> ${esc(o.weak)}</div>` : ''}`;
   },
   interview(){
     const I = G.pendingInterview; if (!I) { screen = 'hub'; return VIEWS.hub(); }
