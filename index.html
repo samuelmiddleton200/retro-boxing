@@ -321,7 +321,8 @@ tr.champ td{color:#fff3b8}
 .sheet{display:flex;gap:10px;align-items:center;border:3px solid var(--yellow);border-radius:6px;background:var(--blue-dd);padding:6px 8px;margin-bottom:8px;position:sticky;top:0;z-index:2}
 .sheet .nm{font-family:var(--px);font-size:12px} .sheet .face{border:2px solid #fff;border-radius:4px;overflow:hidden;flex:none}
 tr.tap{cursor:pointer} tr.tap:active td{background:rgba(255,255,255,.08)}
-.teamgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.teamgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.teamgrid>.panel{max-height:calc(100dvh - 76px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
 .tm{display:flex;gap:8px;align-items:center;padding:5px 0;border-top:2px solid rgba(255,255,255,.12)}
 .tm.on b{color:var(--yellow)} .tm .ds{font-size:12px;color:var(--muted)}
 /* --- robe --- */
@@ -736,7 +737,7 @@ function maybeChallenge(){
     G.mail.push({ type:'ch', id:due.id, exp:G.day + 10, grudge:true, rematch:due.rematch, title, msg:due.rematch ? 'Wants the rematch. Says last time was a fluke.' : pick(R.tape), purse:Math.round(purseFor(due.id, title) * 1.5 / 100) * 100 + 1000, rounds:Math.max(roundsFor(due.id, title), 4) });
     return;
   }
-  if (G.mail.filter(m => m.type === 'ch').length >= 3 || Math.random() > .16) return;
+  if (G.mail.filter(m => m.type === 'ch').length >= 3 || Math.random() > .16 + mgr().calls) return;
   const L = G.ladder, i = L.indexOf('me');
   let id;
   if (i < 0) id = Math.random() < .7 ? pick(G.pool) : L[ri(26, 30)];
@@ -754,8 +755,8 @@ function callOut(id){
   const c = G.card.find(c => c.a === id || c.b === id);
   if (c) return { ok:false, msg:`He's already booked: fights ${esc(G.fighters[c.a === id ? c.b : c.a].name)} on ${fmtDate(c.day)}.` };
   const mine = me < 0 ? 40 : me, his = them < 0 ? 40 : them;
-  if (them === 0 && mine > 2) return { ok:false, msg:`"${pick(['Get to the top two first.', 'Champions don\'t fight down the rankings.', REFUSALS[2]])}"` };
-  if (his < mine - 6) return { ok:false, msg:`"${pick(REFUSALS)}"` };
+  if (them === 0 && mine > 2 + mgr().champ) return { ok:false, msg:`"${pick(['Get to the top two first.', 'Champions don\'t fight down the rankings.', REFUSALS[2]])}"` };
+  if (his < mine - 6 - mgr().reach) return { ok:false, msg:`"${pick(REFUSALS)}"` };
   if (Math.random() < .12) return { ok:false, msg:`"Not right now. Ask me next month."` };
   const title = them === 0 || mine === 0, rv = rivalOf(id);
   const gr = rv && G.rivals[f.rival] && !G.rivals[f.rival].beaten;
@@ -842,7 +843,7 @@ function purseFor(id, title){
   const i = rankOf(id);
   if (i < 0) return ri(5, 9) * 100;
   const base = 300 + 60 * (31 - i) ** 2;
-  return Math.round(base * (title ? 2.2 : 1) * (1 + (G && G.hype || 0) / 250) / 100) * 100;
+  return Math.round(base * (title ? 2.2 : 1) * (1 + (G && G.hype || 0) / 250) * (1 + mgr().purse) / 100) * 100;
 }
 
 /* ================= training and rest days ================= */
@@ -862,6 +863,20 @@ const GYMS = [
   { name:'Pro gym',      cost:30000, heal:.4,  desc:'Good sparring partners, a real ring. Heal 40% faster.' },
   { name:'Elite center', cost:90000, heal:.7,  desc:'Physio room, the best partners. Heal 70% faster.' },
 ];
+const MANAGERS = [
+  { name:'No manager',         fee:0,     cut:0,   reach:0, champ:0, purse:0,   calls:0,   desc:'You make your own calls. Higher-ranked men won\'t pick up.' },
+  { name:'Vinnie Caruso',      fee:5000,  cut:.10, reach:3, champ:0, purse:.12, calls:.05, desc:'Small-time, but he knows people. Men ranked a little higher will take your fight. Purses up 12%.' },
+  { name:'Ruth Abernathy',     fee:15000, cut:.14, reach:6, champ:1, purse:.25, calls:.09, desc:'Connected all over the East Coast. Bigger names say yes, more offers, purses up 25%.' },
+  { name:'"Big" Lou Delgado',  fee:30000, cut:.18, reach:10, champ:3, purse:.4, calls:.14, desc:'Promotes the biggest cards in the country. Almost anybody takes your call, title shots come early, purses up 40%.' },
+];
+const mgr = () => MANAGERS[(G && G.mgr) || 0];
+// gear: three levels each, bought in order
+const GEAR = {
+  mouth:{ name:'Mouthguard', tiers:[['Gum shield', 1000], ['Boil-and-bite guard', 4000], ['Custom-fit guard', 12000]], what:l => `Jaw injuries build ${20 * l}% slower, you get rocked ${12 * l}% slower` },
+  shoes:{ name:'Shoes', tiers:[['Canvas high-tops', 1500], ['Leather boxing boots', 5000], ['Custom lightweight boots', 14000]], what:l => `You move ${8 * l}% faster and recover from slips and ducks ${15 * l}% sooner` },
+  gloves:{ name:'Gloves', tiers:[['Firm-padded gloves', 1500], ['Pro gloves', 6000], ['Custom horsehair gloves', 16000]], what:l => `Your punches land ${30 * l}% harder through his guard and drain more of his gas` },
+};
+const gearOf = f => (f && f.gear) || {};
 const TRAINERS = [
   { name:'Sal Moretti',     fee:0,    gain:0,   fat:0,   desc:'Old-timer. Works for free and means well.' },
   { name:'Benny Ortiz',     fee:500,  gain:.15, fat:.1,  desc:'+15% gains, a little less tiring. Basic advice.' },
@@ -974,6 +989,7 @@ function applyResult(R){
     const oi = rankOf(o.id);
     if (oi >= 0 && wasRank >= 0 && oi < wasRank) dropMe(ri(1, 3)); else beat(o.id, 'me');
   }
+  const cut = Math.round(pay * mgr().cut); pay -= cut; R.cut = cut;
   G.cash += pay;
   // you carry the damage out of the ring
   me.ail = {};
@@ -2952,7 +2968,7 @@ function mkF(src, side, user, opt = {}){
   const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && opt.id && G.restedOn === G.day - 1 && fat <= 25;
   const hpMax = (70 + r.grit * .6) * 2, stMax = (50 + r.sta * .7) * (1 - fat / 300);
   return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
-    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250), sharp,
+    pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250) * (1 + .08 * ((user && G.gear && G.gear.shoes) || 0)), gear:user ? { ...(G.gear || {}) } : {}, sharp,
     state:'idle', t:0, dur:0, pt:null, tgt:'head', pid:0, weak:false, whiff:false, blockHeld:false, guard:'high', evadeCD:0, kd:0, kdR:0, thrown:0, landed:0, rThrown:0, rLanded:0, rDmg:0,
     x:0, walk:0, pinned:false, ail, rock:0, maxRock:0, unanswered:0, streak:0, lastLand:-9, foldAt:0, gprog:0, rage:0, pose:copyPose(POSE.guard), blockT:0,
     ai:{ next:rnd(.9, 1.6), seen:0, react:0, reacted:false, punished:0, blockUntil:0 } };
@@ -3009,6 +3025,7 @@ function resolve(a, d){
   if (guarded) {
     const sore = Math.max(A(d, 'ribs'), A(d, 'liver')) / 100;             // a beaten-up body can't hold the guard up as well
     dmg *= GUARD[a.pt] * (1 + Math.min(.8, sore * 1.2)) * (head ? 1 : 1 + A(d, 'ribs') / 120);
+    if (gearOf(a).gloves) { dmg *= 1 + .3 * gearOf(a).gloves; d.st = Math.max(0, d.st - P.cost * .15 * gearOf(a).gloves); }   // good gloves get through the guard
     d.st = Math.max(0, d.st - P.cost * .6); blockSound(); push(d, 1.5);
     sparks(hitX, hitY, 3, '#bfe6ff');
     if (a.pt !== 'jab') addAil(a, 'hand', .5);
@@ -3027,11 +3044,12 @@ function resolve(a, d){
     // what the punch does to him
     if (head) {
       if (a.pt === 'jab') { addAil(d, 'nose', dmg * 1.1 * k); addAil(d, 'eye', dmg * .5 * k); }
-      else if (a.pt === 'hook') { addAil(d, 'eye', dmg * .9 * k); addAil(d, 'jaw', dmg * .6 * k); }
-      else { addAil(d, 'jaw', dmg * k); addAil(d, 'nose', dmg * .6 * k); }
+      const jm = 1 - .2 * (gearOf(d).mouth || 0);                              // a good mouthguard saves the jaw
+      if (a.pt === 'hook') { addAil(d, 'eye', dmg * .9 * k); addAil(d, 'jaw', dmg * .6 * k * jm); }
+      else if (a.pt !== 'jab') { addAil(d, 'jaw', dmg * k * jm); addAil(d, 'nose', dmg * .6 * k); }
       if (A(d, 'cut')) addAil(d, 'cut', dmg * .55 * k);
       else if (a.pt !== 'jab' && A(d, 'eye') > 25 && Math.random() < .12 + (tag ? .12 : 0)) { addAil(d, 'cut', 15); fx('CUT!', d.side, 'r'); }
-      d.rock += dmg * (a.pt === 'jab' ? .8 : a.pt === 'hook' ? 2 : 2.6) * kr * (1 + A(d, 'head') / 100) * (1 + A(d, 'jaw') / 150);
+      d.rock += dmg * (a.pt === 'jab' ? .8 : a.pt === 'hook' ? 2 : 2.6) * kr * (1 + A(d, 'head') / 100) * (1 + A(d, 'jaw') / 150) * (1 - .12 * (gearOf(d).mouth || 0));
       if (d.rock > 55 && !d.rockedShown) { d.rockedShown = true; fx('ROCKED!', d.side, 'y'); hype(.3); }
     } else {
       d.st = Math.max(0, d.st - dmg * BODY_DRAIN);
@@ -3103,7 +3121,7 @@ function step(f, o, dt){
     case 'wind': if (f.t >= f.dur) { f.state = 'hit'; f.t = 0; f.dur = FT[f.pt].hit; resolve(f, o); } break;
     case 'hit': if (f.t >= f.dur) { f.state = 'rec'; f.t = 0; f.dur = FT[f.pt].rec * f.sm + (f.whiff ? OPEN_T : 0); } break;
     case 'rec': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.whiff = false; if (f.queued) { const q = f.queued; f.queued = null; punch(f, q[0], q[1]); } } break;
-    case 'slip': case 'duck': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.evadeCD = EVADE_CD; } break;
+    case 'slip': case 'duck': if (f.t >= f.dur) { f.state = f.blockHeld ? 'block' : 'idle'; f.evadeCD = EVADE_CD * (1 - .15 * (gearOf(f).shoes || 0)); } break;
     case 'stun': if (f.t >= f.dur) f.state = f.blockHeld ? 'block' : 'idle'; break;
     case 'block': if (!f.blockHeld) f.state = 'idle'; break;
     case 'idle': if (f.blockHeld) f.state = 'block'; break;
@@ -4395,7 +4413,8 @@ const VIEWS = {
   team(){
     const gyms = GYMS.map((Gm, k) => `<div class="tm ${k === G.gym ? 'on' : ''}"><div class="grow"><b>${Gm.name}</b><div class="ds">${Gm.desc}</div></div>${k === G.gym ? '<span class="label">Yours</span>' : k < G.gym ? '' : `<button class="btn sm go" data-a="buygym" data-k="${k}" ${G.cash < Gm.cost || k !== G.gym + 1 ? 'disabled' : ''}>${money(Gm.cost)}</button>`}</div>`).join('');
     const trs = TRAINERS.map((T, k) => `<div class="tm ${k === G.trainer ? 'on' : ''}"><div class="grow"><b>${T.name}</b><div class="ds">${T.desc}</div></div>${k === G.trainer ? '<span class="label">Hired</span>' : `<button class="btn sm ${k ? 'go' : ''}" data-a="hire" data-k="${k}" ${G.cash < T.fee ? 'disabled' : ''}>${T.fee ? money(T.fee) + '/mo' : 'Free'}</button>`}</div>`).join('');
-    return `${bar('Team', '<button class="btn sm" data-a="hub">Back</button> <button class="btn sm go" data-a="robe">Robe</button>')}<div class="teamgrid"><div class="panel"><div class="label">Gym (one-time)</div>${gyms}</div><div class="panel"><div class="label">Trainer (paid on the 1st, first month now)</div>${trs}</div></div>`;
+    const mgs = MANAGERS.map((Mg, k) => `<div class="tm ${k === (G.mgr || 0) ? 'on' : ''}"><div class="grow"><b>${Mg.name}</b>${k ? `<div class="ds yellow">Takes ${Math.round(Mg.cut * 100)}% of every purse</div>` : ''}<div class="ds">${Mg.desc}</div></div>${k === (G.mgr || 0) ? `<span class="label">${k ? 'Signed' : 'You'}</span>` : `<button class="btn sm ${k ? 'go' : ''}" data-a="mgr" data-k="${k}" ${G.cash < Mg.fee ? 'disabled' : ''}>${k ? money(Mg.fee) : 'Fire him'}</button>`}</div>`).join('');
+    return `${bar('Team', '<button class="btn sm" data-a="hub">Back</button> <button class="btn sm go" data-a="robe">Robe</button> <button class="btn sm go" data-a="gear">Gear</button>')}<div class="teamgrid"><div class="panel"><div class="label">Gym (one-time)</div>${gyms}</div><div class="panel"><div class="label">Trainer (paid on the 1st, first month now)</div>${trs}</div><div class="panel"><div class="label">Manager (signing fee, then a cut of every purse)</div>${mgs}</div></div>`;
   },
   tape(){
     const o = G.fight, me = G.fighters.me, f = G.fighters[o.id];
@@ -4436,6 +4455,16 @@ const VIEWS = {
       <div class="row between" style="margin-top:12px"><div class="dots">${b.lines.map((_, j) => `<i class="${j <= k ? 'on' : ''}"></i>`).join('')}</div>
       <button class="btn go" data-a="storynext">${last ? 'Continue' : 'Next'}</button></div></div></div>`;
   },
+  gear(){
+    const g = G.gear || {};
+    const rows = Object.entries(GEAR).map(([k, Gr]) => {
+      const lvl = g[k] || 0, next = Gr.tiers[lvl];
+      return `<div class="tm ${lvl ? 'on' : ''}"><div class="grow"><b>${Gr.name}</b> <span class="muted">${lvl ? Gr.tiers[lvl - 1][0] : 'Nothing special yet'}</span>
+        <div class="ds">${lvl ? Gr.what(lvl) : 'Standard issue.'}</div>${next ? `<div class="ds yellow">Next: ${next[0]}: ${Gr.what(lvl + 1)}</div>` : '<div class="ds good">The best there is.</div>'}</div>
+        ${next ? `<button class="btn sm go" data-a="buygear" data-k="${k}" ${G.cash < next[1] ? 'disabled' : ''}>${money(next[1])}</button>` : '<span class="label">Maxed</span>'}</div>`;
+    }).join('');
+    return `${bar('Gear', '<button class="btn sm" data-a="team">Back</button>')}<div class="panel">${rows}</div>`;
+  },
   robe(){
     const me = G.fighters.me, R = robeOf(me);
     const sw = (act, list, cur) => `<div class="sw">${list.map(c => `<button data-a="${act}" data-v="${c}" class="${cur === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div>`;
@@ -4469,7 +4498,7 @@ const VIEWS = {
     const ails = ailList(me.ail);
     return `<div class="res"><h1 class="${R.win ? 'yellow' : ''}">${word}</h1>${P}
       <div class="how">${HOW[R.how]}${R.ko ? ' &middot; round ' + R.rd : ''}${R.totals ? ' &middot; ' + R.totals.map(t => t[0] + '-' + t[1]).join(', ') : ''}</div>${title}
-      <div class="lines"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Purse</span><b class="num yellow">+${money(R.pay)}${R.win || R.draw ? '' : ' (loser\'s half)'}</b><span>Rank</span><b class="num">${rk(R.wasRank)} &rarr; ${rk(R.nowRank)}</b></div>
+      <div class="lines"><span>Record</span><b class="num">${rec(me)} (${me.ko} KO)</b><span>Purse</span><b class="num yellow">+${money(R.pay)}${R.win || R.draw ? '' : ' (loser\'s half)'}${R.cut ? ` <span class="muted">(${money(R.cut)} to your manager)</span>` : ''}</b><span>Rank</span><b class="num">${rk(R.wasRank)} &rarr; ${rk(R.nowRank)}</b></div>
       ${ails.length ? `<div class="ails" style="justify-content:center">${ails.map(ailChip).join('')}</div>` : ''}
       <button class="btn go" data-a="hub">Continue</button></div>`;
   },
@@ -4511,8 +4540,11 @@ ui.addEventListener('click', e => {
     case 'closesheet': calPick = null; callMsg = null; break;
     case 'callout': { const r = callOut(calPick); if (r.ok) { pending = r.deal; calPick = null; screen = 'dates'; } else callMsg = r.msg; break; }
     case 'buygym': { const Gm = GYMS[+k]; if (G.cash >= Gm.cost && +k === G.gym + 1) { G.cash -= Gm.cost; G.gym = +k; save(); } break; }
+    case 'mgr': { const Mg = MANAGERS[+k]; if (G.cash >= Mg.fee) { G.cash -= Mg.fee; G.mgr = +k; save(); } break; }
     case 'hire': { const T = TRAINERS[+k]; if (G.cash >= T.fee) { G.cash -= T.fee; G.trainer = +k; save(); } break; }
     case 'robe': screen = 'robe'; break;
+    case 'gear': screen = 'gear'; break;
+    case 'buygear': { G.gear = G.gear || {}; const Gr = GEAR[k], lvl = G.gear[k] || 0, next = Gr && Gr.tiers[lvl]; if (next && G.cash >= next[1]) { G.cash -= next[1]; G.gear[k] = lvl + 1; save(); } break; }
     case 'rcol': G.fighters.me.robe.color = b.dataset.v; save(); break;
     case 'rtrim': G.fighters.me.robe.trim = b.dataset.v; save(); break;
     case 'remb': G.fighters.me.robe.emblem = b.dataset.v; save(); break;
