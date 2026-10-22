@@ -1920,7 +1920,12 @@ function arenaScene(W, H, gyU, cxU, halfU){
   // the barrier in front of the crowd
   P.R(0, 108, W, top - 108, '#0b0926'); P.R(0, 108, W, 4, '#2a2440'); P.R(0, 108, W, 1, '#4a4466');
   for (let x = 8; x < W; x += 30) P.R(x, 112, 2, top - 112, '#1a1630');
-  // the canvas
+  paintRing(P, H, gy, cx, half, '#8a1f2a', 'RETRO BOXING');
+  return P.c;
+}
+// the ring itself: canvas, apron skirt, posts, corner pads and ropes (bg pixels, 2 per world unit)
+function paintRing(P, H, gy, cx, half, skirt, label){
+  const top = gy - 20;
   const L = cx - half - 20, Wd = (half + 20) * 2;
   P.R(L, top, Wd, 36, '#d6cfb8'); P.R(L, top, Wd, 3, '#bdb6a0'); P.R(L, top + 33, Wd, 3, '#c4bca4');
   P.x.fillStyle = 'rgba(160,30,40,.12)'; P.x.beginPath(); P.x.ellipse(cx, top + 18, 60, 10, 0, 0, 7); P.x.fill();
@@ -1929,9 +1934,9 @@ function arenaScene(W, H, gyU, cxU, halfU){
   for (let i = 0; i < 30; i++) P.R(L + P.ri(10, Wd - 20), top + P.ri(4, 30), P.ri(2, 8), 1, 'rgba(120,110,90,.18)');   // scuffs
   P.x.fillStyle = 'rgba(255,248,225,.18)'; P.x.beginPath(); P.x.ellipse(cx, top + 14, half * .8, 9, 0, 0, 7); P.x.fill();
   // the apron skirt
-  const ay = top + 36; P.R(L - 4, ay, Wd + 8, H - ay, '#8a1f2a'); P.R(L - 4, ay, Wd + 8, 3, '#f4f4f4'); P.R(L - 4, ay + 3, Wd + 8, 1, '#c8c8d0');
-  for (let x = L; x < L + Wd; x += 10) P.R(x, ay + 4, 1, H - ay, '#741a24');
-  const label = 'RETRO BOXING'; for (const tx of [cx - half * .6, cx + half * .6]) P.text(label, Math.round(tx - P.tw(label) / 2), ay + 7, '#f4f0e8');
+  const ay = top + 36; P.R(L - 4, ay, Wd + 8, H - ay, skirt); P.R(L - 4, ay, Wd + 8, 3, '#f4f4f4'); P.R(L - 4, ay + 3, Wd + 8, 1, '#c8c8d0');
+  for (let x = L; x < L + Wd; x += 10) P.R(x, ay + 4, 1, H - ay, shade(skirt, .85));
+  if (label) for (const tx of [cx - half * .6, cx + half * .6]) P.text(label, Math.round(tx - P.tw(label) / 2), ay + 7, '#f4f0e8');
   // posts, corner pads and the ropes
   const pads = ['#c42d2d', '#2f5aa8'], ropes = [['#e24b3b', gy - 104], ['#f4f4f4', gy - 76], ['#3f7be0', gy - 48]];
   [cx - half - 4, cx + half - 4].forEach((x, side) => {
@@ -1943,6 +1948,12 @@ function arenaScene(W, H, gyU, cxU, halfU){
     P.x.fillStyle = 'rgba(0,0,0,.2)'; P.x.fillRect(cx - half + 6, y + 4, half * 2 - 10, 1);
   }
   for (const f of [1 / 3, 2 / 3]) { const x = Math.round(cx - half + half * 2 * f); P.R(x, gy - 104, 3, 60, 'rgba(244,244,244,.85)'); }   // rope spacers
+}
+// sparring: the same training room as the drills, with a ring set up in it and nobody watching
+function sparScene(W, H, gyU, cxU, halfU, lvl){
+  const P = PX(W, H, 91);
+  P.x.drawImage(gymScene(lvl, W, H), 0, 0);
+  paintRing(P, H, gyU * 2, cxU * 2, halfU * 2, ['#3a3a44', '#2f5246', '#1f2a5a', '#1a1d26'][lvl], ['', 'CITY GYM', 'PRO BOXING CLUB', 'ELITE'][lvl]);
   return P.c;
 }
 // light beams over the crowd, drawn in front of them
@@ -2608,8 +2619,9 @@ function buildBg(){
   bgCanvas = document.createElement('canvas'); bgCanvas.width = LW * SC; bgCanvas.height = LH * SC;
   const b = bgCanvas.getContext('2d'); b.setTransform(SC, 0, 0, SC, 0, 0); b.imageSmoothingEnabled = false;
   const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
-  b.drawImage(arenaScene(LW * 2, LH * 2, gy, cx, half), 0, 0, LW, LH);
-  beamCanvas = arenaBeams(LW * 2, LH * 2, cx, half);
+  const spar = M && M.offer && M.offer.spar;
+  b.drawImage(spar ? sparScene(LW * 2, LH * 2, gy, cx, half, G ? G.gym : 0) : arenaScene(LW * 2, LH * 2, gy, cx, half), 0, 0, LW, LH);
+  beamCanvas = spar ? null : arenaBeams(LW * 2, LH * 2, cx, half);
   PAN = Math.round(LW * .75);
   bgWide = arenaScene((LW + PAN) * 2, LH * 2, gy, cx + PAN, half); beamWide = arenaBeams((LW + PAN) * 2, LH * 2, cx + PAN, half);
   // crowd: rows of heads and shoulders, darker further back and away from the lights (drawn every frame so they can jump)
@@ -2633,8 +2645,8 @@ function draw(){
   if (wide) { g.fillStyle = '#06051a'; g.fillRect(0, 0, low.width, low.height); g.setTransform(SC, 0, 0, SC, -cam * SC, 0); g.imageSmoothingEnabled = false; g.drawImage(bgWide, -PAN, 0, LW + PAN, LH); }
   else g.drawImage(bgCanvas, 0, 0);
   g.setTransform(SC, 0, 0, SC, -cam * SC, 0);
-  const hy = M.hype;
-  for (const c of CROWD) {
+  const hy = M.hype, empty = !!M.offer.spar;
+  if (!empty) for (const c of CROWD) {
     const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0, y = c.y - up, sh = Math.min(5, 54 - (y + 3));
     g.fillStyle = c.shirt; g.fillRect(c.x, y + 3, 5, sh); g.fillStyle = c.shirtD; g.fillRect(c.x + 4, y + 3, 1, sh); g.fillRect(c.x + 2, y + 3, 1, .5);
     g.fillStyle = c.head; g.fillRect(c.x + 1, y, 3, 3); g.fillStyle = c.headD; g.fillRect(c.x + 3, y + .5, 1, 2.5);
@@ -2642,10 +2654,10 @@ function draw(){
     if (up && c.arms) { g.fillStyle = c.shirt; g.fillRect(c.x - 1, y - 2, 1, 4); g.fillRect(c.x + 5, y - 2, 1, 4); g.fillStyle = c.head; g.fillRect(c.x - 1, y - 3, 1, 1); g.fillRect(c.x + 5, y - 3, 1, 1); }
     if (c.sign && hy > .15) { g.fillStyle = '#f4f0e8'; g.fillRect(c.x - 2, y - 8, 9, 5); g.fillStyle = c.sign; g.fillRect(c.x - 1, y - 7, 7, 1.5); g.fillRect(c.x - 1, y - 4.5, 4, 1); }
   }
-  g.fillStyle = '#2a2440'; g.fillRect(-PAN, 54, LW + PAN, 2); g.fillStyle = '#4a4466'; g.fillRect(-PAN, 54, LW + PAN, .5);
+  if (!empty) { g.fillStyle = '#2a2440'; g.fillRect(-PAN, 54, LW + PAN, 2); g.fillStyle = '#4a4466'; g.fillRect(-PAN, 54, LW + PAN, .5); }
   if (wide) g.drawImage(beamWide, -PAN, 0, LW + PAN, LH); else if (beamCanvas) g.drawImage(beamCanvas, 0, 0, LW, LH);
   if (wide) drawAisle(gy);
-  if (M.flashes > 0 || Math.random() < .04) {                              // camera flashes in the crowd
+  if (!empty && (M.flashes > 0 || Math.random() < .04)) {                  // camera flashes in the crowd
     const n = Math.min(4, Math.ceil(M.flashes) || 1);
     for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(cam + ri(0, LW), ri(4, 50), 2, 2); }
     M.flashes = Math.max(0, M.flashes - n);
