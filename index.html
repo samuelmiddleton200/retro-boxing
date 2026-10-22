@@ -4064,12 +4064,14 @@ const MINIS = {
   },
   run: {
     name:'Roadwork', how:'Run the stairs to the top. Take them two at a time: tap LEFT for your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble. No clock: get to the top as fast as you can. More Speed and Stamina = quicker feet.', dur:Infinity,
-    init:() => ({ rate:(() => { const r = G.fighters.me.rat; return 22 + Math.max(0, r.spd - 40) * .5 + Math.max(0, r.sta - 40) * .5; })(), step:0, total:150, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
+    init:() => ({ lag:(() => { const r = G.fighters.me.rat; return .35 - .1 * Math.min(1, (Math.max(0, r.spd - 40) + Math.max(0, r.sta - 40)) / 100); })(), lastTap:-9, queued:[], puffs:[], step:0, total:150, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
+      if (S.queued.length && MG.time - S.lastTap >= S.lag) MINIS.run.tap(S, 0, 0, S.queued.shift(), true);   // the taps you made mid-stride, in order
+      for (const p of S.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; } S.puffs = S.puffs.filter(p => p.life > 0);
       for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
         const t = S['f' + k], a = S['a' + k];
-        if (a < t) { S['a' + k] = Math.min(t, a + dt * S.rate); S['m' + k] = (S['a' + k] - (t - 4)) / 4; } else S['m' + k] = 0;
+        if (a < t) { S['a' + k] = Math.min(t, a + dt * 4 / S.lag); S['m' + k] = (S['a' + k] - (t - 4)) / 4; } else S['m' + k] = 0;
       }
       S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
       const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
@@ -4077,8 +4079,14 @@ const MINIS = {
       S.camX = clamp(S.camX, hp[0] - MW * .6, hp[0] - MW * .25); S.camY = clamp(S.camY, hp[1] - LH * .7, hp[1] - LH * .35);   // however fast he runs, he never leaves the screen
       if (S.top !== null && MG.time - S.top > 2.8) return true;
     },
-    tap(S, x, y, side){
+    tap(S, x, y, side, fromQueue){
       if (S.top !== null || S.stumble > 0) return;
+      if (!fromQueue && (MG.time - S.lastTap < S.lag || S.queued.length)) {      // still mid-stride: hold the next correct foot, one stride ahead
+        const next = S.fL <= S.fR ? -1 : 1;
+        if (!S.queued.length && side === next) S.queued.push(side);
+        return;
+      }
+      S.lastTap = MG.time;
       const foot = side < 0 ? 'L' : 'R';
       if (S['f' + foot] > S['f' + (foot === 'L' ? 'R' : 'L')]) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }   // that foot is already in front
       S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 2);           // two at a time: skip a step
@@ -4115,7 +4123,7 @@ const MINIS = {
         }
       }
     },
-    grade:s => s <= 7.5 ? 'S' : s <= 9 ? 'A' : s <= 10.5 ? 'B' : s <= 12 ? 'C' : 'F',
+    grade:s => s <= 27.5 ? 'S' : s <= 29.5 ? 'A' : s <= 32 ? 'B' : s <= 36 ? 'C' : 'F',
     score:S => S.top !== null ? S.top : 999,
     hud:S => `Step ${S.step} / ${S.total} · ${(S.top !== null ? S.top : MG.time).toFixed(1)}s`,
   },
@@ -4181,23 +4189,38 @@ function runLeg(H, A, near){                                          // knee in
   return [Kn, Ax];
 }
 function drawRunner(g, S, ox, oy){
-  const me = G.fighters.me, k = RUN_K, top = S.top !== null && MG.time - S.top > .3;
+  const me = G.fighters.me, k = RUN_K, top = S.top !== null && MG.time - S.top > .3, t = MG.time;
   const FL = footAt(S, 'L', ox, oy), FR = footAt(S, 'R', ox, oy);
-  const Hw = [(FL[0] + FR[0]) / 2 - 1, Math.max(FL[1], FR[1]) - 19 + (S.stumble > 0 ? 2 : 0)];
-  const lean = top ? 0 : 4, q = v => Math.round(v);
-  // world to body space: the hip sits at (35 + lean / 2, 66)
+  const movL = S.aL < S.fL, movR = S.aR < S.fR, mv = movL ? S.mL : movR ? S.mR : 0, push = Math.sin(clamp(mv, 0, 1) * Math.PI);
+  const fast = clamp(.25 / S.lag - 1, 0, 1) * .5 + (MG.time - S.lastTap < .5 ? .5 : 0);
+  const bounce = top ? Math.abs(Math.sin((t - S.top) * 6)) * 3 : 0;
+  const Hw = [(FL[0] + FR[0]) / 2 - 1, Math.max(FL[1], FR[1]) - 19 - push * 1.6 + (S.stumble > 0 ? 2 : 0) - bounce];
+  const lean = top ? 0 : Math.round(4 + fast * 3), q = v => Math.round(v);
   const toB = P => [35 + lean * .5 + (P[0] - Hw[0]) / k - 3, 66 + (P[1] - Hw[1]) / k - 7];
   const [fK, fA] = runLeg([32 + lean * .5, 66], toB(FL), false), [nK, nA] = runLeg([38 + lean * .5, 66], toB(FR), true);
-  const sw = Math.sin(S.walk), J = { lean, cr:0, hx:S.stumble > 0 ? -2 : 0, hy:0, nK:nK.map(q), nA:nA.map(q), fK:fK.map(q), fA:fA.map(q) };
-  if (top) Object.assign(J, { nEl:[41, 16], nWr:[44, 4], nGl:[45, 0], fEl:[31, 16], fWr:[30, 4], fGl:[30, 0] });
-  else {
+  const J = { lean, cr:0, hx:S.stumble > 0 ? -2 : Math.round(push * 1.2), hy:Math.round(-push * .8), nK:nK.map(q), nA:nA.map(q), fK:fK.map(q), fA:fA.map(q) };
+  if (top) {                                                                     // at the top: fists pumping, one then the other
+    const up = Math.sin((t - S.top) * 6) > 0;
+    Object.assign(J, up ? { nEl:[41, 14], nWr:[44, 2], nGl:[45, -2], fEl:[31, 20], fWr:[30, 9], fGl:[30, 5] } : { nEl:[41, 20], nWr:[44, 9], nGl:[45, 5], fEl:[31, 14], fWr:[30, 2], fGl:[30, -2] });
+  } else {
+    // the arm opposite the moving leg drives forward; the bigger the push, the bigger the swing
+    const side = movR ? 1 : movL ? -1 : Math.sign(Math.sin(S.walk)) || 1, amp = .55 + push * .5 + fast * .25;
     const arm = (Sh, a) => { const E = [Sh[0] + Math.sin(a) * 14, Sh[1] + Math.cos(a) * 14], f = a + 1.7, W = [E[0] + Math.sin(f) * 12, E[1] + Math.cos(f) * 12]; return [E.map(q), W.map(q), [q(W[0] + Math.sin(f) * 3), q(W[1] + Math.cos(f) * 3)]]; };
-    const n = arm([35, 28], Math.round(sw * 4) / 4 * .9), f = arm([33, 27], -Math.round(sw * 4) / 4 * .9);
+    const n = arm([35, 28], -side * amp), f = arm([33, 27], side * amp);
     Object.assign(J, { nEl:n[0], nWr:n[1], nGl:n[2], fEl:f[0], fWr:f[1], fGl:f[2] });
   }
   const look = { ...lookStyle(me), trunks:'#8d8d96', band:'#6c6c78' };
-  // drawRig puts body (40, 95) at its x, y: line the hip up with the world hip
-  drawRig(g, Hw[0] - (35 + lean * .5 - 40) * k, Hw[1] + (95 - 66) * k, 1, 'dyn:' + JSON.stringify(J), look, { hands:true, noShadow:true }, 0, k);
+  const bx = Hw[0] - (35 + lean * .5 - 40) * k, by = Hw[1] + (95 - 66) * k;
+  drawRig(g, bx, by, 1, 'dyn:' + JSON.stringify(J), look, { hands:true, noShadow:true }, 0, k);
+  // breath in the cold dawn air, and sweat once he's been going a while
+  const mouth = [bx + (48 + lean * 1.15 - 40) * k, by + (18 - 95) * k];
+  if (!top && Math.random() < (fast ? .14 : .07)) S.puffs.push({ x:mouth[0] + 1, y:mouth[1], vx:rnd(4, 9), vy:rnd(-4, -1), life:.6, max:.6, r:rnd(1, 1.8), c:'240,240,250' });
+  if (S.step > 50 && !top && Math.random() < .05) S.puffs.push({ x:mouth[0] - 6, y:mouth[1] - 4, vx:rnd(-14, -6), vy:rnd(-10, -4), life:.5, max:.5, r:.6, c:'200,230,255', drop:1 });
+  for (const p of S.puffs) {
+    const a = p.life / p.max;
+    if (p.drop) { g.fillStyle = `rgba(${p.c},${a})`; g.fillRect(p.x, p.y, .7, .9); p.vy += 30 * (1 / 60); }
+    else { g.fillStyle = `rgba(${p.c},${a * .45})`; g.beginPath(); g.arc(p.x, p.y, p.r * (1.6 - a * .6), 0, 7); g.fill(); }
+  }
 }
 // pull-ups, side on: a bar hung from the ceiling, seen end-on; him hanging from it in hand wraps
 function drawPullup(cx, gy, S){
