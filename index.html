@@ -2103,24 +2103,25 @@ function robeRamp(c){ return rampHsl(c, [[-8, .9, .55], [0, 1, 1], [5, .95, 0, .
 function rigRobe(S, T, H, robe){
   const st = robe.style || 'satin', C = robeRamp(robe.color), R = robeRamp(robe.trim || '#f4f4f4');
   const [d, b, l, hi] = C;
-  const hood = (c = C) => {                                               // soft fabric: drapes over the brow and throws the eyes into shadow
-    // the shadow under the brim, painted over the upper face (no outline), with a glint of eye showing through
+  const hood = (c = C) => {                                               // a deep cowl: peaked, the face hidden inside, a thick hem at the front, falling in folds over the shoulders
+    const quad = (p0, p1, p2, n = 12) => Array.from({ length:n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return H(u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]); });
+    const front = [...quad([46.5, -6.5], [52.5, -2], [51.6, 6]), ...quad([51.6, 6], [51.2, 17], [46, 23.5])];
+    const back = [...quad([46, 23.5], [41, 27.5], [32, 29.5]), ...quad([32, 29.5], [26, 30.5], [23.2, 28]), ...quad([23.2, 28], [20.5, 15], [27, 1.5]), ...quad([27, 1.5], [35, -9.5], [46.5, -6.5])];
     S.begin();
-    S.poly('s2', [H(39.5, 8.5), H(47.4, 8.5), H(47.4, 12), H(47.8, 12.6), H(44.5, 12.8), H(41, 13.5), H(39.5, 12.5)]);
-    S.shade('s1', [H(39.5, 8.5), H(47.4, 8.5), H(47.4, 10), H(39.5, 10.5)]);
-    S.dot('#d8c8b8', RO + 43, 11, 1, 1); S.dot('#6a5048', RO + 44, 11, 1, 1);
-    S.end(true);
-    S.begin();
-    S.poly(c[1], [H(50, 8.8), H(50.5, 5.5), H(49, 1.5), H(45, -2), H(39, -3.5), H(33, -2.5), H(28.5, 1), H(26, 6), H(25.5, 11), H(24.5, 17), H(22.5, 24), H(24, 27.5), H(28, 27), H(32, 25.5), H(37, 24.5), H(43.5, 23.5),
-      H(41.5, 21), H(40, 17), H(39.5, 12.5), H(41.5, 9.8), H(46, 9.6)]);
-    S.shade(c[0], [H(25, 8), H(29, 2), H(31, 9), H(30, 26), H(23, 26)]);                          // the back of the hood, falling away from the light
-    S.shade(c[2], [H(40, -2.5), H(45, -1.5), H(48.5, 2), H(49.5, 5.5), H(47.5, 5), H(44, 0)]);     // light along the top of the brim
-    S.dot(c[3], RO + 44, -1, 2, 1); S.dot(c[3], RO + 48, 2, 1, 2);
-    S.line(c[0], [H(37, -2.5), H(34, 5), H(31.5, 14), H(30, 22)]); S.line(c[0], [H(42, -2), H(40.5, 4)]); S.line(c[2], [H(35.5, -1), H(32.5, 8)]);   // folds
-    S.line(c[0], [H(27, 18), H(26, 25)]); S.line(c[2], [H(28.5, 16), H(28, 24)]);
-    S.line(c[2], [H(50, 8.5), H(46, 9.3), H(41.5, 9.6)]); S.line(c[0], [H(49.5, 7.6), H(46, 8.3), H(42, 8.6)]);   // the hem turned over at the brim
-    S.line(c[0], [H(40.5, 12), H(40.5, 18), H(42, 22)]);
-    S.line(c[0], [H(38, 23.5), H(41.5, 23)]); S.line(c[2], [H(35, 24.2), H(38.5, 24)]);           // fabric bunched at the throat
+    S.poly(c[1], [...front, ...back]);
+    S.shade(c[0], [...quad([27, 1.5], [21, 15], [23.2, 28]), ...quad([23.2, 28], [27, 30], [31.5, 29.5]), ...quad([31.5, 29.5], [28.5, 16], [33, -1]).slice(1)]);   // the back, away from the light
+    S.shade(c[2], [...quad([39, -6.5], [47, -6], [49.5, 2]), ...quad([49.5, 2], [44, 1], [38.5, -3])]);   // light on the top of the cowl
+    S.dot(c[3], RO + 44, -5, 3, 1); S.dot(c[3], RO + 47, -4, 1, 2);
+    // the hem: a thick turned band down the front edge, and the dark of the opening just inside it
+    S.line(c[2], quad([47, -5.5], [51.6, -1.5], [50.8, 6])); S.line(c[2], quad([50.8, 6], [50.4, 16.5], [45.5, 22.6]));
+    S.line(c[3], quad([47.6, -5], [51.8, -1], [51.2, 4]));
+    S.line(c[0], quad([46.2, -4.2], [50, -.5], [49.4, 6])); S.line(c[0], quad([49.4, 6], [49, 15.5], [44.6, 21.6]));
+    S.line('#1a0f14', quad([45.8, -2.8], [48.6, .5], [48, 6])); S.line('#1a0f14', quad([48, 6], [47.6, 14], [44, 19.6]));
+    // folds: the cowl creasing down the back of the head, fabric gathering on the shoulder
+    S.line(c[0], quad([34, -4], [28.5, 6], [29.5, 22])); S.line(c[2], quad([35.5, -3.5], [30.5, 6], [31.3, 21]));
+    S.line(c[0], quad([40.5, -5.5], [37, 2], [38, 12]));
+    S.line(c[0], quad([30, 26.5], [36, 25.5], [42, 23])); S.line(c[2], quad([28, 28.4], [35, 27.8], [43, 24.6]));
+    S.line(c[0], quad([25, 9], [23.5, 18], [25.5, 26]));
     S.end();
   };
   const body = (len, flare = 2, c = C) => {
