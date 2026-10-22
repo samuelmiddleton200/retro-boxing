@@ -701,7 +701,12 @@ const dateOf = d => new Date(BASE_DAY + d * 864e5);
 const fmtDate = (d, year) => { const t = dateOf(d); return `${DOW[t.getUTCDay()]} ${MON[t.getUTCMonth()]} ${t.getUTCDate()}${year ? ', ' + t.getUTCFullYear() : ''}`; };
 const DATE_OPTS = [14, 21, 28, 42];                         // 2, 3, 4 or 6 weeks out
 const note = s => { (G.notes = G.notes || []).push(s); };
-const booked = id => (G.fight && G.fight.id === id) || G.card.some(c => c.a === id || c.b === id);
+const booked = id => allFights().some(F => F.id === id) || G.card.some(c => c.a === id || c.b === id);
+const allFights = () => [G.fight, ...((G && G.later) || [])].filter(Boolean);
+const GAP = 14;                                                       // every fight at least two weeks from every other
+const dateOk = n => allFights().every(F => Math.abs(G.day + n - F.day) >= GAP);
+const dateOptions = () => [14, 21, 28, 42, 56, 70, 84].filter(dateOk).slice(0, 4);
+function promoteFight(){ if (!G.fight && G.later && G.later.length) { G.later.sort((a, b) => a.day - b.day); G.fight = G.later.shift(); } }
 
 // the other fighters' schedule: bouts booked on real dates
 function fillCard(){
@@ -729,7 +734,7 @@ function runCard(){
 // someone calls you out
 const CHALLENGE_LINES = ['Says you\'re all hype and he wants to prove it.', 'Thinks you\'re an easy payday.', 'Wants your spot in the rankings.', 'Called you out on the radio this morning.', 'His manager rang the gym: name the date.'];
 function maybeChallenge(){
-  if (G.fight) return;
+  if (allFights().length >= 3 || !dateOptions().length) return;
   const due = grudgeDue();
   if (due && !G.mail.some(m => m.id === due.id)) {
     const R = RIVALS[due.key], title = rankOf('me') === 0 && rankOf(due.id) >= 0 && rankOf(due.id) <= 6;
@@ -750,7 +755,7 @@ function maybeChallenge(){
 const REFUSALS = ['I don\'t fight nobodies.', 'Come back when somebody knows your name.', 'Who? Get in line, kid.', 'My manager says you\'re not worth the purse.', 'Not interested.'];
 function callOut(id){
   const f = G.fighters[id], me = rankOf('me'), them = rankOf(id);
-  if (G.fight) return { ok:false, msg:'You already have a fight booked.' };
+  if (!dateOptions().length) return { ok:false, msg:'Your calendar is full: no open date two weeks clear of your other fights.' };
   const c = G.card.find(c => c.a === id || c.b === id);
   if (c) return { ok:false, msg:`He's already booked: fights ${esc(G.fighters[c.a === id ? c.b : c.a].name)} on ${fmtDate(c.day)}.` };
   const mine = me < 0 ? 40 : me, his = them < 0 ? 40 : them;
@@ -762,7 +767,10 @@ function callOut(id){
   return { ok:true, deal:{ id, title, grudge:!!gr, purse:Math.round(purseFor(id, title) * (gr ? 1.5 : 1) / 100) * 100, rounds:roundsFor(id, title) } };
 }
 function bookFight(deal, days){
-  G.fight = { ...deal, day:G.day + days, tape:0, postponed:false };
+  const F = { ...deal, day:G.day + days, tape:0, postponed:false };
+  G.later = G.later || [];
+  if (!G.fight) G.fight = F; else if (F.day < G.fight.day) { G.later.push(G.fight); G.fight = F; } else G.later.push(F);
+  G.later.sort((a, b) => a.day - b.day);
   G.mail = G.mail.filter(m => m.id !== deal.id);
   G.declines = 0;
   save();
@@ -824,7 +832,7 @@ function newDay(){
   else if (G.fight && G.fight.day > G.day + 2 && Math.random() < .003) {     // your man gets hurt in camp
     const o = G.fighters[G.fight.id];
     G.mail.unshift({ type:'news', day:G.day, text:`${o.name} pulled out of your fight: hurt in sparring. The date is off.` });
-    G.fight = null;
+    G.fight = null; promoteFight();
   }
   maybeChallenge();
   checkStory();
@@ -1004,7 +1012,7 @@ function applyResult(R){
   }
   R.oppRankIdx = R.oppRankIdxBefore ?? -1;
   G.log.unshift({ day:G.day, opp:o.name, oppRank:R.oppRank, res:R.draw ? 'D' : R.win ? 'W' : 'L', how:R.how, rd:R.rd, title:R.title });
-  G.fight = null;
+  G.fight = null; promoteFight();
   G.last = { ...R, pay, wasRank, nowRank:rankOf('me'), age:me.age, fday:G.day, oppId:o.id };
   G.last.paper = headline({ ...R, wasRank }, o);
   G.fighters.me.ail = me.ail;
@@ -4324,7 +4332,7 @@ function calendarHTML(){
   let cells = DOW.map(d => `<div class="dh">${d[0]}</div>`).join('');
   for (let i = 0; i < lead; i++) cells += '<div></div>';
   for (let d = 1; d <= len; d++) {
-    const day = startDay + d - 1, cls = [day < G.day ? 'past' : '', day === G.day ? 'today' : '', G.fight && G.fight.day === day ? 'fight' : '', titles.has(day) ? 'tf' : '', rivals.has(day) ? 'rv' : '', G.fighters.me.bday.m === m && G.fighters.me.bday.d === d ? 'bd' : ''].join(' ');
+    const day = startDay + d - 1, cls = [day < G.day ? 'past' : '', day === G.day ? 'today' : '', allFights().some(F => F.day === day) ? 'fight' : '', titles.has(day) ? 'tf' : '', rivals.has(day) ? 'rv' : '', G.fighters.me.bday.m === m && G.fighters.me.bday.d === d ? 'bd' : ''].join(' ');
     cells += `<div class="cd ${cls}"><span>${d}</span></div>`;
   }
   const big = G.card.filter(c => c.day >= G.day && (c.title || rivalOf(c.a) || rivalOf(c.b))).sort((a, b) => a.day - b.day).slice(0, 2);
@@ -4369,7 +4377,7 @@ const VIEWS = {
     const F = G.fight, o = F && G.fighters[F.id], fightDay = F && F.day === G.day;
     const mailN = G.mail.length;
     const notes = (G.notes || []).length ? `<div class="notes">${G.notes.map(n => `<div>${esc(n)}</div>`).join('')}<button class="btn sm" data-a="clearnotes">OK</button></div>` : '';
-    const next = F ? (fightDay ? `<b class="yellow">FIGHT NIGHT</b> vs ${esc(o.name)}` : `<b>${daysTo(F.day)} day${daysTo(F.day) > 1 ? 's' : ''}</b> to ${esc(o.name)} &middot; ${fmtDate(F.day)}`) : 'No fight booked. Check your mail or call someone out.';
+    const more = (G.later || []).length, next = F ? (more ? ` <span class="muted">+${more} more booked</span> &middot; ` : '') + (fightDay ? `<b class="yellow">FIGHT NIGHT</b> vs ${esc(o.name)}` : `<b>${daysTo(F.day)} day${daysTo(F.day) > 1 ? 's' : ''}</b> to ${esc(o.name)} &middot; ${fmtDate(F.day)}`) : 'No fight booked. Check your mail or call someone out.';
     const ails = ailList(me.ail);
     const acts = fightDay
       ? `<button class="btn go wide big" data-a="tape">Fight night!</button>${hurt() && !F.postponed ? '<button class="btn wide" data-a="postpone">Postpone a week</button>' : ''}`
@@ -4436,8 +4444,8 @@ const VIEWS = {
   },
   dates(){
     const P = pending, f = G.fighters[P.id];
-    const opts = DATE_OPTS.map(n => `<button class="dopt" data-a="pickdate" data-n="${n}"><div class="nm">${n / 7} weeks</div><div class="num">${fmtDate(G.day + n)}</div><div class="muted">${n - 1} days to train</div></button>`).join('');
-    return `${bar('Pick the date', '<button class="btn sm" data-a="hub">Cancel</button>')}<div class="panel" style="margin-bottom:10px;text-align:center"><b>${esc(f.name)}</b> agreed. ${P.rounds} rounds, purse <b class="yellow num">${money(P.purse)}</b>${P.title ? ' &middot; <span class="yellow">for the title</span>' : ''}.</div><div class="dopts">${opts}</div>`;
+    const opts = dateOptions().map(n => `<button class="dopt" data-a="pickdate" data-n="${n}"><div class="nm">${n / 7} weeks</div><div class="num">${fmtDate(G.day + n)}</div><div class="muted">${n - 1} days to train</div></button>`).join('');
+    return `${bar('Pick the date', '<button class="btn sm" data-a="hub">Cancel</button>')}<div class="panel" style="margin-bottom:10px;text-align:center"><b>${esc(f.name)}</b> agreed. ${P.rounds} rounds, purse <b class="yellow num">${money(P.purse)}</b>${P.title ? ' &middot; <span class="yellow">for the title</span>' : ''}.</div><div class="dopts">${opts || '<div class="muted">No open date two weeks clear of your other fights.</div>'}</div>${allFights().length ? `<div class="muted" style="margin-top:8px;text-align:center">Already booked: ${allFights().map(F => esc(G.fighters[F.id].name) + ' on ' + fmtDate(F.day)).join(', ')}. Fights must be at least two weeks apart.</div>` : ''}`;
   },
   rankings(){
     const rows = G.ladder.map((id, i) => {
