@@ -2959,6 +2959,33 @@ function canvasSlam(){
   if (!SOUND) return; const a = ac(); if (!a) return; sfxLoad(a);
   sfxPlay(a, 'heavy', .62, 1.2, [outBus(a), ECHO], 1600);                      // a body hitting the boards
 }
+// ---- fight music: "The Final Bell" from 0:12, then looping 0:37.6 to 1:26 (the join is baked into the file); 1:29-1:52 for the replay ----
+const MUS = { buf:{}, src:null, gain:null, want:null, asked:{} };
+function musLoad(a){
+  for (const k of ['fight', 'replay']) if (!MUS.asked[k]) {
+    MUS.asked[k] = 1;
+    fetch(k + '-music.mp3').then(r => r.arrayBuffer()).then(b => a.decodeAudioData(b)).then(b => { MUS.buf[k] = b; if (MUS.want === k) musPlay(k); }).catch(() => {});
+  }
+}
+function musPlay(k){
+  musStop(.4); MUS.want = k;
+  if (!SOUND) return; const a = ac(); if (!a) return; musLoad(a);
+  const b = MUS.buf[k]; if (!b) return;                                  // starts by itself the moment it has loaded
+  MUS.want = null;
+  const src = a.createBufferSource(); src.buffer = b;
+  if (k === 'fight') { src.loop = true; src.loopStart = 25.615; src.loopEnd = 74.005; }
+  const g = a.createGain(), vol = .5;                                    // half the volume of the punches
+  g.gain.setValueAtTime(0, a.currentTime); g.gain.linearRampToValueAtTime(vol, a.currentTime + .8);
+  src.connect(g).connect(a.destination); src.start();
+  MUS.src = src; MUS.gain = g;
+}
+function musStop(fade = .8){
+  MUS.want = null; if (!MUS.src || !AC) return;
+  const t = AC.currentTime, g = MUS.gain, src = MUS.src;
+  g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade);
+  try { src.stop(t + fade + .05); } catch {}
+  MUS.src = null;
+}
 function bell(times = 1){
   if (!SOUND) return; const a = ac(); if (!a) return;
   for (let k = 0; k < times; k++) {
@@ -3325,7 +3352,7 @@ function startFight(offer){
   M.ref.x = Math.round(LW / 2);
   if (!G.tutDone) { M.phase = 'tut'; showControls(true); }
   else if (offer.spar) sparIntro();
-  else startWalkout();
+  else { startWalkout(); musPlay('fight'); }
 }
 function sparIntro(){ M.phase = 'intro'; M.pt = 1.4; banner('SPARRING', 'y'); bell(1); }
 // a training day in the ring: one round in headgear against a partner your gym provides
@@ -3407,6 +3434,7 @@ function quitFight(){
   M.result = { winSide:1, how:'RTD' }; leaveFight();
 }
 function leaveFight(){
+  musStop(1.2);
   if (M.offer.spar) {
     const me = M.f[0], o = M.f[1], S = { landed:me.landed, taken:o.landed, hpLeft:Math.max(0, me.hp) / me.hpMax, ail:me.ail, won:!!(M.result && M.result.winSide === 0), secs:(ROUND_SECS - M.clock) / CLOCK_X };
     M = null; touches.clear(); $('#ann').hidden = true; $('#replay').hidden = true; $('#game').hidden = true; $('#ui').hidden = false;
@@ -3432,7 +3460,7 @@ function update(dt){
   for (const p of M.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 160 * dt; p.life -= dt; }
   M.parts = M.parts.filter(p => p.life > 0);
   M.hype = Math.max(0, M.hype - dt * .22);
-  if (M.phase === 'replay') { M.rt += dt * .3; if (M.rt > M.rEnd) endReplay(); return; }
+  if (M.phase === 'replay') { M.rt += dt * M.rEnd / REPLAY_SECS; if (M.rt > M.rEnd) endReplay(); return; }   // slowed to fill the replay music
   switch (M.phase) {
     case 'walkout': walkout(dt); break;
     case 'falling': {
@@ -3497,12 +3525,14 @@ function moveRef(dt){
   const d = tx - R.x; R.x += Math.sign(d) * Math.min(Math.abs(d), 26 * dt);
   R.arm = Math.max(0, R.arm - dt);
 }
+const REPLAY_SECS = 23;
 function startReplay(){
-  M.phase = 'replay'; M.doReplay = false;
+  M.phase = 'replay'; M.doReplay = false; musPlay('replay');
   const fr = M.capture.frames; M.rFrames = fr; M.rt = 0; M.rEnd = fr[fr.length - 1].t - fr[0].t;
   $('#replay').hidden = false; banner('');
 }
 function endReplay(){
+  musStop(.8);
   $('#replay').hidden = true; M.phase = 'end'; M.pt = 0; M.rFrames = null;
   banner(M.result.how === 'TKO' ? 'T.K.O.!' : 'K.O.!', 'y'); showEnd();
 }
@@ -3749,7 +3779,7 @@ function frame(now){
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (MG) { miniUpdate(dt); if (MG) miniDraw(); }
-  if (!M) return;
+  if (!M) { if (MUS.src) musStop(); return; }                                // left the fight any way at all: the music goes
   if (!M.paused) update(dt);
   if (!M) return;
   draw(); hud();
