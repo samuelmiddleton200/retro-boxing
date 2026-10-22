@@ -1365,9 +1365,9 @@ function RigSprite(PAL){
   const P = pts => g => pts.forEach(([x, y], i) => i ? g.lineTo(x + .5, y + ROY + .5) : g.moveTo(x + .5, y + ROY + .5));
   const api = {
     begin(){ part = new Array(RW * RH).fill(null); },
-    end(){
+    end(plain){                                                            // plain: no outline (shadows painted over what's there)
       const has = (x, y) => x >= 0 && y >= 0 && x < RW && y < RH && part[y * RW + x];
-      for (let y = 0; y < RH; y++) for (let x = 0; x < RW; x++) { const i = y * RW + x; if (!part[i] && (has(x + 1, y) || has(x - 1, y) || has(x, y + 1) || has(x, y - 1))) px[i] = PAL.K; }
+      if (!plain) for (let y = 0; y < RH; y++) for (let x = 0; x < RW; x++) { const i = y * RW + x; if (!part[i] && (has(x + 1, y) || has(x - 1, y) || has(x, y + 1) || has(x, y - 1))) px[i] = PAL.K; }
       for (let i = 0; i < RW * RH; i++) if (part[i]) px[i] = part[i];
     },
     poly(col, pts){ const m = mk(P(pts)), c = C(col); for (let i = 0; i < RW * RH; i++) if (m[i]) part[i] = c; },
@@ -2103,13 +2103,24 @@ function robeRamp(c){ return rampHsl(c, [[-8, .9, .55], [0, 1, 1], [5, .95, 0, .
 function rigRobe(S, T, H, robe){
   const st = robe.style || 'satin', C = robeRamp(robe.color), R = robeRamp(robe.trim || '#f4f4f4');
   const [d, b, l, hi] = C;
-  const hood = (c = C) => {                                               // hugs the head, opening behind the forehead and cheek so the whole face shows
+  const hood = (c = C) => {                                               // soft fabric: drapes over the brow and throws the eyes into shadow
+    // the shadow under the brim, painted over the upper face (no outline), with a glint of eye showing through
     S.begin();
-    S.poly(c[1], [H(27, 16), H(27.5, 7), H(30, 2), H(34, -1), H(39, -2), H(44, -.5), H(47, 2.5), H(47.5, 5.5), H(45.5, 6.2), H(42, 5.6), H(39, 7), H(37, 10), H(36, 14), H(36.5, 19), H(38.5, 22.5), H(35, 25), H(30, 26), H(26, 24.5)]);
-    S.shade(c[0], [H(26.5, 8), H(30, 3), H(31.5, 25.5), H(26, 24.5)]);
-    S.shade(c[2], [H(33, 0), H(39, -1.2), H(44, .5), H(39, .4)]); S.dot(c[3], RO + 39, -1, 3, 1);
-    S.line(c[0], [H(45.5, 6), H(42, 5.6), H(39, 7.2), H(37.2, 10), H(36.3, 14), H(36.8, 19)]);   // the edge of the opening
-    S.line(c[0], [H(31, 5), H(33, 14)]);
+    S.poly('s2', [H(39.5, 8.5), H(47.4, 8.5), H(47.4, 12), H(47.8, 12.6), H(44.5, 12.8), H(41, 13.5), H(39.5, 12.5)]);
+    S.shade('s1', [H(39.5, 8.5), H(47.4, 8.5), H(47.4, 10), H(39.5, 10.5)]);
+    S.dot('#d8c8b8', RO + 43, 11, 1, 1); S.dot('#6a5048', RO + 44, 11, 1, 1);
+    S.end(true);
+    S.begin();
+    S.poly(c[1], [H(50, 8.8), H(50.5, 5.5), H(49, 1.5), H(45, -2), H(39, -3.5), H(33, -2.5), H(28.5, 1), H(26, 6), H(25.5, 11), H(24.5, 17), H(22.5, 24), H(24, 27.5), H(28, 27), H(32, 25.5), H(37, 24.5), H(43.5, 23.5),
+      H(41.5, 21), H(40, 17), H(39.5, 12.5), H(41.5, 9.8), H(46, 9.6)]);
+    S.shade(c[0], [H(25, 8), H(29, 2), H(31, 9), H(30, 26), H(23, 26)]);                          // the back of the hood, falling away from the light
+    S.shade(c[2], [H(40, -2.5), H(45, -1.5), H(48.5, 2), H(49.5, 5.5), H(47.5, 5), H(44, 0)]);     // light along the top of the brim
+    S.dot(c[3], RO + 44, -1, 2, 1); S.dot(c[3], RO + 48, 2, 1, 2);
+    S.line(c[0], [H(37, -2.5), H(34, 5), H(31.5, 14), H(30, 22)]); S.line(c[0], [H(42, -2), H(40.5, 4)]); S.line(c[2], [H(35.5, -1), H(32.5, 8)]);   // folds
+    S.line(c[0], [H(27, 18), H(26, 25)]); S.line(c[2], [H(28.5, 16), H(28, 24)]);
+    S.line(c[2], [H(50, 8.5), H(46, 9.3), H(41.5, 9.6)]); S.line(c[0], [H(49.5, 7.6), H(46, 8.3), H(42, 8.6)]);   // the hem turned over at the brim
+    S.line(c[0], [H(40.5, 12), H(40.5, 18), H(42, 22)]);
+    S.line(c[0], [H(38, 23.5), H(41.5, 23)]); S.line(c[2], [H(35, 24.2), H(38.5, 24)]);           // fabric bunched at the throat
     S.end();
   };
   const body = (len, flare = 2, c = C) => {
@@ -2289,8 +2300,8 @@ const ROBE_CUTS = {
   motif:[['none', 'Plain'], ['dragon', 'Dragon'], ['tiger', 'Tiger'], ['flames', 'Flames'], ['koi', 'Koi'], ['bolt', 'Lightning'], ['blossom', 'Blossom'], ['stars', 'Stars']],
 };
 const CUT_LABEL = { hood:'Hood', collar:'Collar', len:'Length', sleeve:'Sleeves', obi:'Belt', motif:'Back art' };
-function robeRig(R){
-  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:({ deep:'up', pointed:'up' })[R.hood] || R.hood || 'down', collar:'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:'none', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
+function robeRig(R, mine = true){
+  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:!mine ? 'down' : ({ deep:'up', pointed:'up' })[R.hood] || R.hood || 'down', collar:'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:'none', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
 }
 // ---- the round-card girl, hand-painted in the same style as the boxers ----
 // Front view, both arms up holding the card overhead. Sprite is RW x RH like the boxers; feet on body y 95.
@@ -3632,7 +3643,7 @@ function draw(){
   const downed = i => view[i].state === 'down' || view[i].state === 'falling';
   const order = downed(0) ? [1, 0] : downed(1) ? [0, 1] : view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // the man on the canvas in front, else whoever is punching
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src)) : null };
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src), !!f.src.me) : null };
     drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy + (M.phase === 'walkout' && i === 0 ? walkY(f.x) : 0) + (downed(i) ? 3 : 0), dir, M.robes ? (M.phase === 'walkout' && f.moving > 0 ? (Math.floor(f.walk / 2.2) % 2 ? 'robeW1' : 'robeW2') : 'robe') : f.frame || 'guard', lookStyle(f.src), { ...o, noShadow:true, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
