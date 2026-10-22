@@ -2333,8 +2333,9 @@ function startSpar(){
 }
 // both men walk out in their robes while the announcer calls their names
 function startWalkout(){
-  M.phase = 'walkout'; M.wt = 0; M.robes = true; M.annStep = -1;
-  M.f[0].x = M.lo - 50; M.f[1].x = M.hi + 50;
+  M.phase = 'walkout'; M.wt = 0; M.robes = true; M.annStep = -1; M.camX = 0; M.dim = 0; M.pf = []; M.arrived = null;
+  M.f[1].x = M.hi - 8; M.f[0].x = -PAN + 34;
+  $('#hud').style.visibility = $('#pauseBtn').style.visibility = 'hidden';
   $('#ann').hidden = false; $('#ann').innerHTML = '';
 }
 function annLines(){
@@ -2349,24 +2350,40 @@ function annLines(){
 }
 function walkout(dt){
   M.wt += dt;
-  const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2);
+  const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2), ease = x => x * x * (3 - 2 * x);
   const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; } };
-  if (t < 7.1) { toward(a, M.lo + 4, 34); toward(b, M.hi - 4, 34); }
-  else { M.robes = false; toward(a, cx - 16, 34); toward(b, cx + 16, 34); }
-  const step = t < 2.1 ? 0 : t < 4.6 ? 1 : t < 7.1 ? 2 : 3;
-  M.close = step === 1 ? 1 : step === 2 ? 0 : null;
-  $('#hud').style.visibility = $('#pauseBtn').style.visibility = M.close != null ? 'hidden' : '';
-  $('#ann').classList.toggle('low', M.close != null);
+  // the photographers never stop
+  M.pf = (M.pf || []).filter(p => (p.life -= dt) > 0);
+  const rate = t < 4.4 ? 3 : M.arrived == null ? 14 : 6;
+  if (Math.random() < rate * dt) M.pf.push({ x:M.camX + rnd(4, LW - 4), y:Math.random() < .6 ? rnd(6, 52) : rnd(M.gy - 20, M.gy - 6), r:rnd(5, 12), life:.14 });
+  let step;
+  if (t < 2.2) step = 0;                                                       // ladies and gentlemen
+  else if (t < 4.4) step = 1;                                                  // the other man, waiting in the ring
+  else if (M.arrived == null) {                                               // the camera swings round, the lights drop, you walk
+    step = 2;
+    const pan = clamp((t - 4.4) / 1.5, 0, 1), follow = clamp(a.x - LW * .22, -PAN, 0);
+    M.dim = Math.min(1, M.dim + dt * 1.2);
+    if (pan < 1) M.camX = follow * ease(pan);
+    else { M.camX += (follow - M.camX) * (1 - Math.exp(-dt * 3)); toward(a, M.lo + 4, 36); M.hype = Math.min(1, M.hype + dt); }
+    if (pan >= 1 && Math.abs(a.x - (M.lo + 4)) < .5) M.arrived = t;
+  } else {
+    step = t - M.arrived < 1 ? 2 : 3;
+    M.camX += (0 - M.camX) * (1 - Math.exp(-dt * 3)); M.dim = Math.max(0, M.dim - dt * 1.5);
+    if (step === 3) { M.robes = false; toward(a, cx - 16, 34); toward(b, cx + 16, 34); }
+    if (t - M.arrived > 2.6) return skipWalkout();
+  }
+  if (step < 2) M.camX = 0;
+  M.close = null;
   if (step !== M.annStep) {
     M.annStep = step; const L = annLines()[step];
     $('#ann').innerHTML = `<div class="a1">${L[0]}</div><div class="a2">${L[1]}</div><div class="a3">${L[2]}</div><div class="skip">tap to skip</div>`;
-    if (step === 1 || step === 2) { const tier = robeOf(M.f[step === 2 ? 0 : 1].src).tier; roar((step === 2 ? .7 : .45) + tier * .1); M.hype = Math.min(1, (step === 2 ? .7 : .45) + tier * .1); M.flashes += 20 + tier * 10; }
+    if (step === 1 || step === 2) { const tier = robeOf(M.f[step === 2 ? 0 : 1].src).tier; roar((step === 2 ? .8 : .45) + tier * .1); M.hype = Math.min(1, (step === 2 ? .8 : .45) + tier * .1); M.flashes += 20 + tier * 10; }
   }
-  if (t > 8.4) skipWalkout();
+  if (step === 2 && Math.random() < dt * .8) roar(.35);                     // the cheering keeps rolling as you walk
 }
 function skipWalkout(){
   $('#hud').style.visibility = $('#pauseBtn').style.visibility = '';
-  M.robes = false; M.close = null; $('#ann').classList.remove('low'); $('#ann').hidden = true; placeFighters();
+  M.robes = false; M.close = null; M.camX = 0; M.dim = 0; M.pf = []; $('#ann').classList.remove('low'); $('#ann').hidden = true; placeFighters();
   M.phase = 'intro'; M.pt = 1.4; banner('ROUND 1', 'y'); bell(1);
 }
 function nextRound(){
@@ -2586,13 +2603,15 @@ function resize(){
   buildBg();
 }
 addEventListener('resize', () => { if (M) resize(); });
-let beamCanvas = null;
+let beamCanvas = null, bgWide = null, beamWide = null, PAN = 0;
 function buildBg(){
   bgCanvas = document.createElement('canvas'); bgCanvas.width = LW * SC; bgCanvas.height = LH * SC;
   const b = bgCanvas.getContext('2d'); b.setTransform(SC, 0, 0, SC, 0, 0); b.imageSmoothingEnabled = false;
   const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
   b.drawImage(arenaScene(LW * 2, LH * 2, gy, cx, half), 0, 0, LW, LH);
   beamCanvas = arenaBeams(LW * 2, LH * 2, cx, half);
+  PAN = Math.round(LW * .75);
+  bgWide = arenaScene((LW + PAN) * 2, LH * 2, gy, cx + PAN, half); beamWide = arenaBeams((LW + PAN) * 2, LH * 2, cx + PAN, half);
   // crowd: rows of heads and shoulders, darker further back and away from the lights (drawn every frame so they can jump)
   let seed = 7; const rr = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const shirts = ['#3a3470', '#4a2f5e', '#2f4a6e', '#5e3a3a', '#3f5a48', '#55506e', '#6e5a3a', '#2a2a44', '#7a3030', '#30606a'];
@@ -2600,7 +2619,7 @@ function buildBg(){
   CROWD = [];
   for (let row = 0; row < 7; row++) {
     const y = 6 + row * 7;
-    for (let x = -2 + (row % 2) * 3; x < LW; x += 6) {
+    for (let x = -2 - PAN + (row % 2) * 3; x < LW; x += 6) {
       if (rr() < .08) continue;
       const dim = (.42 + row * .08) * (1 - .3 * Math.min(1, Math.abs(x - cx) / (LW / 2))), sh = shirts[Math.floor(rr() * shirts.length)], hd = heads[Math.floor(rr() * heads.length)], hr = hairs[Math.floor(rr() * hairs.length)];
       CROWD.push({ x, y, shirt:shade(sh, dim), shirtD:shade(sh, dim * .75), head:shade(hd, dim), headD:shade(hd, dim * .78), hair:hr ? shade(hr, dim + .1) : null, ph:rr() * 6.28, arms:rr() < .3, sign:rr() < .04 ? ['#c42d2d', '#2f5aa8', '#1d1d1d'][Math.floor(rr() * 3)] : null });
@@ -2609,10 +2628,11 @@ function buildBg(){
 }
 function draw(){
   const gy = M.gy;
+  const wide = M.phase === 'walkout' && bgWide, cam = wide ? (M.camX || 0) : 0;
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.drawImage(bgCanvas, 0, 0);
-  g.setTransform(SC, 0, 0, SC, 0, 0);
-  if (M.phase === 'walkout' && M.close != null) return drawCloseup();
+  if (wide) { g.fillStyle = '#06051a'; g.fillRect(0, 0, low.width, low.height); g.setTransform(SC, 0, 0, SC, -cam * SC, 0); g.imageSmoothingEnabled = false; g.drawImage(bgWide, -PAN, 0, LW + PAN, LH); }
+  else g.drawImage(bgCanvas, 0, 0);
+  g.setTransform(SC, 0, 0, SC, -cam * SC, 0);
   const hy = M.hype;
   for (const c of CROWD) {
     const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0, y = c.y - up, sh = Math.min(5, 54 - (y + 3));
@@ -2622,15 +2642,16 @@ function draw(){
     if (up && c.arms) { g.fillStyle = c.shirt; g.fillRect(c.x - 1, y - 2, 1, 4); g.fillRect(c.x + 5, y - 2, 1, 4); g.fillStyle = c.head; g.fillRect(c.x - 1, y - 3, 1, 1); g.fillRect(c.x + 5, y - 3, 1, 1); }
     if (c.sign && hy > .15) { g.fillStyle = '#f4f0e8'; g.fillRect(c.x - 2, y - 8, 9, 5); g.fillStyle = c.sign; g.fillRect(c.x - 1, y - 7, 7, 1.5); g.fillRect(c.x - 1, y - 4.5, 4, 1); }
   }
-  g.fillStyle = '#2a2440'; g.fillRect(0, 54, LW, 2); g.fillStyle = '#4a4466'; g.fillRect(0, 54, LW, .5);
-  if (beamCanvas) g.drawImage(beamCanvas, 0, 0, LW, LH);
+  g.fillStyle = '#2a2440'; g.fillRect(-PAN, 54, LW + PAN, 2); g.fillStyle = '#4a4466'; g.fillRect(-PAN, 54, LW + PAN, .5);
+  if (wide) g.drawImage(beamWide, -PAN, 0, LW + PAN, LH); else if (beamCanvas) g.drawImage(beamCanvas, 0, 0, LW, LH);
+  if (wide) drawAisle(gy);
   if (M.flashes > 0 || Math.random() < .04) {                              // camera flashes in the crowd
     const n = Math.min(4, Math.ceil(M.flashes) || 1);
-    for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(4, 50), 2, 2); }
+    for (let i = 0; i < n; i++) { g.fillStyle = '#fff'; g.fillRect(cam + ri(0, LW), ri(4, 50), 2, 2); }
     M.flashes = Math.max(0, M.flashes - n);
   }
   const amp = M.shake > .15 ? 2.5 : 1.5, sx = M.shake > 0 ? Math.round(rnd(-amp, amp)) : 0, sy = M.shake > 0 ? Math.round(rnd(-amp * .7, amp * .7)) : 0;
-  g.setTransform(SC, 0, 0, SC, sx * SC, sy * SC);
+  g.setTransform(SC, 0, 0, SC, (sx - cam) * SC, sy * SC);
   // a man pinned on the ropes bends them
   for (const f of M.f) if (f.pinned && f.state !== 'down') {
     const x = f.side === 0 ? M.lo - ROPE_IN + 3 : M.hi + ROPE_IN - 5;
@@ -2646,15 +2667,43 @@ function draw(){
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
     const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeOf(f.src) : null };
-    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
+    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? (M.phase === 'walkout' ? Math.abs(Math.sin(f.walk * 1.3)) * .9 : 0) : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
+  if (wide) drawSpot(gy, cam);
   if (M.card) { g.save(); g.translate(M.card.x, gy + 8); g.scale(1.35, 1.35); drawCardGirl(g, 0, 0, M.card.n, M.time); g.restore(); }
   for (const p of parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
   // a big shot punches the camera in a touch
   ctx.imageSmoothingEnabled = false;
   const z = 1 + (M.zoom || 0), sw = LW / z, sh = LH / z;
   ctx.drawImage(low, (LW - sw) / 2 * SC, (LH - sh) * .55 * SC, sw * SC, sh * SC, 0, 0, cv.width, cv.height);
+}
+// the walkway from the dressing room to the ring, with a rail and photographers' posts along the far side
+function drawAisle(gy){
+  const L = Math.round(LW / 2) - ringHalf() - 10, x0 = -PAN - 10;
+  g.fillStyle = '#1a0e14'; g.fillRect(x0, gy - 4, L - x0, LH - gy + 4);
+  g.fillStyle = '#7a1f2a'; g.fillRect(x0, gy - 3, L - x0, 3); g.fillStyle = '#a8343a'; g.fillRect(x0, gy - 3, L - x0, .5);
+  g.fillStyle = '#3a0e16'; g.fillRect(x0, gy, L - x0, 6); g.fillStyle = '#e0b12d'; g.fillRect(x0, gy + 1, L - x0, .5);
+  for (let x = x0 + 6; x < L - 4; x += 18) { g.fillStyle = '#8a8a98'; g.fillRect(x, gy - 15, 1, 12); g.fillStyle = '#c8c8d0'; g.fillRect(x, gy - 15, 1, .5); }
+  g.fillStyle = '#5a5a68'; g.fillRect(x0, gy - 13, L - x0 - 4, .7);
+}
+// lights down, one spotlight on him, flashes going off everywhere
+function drawSpot(gy, cam){
+  const d = M.dim || 0;
+  if (d > 0) {
+    const f = M.f[0], sx = f.x, sy = gy - 40;
+    const gr = g.createRadialGradient(sx, sy, 16, sx, sy, 70);
+    gr.addColorStop(0, 'rgba(4,3,16,0)'); gr.addColorStop(1, `rgba(4,3,16,${.62 * d})`);
+    g.fillStyle = gr; g.fillRect(cam - 10, -10, LW + 20, LH + 20);
+    g.fillStyle = `rgba(255,246,220,${.1 * d})`; g.beginPath(); g.moveTo(sx - 6, 0); g.lineTo(sx + 6, 0); g.lineTo(sx + 26, gy + 2); g.lineTo(sx - 26, gy + 2); g.closePath(); g.fill();
+    g.fillStyle = `rgba(255,246,220,${.14 * d})`; g.beginPath(); g.ellipse(sx, gy, 24, 3.5, 0, 0, 7); g.fill();
+  }
+  for (const p of M.pf || []) {                                                 // a photographer's flash: a hot white star and a glow
+    const a = clamp(p.life / .14, 0, 1), gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+    gr.addColorStop(0, `rgba(255,255,255,${.85 * a})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+    g.fillStyle = `rgba(255,255,255,${a})`; g.fillRect(p.x - .5, p.y - 2, 1, 4); g.fillRect(p.x - 2, p.y - .5, 4, 1);
+  }
 }
 // the walkout close-up: the back of his robe under the spotlight
 function drawCloseup(){
