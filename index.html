@@ -908,11 +908,19 @@ const AIL = {
 const tierOf = v => v <= 30 ? 0 : v <= 60 ? 1 : v <= 85 ? 2 : 3;
 const ailList = a => Object.entries(a || {}).filter(([, v]) => v >= 1).sort((x, y) => y[1] - x[1]);
 const hurt = () => ailList(G.fighters.me.ail).some(([, v]) => v > 30);
+function drillBlock(k){
+  const A = G.fighters.me.ail || {}, has = (...ks) => ks.some(x => (A[x] || 0) >= 1);
+  if (k === 'spar' && ailList(A).length) return 'No sparring until every injury has healed';
+  if (k === 'weights' && has('ribs', 'liver')) return 'Your ribs and liver need to heal first';
+  if (k === 'speed' && has('eye', 'cut')) return 'Your eye needs to heal first';
+  if (k === 'bag' && G.fat >= 50) return 'Too tired: fatigue must be under 50';
+  return null;
+}
 function heal(rest, act, treats){
   const me = G.fighters.me, A = me.ail, mult = treats.some(t => TREAT[t].mult) ? 2 : 1;
   const f = (rest ? 1.6 : 1) * (1 + GYMS[G.gym].heal) * mult;
   for (const k of Object.keys(A)) {
-    let amt = AIL[k].heal * f * ((act && REST[act].heal && REST[act].heal[k]) || 1);
+    let amt = AIL[k].heal * f * .5 * ((act && REST[act].heal && REST[act].heal[k]) || 1);
     for (const t of treats) amt += (TREAT[t].fix && TREAT[t].fix[k]) || 0;
     A[k] -= amt; if (A[k] < 1) delete A[k];
   }
@@ -3604,10 +3612,11 @@ function draw(){
     view = fr.f.map((v, i) => ({ ...v, src:M.f[i].src })); parts = fr.parts; ref = fr.ref;
   }
   if (M.phase !== 'walkout' && M.phase !== 'tut') drawRefRig(g, ref.x, gy, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
-  const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
+  const downed = i => view[i].state === 'down' || view[i].state === 'falling';
+  const order = downed(0) ? [1, 0] : downed(1) ? [0, 1] : view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // the man on the canvas in front, else whoever is punching
   for (const i of order) {
     const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src)) : null };
-    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy + (M.phase === 'walkout' && i === 0 ? walkY(f.x) : 0), dir, M.robes ? (M.phase === 'walkout' && f.moving > 0 ? (Math.floor(f.walk / 2.2) % 2 ? 'robeW1' : 'robeW2') : 'robe') : f.frame || 'guard', lookStyle(f.src), { ...o, noShadow:true, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
+    drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy + (M.phase === 'walkout' && i === 0 ? walkY(f.x) : 0) + (downed(i) ? 3 : 0), dir, M.robes ? (M.phase === 'walkout' && f.moving > 0 ? (Math.floor(f.walk / 2.2) % 2 ? 'robeW1' : 'robeW2') : 'robe') : f.frame || 'guard', lookStyle(f.src), { ...o, noShadow:true, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (wide) drawSpot(gy, cam);
@@ -4331,11 +4340,11 @@ const VIEWS = {
   train(){
     const me = G.fighters.me, tr = TRAINERS[G.trainer];
     const cards = TRAIN_ORDER.map(k => {
-      const T = TRAIN[k], locked = G.gym < T.gym;
+      const T = TRAIN[k], locked = G.gym < T.gym, block = drillBlock(k);
       const gains = Object.entries(T.gain).map(([r, v]) => `<span>${RNAME[r]} +${v}</span>`).join('');
-      return `<button class="dcard ${locked ? 'lock' : ''}" data-a="${locked ? 'team' : 'drill'}" data-k="${k}">
+      return `<button class="dcard ${locked || block ? 'lock' : ''}" data-a="${locked ? 'team' : block ? 'noop' : 'drill'}" data-k="${k}">
         <div class="nm">${T.name}</div><div class="ds">${T.desc}</div><div class="gn">${gains}</div>
-        <div class="ft">${locked ? 'Needs ' + GYMS[T.gym].name : 'Fatigue +' + Math.round(T.fat * (1 - tr.fat))}</div></button>`;
+        <div class="ft ${block ? 'bad' : ''}">${locked ? 'Needs ' + GYMS[T.gym].name : block || 'Fatigue +' + Math.round(T.fat * (1 - tr.fat))}</div></button>`;
     }).join('');
     const warn = G.fat > 60 ? '<span class="bad">You are worn out: gains are cut. A rest day would help.</span>' : `Trainer: ${tr.name} &middot; ${GYMS[G.gym].name}`;
     return `${bar('Train today')}<div class="row between" style="margin-bottom:8px;font-size:13px"><span>${warn}</span><span class="fatmini"><span class="label">Fatigue</span> <b class="num">${G.fat.toFixed(0)}</b></span></div><div class="dcards">${cards}</div>`;
@@ -4490,7 +4499,7 @@ ui.addEventListener('click', e => {
     case 'restpick': restPick = k; break;
     case 'treat': if (treatPick.has(k)) treatPick.delete(k); else treatPick.add(k); break;
     case 'dorest': if (restDay(restPick, [...treatPick])) { screen = 'hub'; } break;
-    case 'drill': if (k === 'spar') { ac(); startSpar(); return; } startMini(k); return;
+    case 'drill': if (drillBlock(k)) break; if (k === 'spar') { ac(); startSpar(); return; } startMini(k); return;
     case 'tape': screen = 'tape'; break;
     case 'fight': ac(); startFight(G.fight); return;
     case 'postpone': postpone(); screen = 'hub'; break;
