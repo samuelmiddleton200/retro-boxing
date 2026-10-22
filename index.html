@@ -1382,11 +1382,24 @@ function rigPalette(look){
 }
 function RigSprite(PAL){
   const cv = document.createElement('canvas'); cv.width = RW; cv.height = RH;
-  const tmp = document.createElement('canvas'); tmp.width = RW; tmp.height = RH; const tg = tmp.getContext('2d');
+  const tmp = document.createElement('canvas'); tmp.width = RW; tmp.height = RH; const tg = tmp.getContext('2d', { willReadFrequently:true });
   const px = new Array(RW * RH).fill(null);
   let part = null;
   const C = c => PAL[c] || c;
-  const mk = draw => { tg.clearRect(0, 0, RW, RH); tg.fillStyle = '#000'; tg.beginPath(); draw(tg); tg.fill(); const a = tg.getImageData(0, 0, RW, RH).data, m = new Uint8Array(RW * RH); for (let i = 0; i < RW * RH; i++) m[i] = a[i * 4 + 3] > 127; return m; };
+  const mk = draw => {                                                    // a shape's mask: only the box it covers is read back
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    const B = (x, y, r = 0) => { if (x - r < x0) x0 = x - r; if (y - r < y0) y0 = y - r; if (x + r > x1) x1 = x + r; if (y + r > y1) y1 = y + r; };
+    const rec = { moveTo(x, y){ B(x, y); tg.moveTo(x, y); }, lineTo(x, y){ B(x, y); tg.lineTo(x, y); }, closePath(){ tg.closePath(); },
+      ellipse(cx, cy, rx, ry, a, b, c){ B(cx, cy, Math.max(rx, ry)); tg.ellipse(cx, cy, rx, ry, a, b, c); }, arc(cx, cy, r, a, b){ B(cx, cy, r); tg.arc(cx, cy, r, a, b); } };
+    tg.beginPath(); draw(rec);
+    const m = new Uint8Array(RW * RH);
+    const bx = Math.max(0, Math.floor(x0) - 1), by = Math.max(0, Math.floor(y0) - 1), bw = Math.min(RW, Math.ceil(x1) + 2) - bx, bh = Math.min(RH, Math.ceil(y1) + 2) - by;
+    if (bw <= 0 || bh <= 0) return m;
+    tg.clearRect(bx, by, bw, bh); tg.fillStyle = '#000'; tg.fill();
+    const a = tg.getImageData(bx, by, bw, bh).data;
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) m[(by + y) * RW + bx + x] = a[(y * bw + x) * 4 + 3] > 127;
+    return m;
+  };
   const P = pts => g => pts.forEach(([x, y], i) => i ? g.lineTo(x + .5, y + ROY + .5) : g.moveTo(x + .5, y + ROY + .5));
   const api = {
     begin(){ part = new Array(RW * RH).fill(null); },
@@ -1660,7 +1673,7 @@ function rigFrame(look, frame, o = {}){
   const k = rigKey(look, frame, o);
   let c = rigCache.get(k);
   if (!c) {
-    if (rigCache.size > 500) rigCache.clear();
+    if (rigCache.size > 2400) { let n = 300; for (const key of rigCache.keys()) { rigCache.delete(key); if (!--n) break; } }
     const q = { ...o, swell:[0, .2, .5, .8][[0, .15, .45, .7].filter(v => (o.swell || 0) > v).length - 1] || 0 };
     const src = rigDraw(look, frame, q), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(src, 0, 0); cp.neck = src.neck;
     c = cp; rigCache.set(k, c);
@@ -3522,7 +3535,7 @@ function update(dt){
   M.hype = Math.max(0, M.hype - dt * .22);
   if (M.phase === 'replay') { M.rt += dt * M.rEnd / REPLAY_SECS; if (M.rt > M.rEnd) endReplay(); return; }   // slowed to fill the replay music
   switch (M.phase) {
-    case 'walkout': walkout(dt); break;
+    case 'walkout': walkout(dt); warmPoses(); break;
     case 'falling': {
       const d = M.f[M.downSide]; d.fallT += dt;
       if (d.fallT < d.T1 && !d.fallFwd) { const m = 18 * dt * (1 - d.fallT / d.T1); d.x = clamp(d.x + away(d) * m, M.lo, M.hi); d.walk += m * .5; }   // stumbling back
@@ -3530,7 +3543,7 @@ function update(dt){
       if (d.fallT >= d.T1 + .42) land(d);
       break;
     }
-    case 'intro': M.pt -= dt; if (M.card) { M.card.x += dt * (M.hi - M.lo + 80) / 2.4; if (M.card.x > M.hi + 40) M.card = null; } if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
+    case 'intro': warmPoses(); M.pt -= dt; if (M.card) { M.card.x += dt * (M.hi - M.lo + 80) / 2.4; if (M.card.x > M.hi + 40) M.card = null; } if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
     case 'fight':
       M.clock -= dt * CLOCK_X;
       if (b.state !== 'down') aiThink(b, a, dt);
@@ -3619,6 +3632,16 @@ function targetPose(f){
     }
   }
 }
+const WARM_FRAMES = ['guard', 'guard2', 'walk1', 'walk2', 'jabW', 'jabH', 'jabBW', 'jabBH', 'hookW', 'hookH', 'hookBW', 'hookBH', 'upW', 'upH', 'block', 'blockL', 'slip', 'duck', 'hurt', 'hurtB', 'teeter', 'limp', 'push', 'knee', 'win', 'hop', 'land', 'rockF', 'shufA', 'rockB', 'shufB'];
+function warmPoses(){
+  if (!M || M.warmDone) return;
+  if (!M.warmList) M.warmList = M.f.flatMap(f => { const o = { ...ailLook(f.ail), rage:false, headgear:!!M.offer.spar, robe:null, ...scaleOf(f.src) }, look = lookStyle(f.src);
+    const big = Math.abs(o.hs - 1) >= .01 || Math.abs(o.ws - 1) >= .01;
+    return WARM_FRAMES.flatMap(fr => big ? ['back', 'head', 'front'].map(layer => [look, fr, { ...o, layer }]) : [[look, fr, o]]); });
+  const t0 = performance.now();
+  while (M.warmList.length && performance.now() - t0 < 6) { const [look, fr, o] = M.warmList.pop(); rigFrame(look, fr, o); }
+  if (!M.warmList.length) M.warmDone = true;
+}
 function frameOf(f){
   const st = f.state, body = f.tgt === 'body';
   const F = f.hand ? 'F' : '';                                                       // which hand he's throwing with
@@ -3691,9 +3714,9 @@ function ringHalf(){ return Math.min(98, Math.round(LW / 2) - 14); }
 function resize(){
   cssW = innerWidth; cssH = innerHeight;
   const dpr = Math.min(3, devicePixelRatio || 1);
-  cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
   LW = Math.max(160, Math.round(LH * cssW / cssH));
   low.width = LW * SC; low.height = LH * SC; g.imageSmoothingEnabled = false;
+  cv.width = low.width; cv.height = low.height; void dpr;
   if (M) {
     M.gy = Math.round(LH * .86);
     const cx = Math.round(LW / 2), half = ringHalf();
@@ -3727,6 +3750,17 @@ function buildBg(){
     }
   }
 }
+let crowdC = null, crowdG = null, crowdKey = null;
+function drawCrowd(g, hy){
+  for (const c of CROWD) {
+    const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0, y = c.y - up, sh = Math.min(5, 54 - (y + 3));
+    g.fillStyle = c.shirt; g.fillRect(c.x, y + 3, 5, sh); g.fillStyle = c.shirtD; g.fillRect(c.x + 4, y + 3, 1, sh); g.fillRect(c.x + 2, y + 3, 1, .5);
+    g.fillStyle = c.head; g.fillRect(c.x + 1, y, 3, 3); g.fillStyle = c.headD; g.fillRect(c.x + 3, y + .5, 1, 2.5);
+    if (c.hair) { g.fillStyle = c.hair; g.fillRect(c.x + 1, y - .5, 3, 1); }
+    if (up && c.arms) { g.fillStyle = c.shirt; g.fillRect(c.x - 1, y - 2, 1, 4); g.fillRect(c.x + 5, y - 2, 1, 4); g.fillStyle = c.head; g.fillRect(c.x - 1, y - 3, 1, 1); g.fillRect(c.x + 5, y - 3, 1, 1); }
+    if (c.sign && hy > .15) { g.fillStyle = '#f4f0e8'; g.fillRect(c.x - 2, y - 8, 9, 5); g.fillStyle = c.sign; g.fillRect(c.x - 1, y - 7, 7, 1.5); g.fillRect(c.x - 1, y - 4.5, 4, 1); }
+  }
+}
 function draw(){
   const gy = M.gy;
   const wide = M.phase === 'walkout' && bgWide, cam = wide ? (M.camX || 0) : 0;
@@ -3735,13 +3769,12 @@ function draw(){
   else g.drawImage(bgCanvas, 0, 0);
   g.setTransform(SC, 0, 0, SC, -cam * SC, 0);
   const hy = M.hype, empty = !!M.offer.spar;
-  if (!empty) for (const c of CROWD) {
-    const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0, y = c.y - up, sh = Math.min(5, 54 - (y + 3));
-    g.fillStyle = c.shirt; g.fillRect(c.x, y + 3, 5, sh); g.fillStyle = c.shirtD; g.fillRect(c.x + 4, y + 3, 1, sh); g.fillRect(c.x + 2, y + 3, 1, .5);
-    g.fillStyle = c.head; g.fillRect(c.x + 1, y, 3, 3); g.fillStyle = c.headD; g.fillRect(c.x + 3, y + .5, 1, 2.5);
-    if (c.hair) { g.fillStyle = c.hair; g.fillRect(c.x + 1, y - .5, 3, 1); }
-    if (up && c.arms) { g.fillStyle = c.shirt; g.fillRect(c.x - 1, y - 2, 1, 4); g.fillRect(c.x + 5, y - 2, 1, 4); g.fillStyle = c.head; g.fillRect(c.x - 1, y - 3, 1, 1); g.fillRect(c.x + 5, y - 3, 1, 1); }
-    if (c.sign && hy > .15) { g.fillStyle = '#f4f0e8'; g.fillRect(c.x - 2, y - 8, 9, 5); g.fillStyle = c.sign; g.fillRect(c.x - 1, y - 7, 7, 1.5); g.fillRect(c.x - 1, y - 4.5, 4, 1); }
+  if (!empty) {
+    const tick = hy > .05 ? Math.floor(M.time * 20) : -1, key = tick + '|' + (hy > .15 ? 1 : 0) + '|' + SC + '|' + PAN;
+    const off = PAN + 6;
+    if (!crowdC || crowdC.width !== Math.ceil((LW + off + 4) * SC)) { crowdC = document.createElement('canvas'); crowdC.width = Math.ceil((LW + off + 4) * SC); crowdC.height = Math.ceil(60 * SC); crowdG = crowdC.getContext('2d'); crowdKey = null; }
+    if (crowdKey !== key) { crowdKey = key; crowdG.setTransform(1, 0, 0, 1, 0, 0); crowdG.clearRect(0, 0, crowdC.width, crowdC.height); crowdG.setTransform(SC, 0, 0, SC, off * SC, 0); drawCrowd(crowdG, hy); }
+    g.setTransform(1, 0, 0, 1, (-off - cam) * SC, 0); g.drawImage(crowdC, 0, 0); g.setTransform(SC, 0, 0, SC, -cam * SC, 0);
   }
   if (!empty) { g.fillStyle = '#2a2440'; g.fillRect(-PAN, 54, LW + PAN, 2); g.fillStyle = '#4a4466'; g.fillRect(-PAN, 54, LW + PAN, .5); }
   if (wide) g.drawImage(beamWide, -PAN, 0, LW + PAN, LH); else if (beamCanvas) g.drawImage(beamCanvas, 0, 0, LW, LH);
@@ -4533,7 +4566,7 @@ const VIEWS = {
         <div class="ft ${block ? 'bad' : ''}">${locked ? 'Needs ' + GYMS[T.gym].name : block || 'Fatigue +' + Math.round(T.fat * (1 - tr.fat))}</div></button>`;
     }).join('');
     const warn = G.fat > 60 ? '<span class="bad">You are worn out: gains are cut. A rest day would help.</span>' : `Trainer: ${tr.name} &middot; ${GYMS[G.gym].name}`;
-    return `${bar('Train today')}<div class="row between" style="margin-bottom:8px;font-size:13px"><span>${warn}</span><span class="fatmini"><span class="label">Fatigue</span> <b class="num">${G.fat.toFixed(0)}</b></span></div><div class="dcards">${cards}</div>`;
+    return `${bar('Train today')}<div class="row between" style="margin-bottom:8px;font-size:13px"><span>${warn}</span><span class="fatmini"><span class="label">Fatigue</span> <b class="num">${G.fat.toFixed(0)}</b></span></div>${ailList(me.ail).length ? `<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span class="label">Still hurt</span><div class="ails">${ailList(me.ail).map(ailChip).join('')}</div></div>` : ''}<div class="dcards">${cards}</div>`;
   },
   rest(){
     const me = G.fighters.me, A = me.ail;
