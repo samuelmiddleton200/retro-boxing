@@ -3162,7 +3162,7 @@ function resolve(a, d){
     if (!head) dmg *= BODY_DMG * (1 + A(d, 'ribs') / 150);
     else dmg *= 1 + A(d, 'jaw') / 250;
     const kr = tag ? 1.4 : 1, k = kr * AILX;                               // injuries build at their own pace
-    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (tag ? 1.35 : 1) * (!head && A(d, 'ribs') > 60 ? 1.4 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
+    d.state = 'stun'; d.t = 0; d.dur = FT[a.pt].stun * (d.user ? 1 : a.pt === 'jab' ? .45 : .8) * (tag ? 1.35 : 1) * (!head && A(d, 'ribs') > 60 ? 1.4 : 1); d.whiff = false; d.blockT = 0; d.hurtLow = !head;
     push(d, P.push * (tag ? 1.5 : 1) * (a.rage > 0 ? 1.4 : 1));
     a.landed++; a.rLanded++; d.unanswered++;
     // what the punch does to him
@@ -3301,6 +3301,12 @@ function aiThink(f, o, dt){
       const t = Math.random() < .5 ? 'hook' : 'upper'; if (inRange(t)) punch(f, t, pickTgt());
     }
   }
+  if (f.state === 'wind') AI.lastThrow = M.time;
+  if (o.state === 'rec' && !o.whiff && AI.punished !== o.pid && (f.state === 'idle' || f.state === 'block') && Math.random() < .35 + .45 * sk) {   // your punch is spent: he answers
+    AI.punished = o.pid; f.blockHeld = false; if (f.state === 'block') f.state = 'idle';
+    const t = Math.random() < .55 ? 'hook' : 'jab'; if (inRange(t)) punch(f, t, pickTgt());
+  }
+  if (M.time - (AI.lastThrow || 0) > 1.1 && o.state !== 'wind') { if (f.blockHeld) { f.blockHeld = false; if (f.state === 'block') f.state = 'idle'; } if (AI.next > .2) AI.next = .2; }   // he won't just sit there
   if (o.state === 'stun' && f.state === 'idle' && Math.random() < dt * 2.5 * (.4 + sk)) { const t = Math.random() < .6 ? 'jab' : 'hook'; if (inRange(t)) punch(f, t, pickTgt()); }
   AI.next -= dt;
   if (AI.next <= 0 && (f.state === 'idle' || f.state === 'block') && !f.blockHeld) {
