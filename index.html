@@ -3684,12 +3684,12 @@ function walkY(x){
 function drawSpot(gy, cam){
   const d = M.dim || 0;
   if (d > 0) {
-    const f = M.f[0], sx = f.x, sy = gy - 40;
+    const f = M.f[0], fy = gy + walkY(f.x), sx = f.x, sy = fy - 40;   // follows his feet up the steps
     const gr = g.createRadialGradient(sx, sy, 16, sx, sy, 70);
     gr.addColorStop(0, 'rgba(4,3,16,0)'); gr.addColorStop(1, `rgba(4,3,16,${.62 * d})`);
     g.fillStyle = gr; g.fillRect(cam - 10, -10, LW + 20, LH + 20);
-    g.fillStyle = `rgba(255,246,220,${.1 * d})`; g.beginPath(); g.moveTo(sx - 6, 0); g.lineTo(sx + 6, 0); g.lineTo(sx + 26, gy + 2); g.lineTo(sx - 26, gy + 2); g.closePath(); g.fill();
-    g.fillStyle = `rgba(255,246,220,${.14 * d})`; g.beginPath(); g.ellipse(sx, gy, 24, 3.5, 0, 0, 7); g.fill();
+    g.fillStyle = `rgba(255,246,220,${.1 * d})`; g.beginPath(); g.moveTo(sx - 6, 0); g.lineTo(sx + 6, 0); g.lineTo(sx + 26, fy + 2); g.lineTo(sx - 26, fy + 2); g.closePath(); g.fill();
+    g.fillStyle = `rgba(255,246,220,${.14 * d})`; g.beginPath(); g.ellipse(sx, fy, 24, 3.5, 0, 0, 7); g.fill();
   }
   for (const p of M.pf || []) {                                                 // a photographer's flash: a hot white star and a glow
     const a = clamp(p.life / .14, 0, 1), gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
