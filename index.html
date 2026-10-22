@@ -3073,10 +3073,10 @@ function swish(){
 // reach is in ring pixels between the two boxers' feet
 const FT = {
   jab:   { wind:.18, hit:.08, rec:.15, dmg:2.25, cost:3.5,  stun:.18, push:3, reach:39 },
-  hook:  { wind:.34, hit:.11, rec:.28, dmg:9.5, cost:11, stun:.3,  push:6, reach:34 },
+  hook:  { wind:.34, hit:.11, rec:.28, dmg:6.75, cost:11, stun:.3,  push:6, reach:34 },
   upper: { wind:.46, hit:.12, rec:.36, dmg:14,  cost:16, stun:.42, push:7, reach:31 },
 };
-const GUARD = { jab:.15, hook:.25, upper:.55 };              // share of a punch that gets through a guard at the right height
+const GUARD = { jab:1 / 3, hook:1 / 3, upper:1 / 3 };              // share of a punch that gets through a guard at the right height
 const AI_TELL = { jab:1.35, hook:1.55, upper:1.55 };
 const SLIP_T = .42, SLIP_BACK = 10, DUCK_T = .45, EVADE_CD = .3, EVADE_COST = 4, OPEN_T = .6;
 const WALK = 17, CLOSE = 31, MIN_GAP = 22, ROPE_IN = 15;
@@ -3156,9 +3156,9 @@ function resolve(a, d){
     flurry(a);
     if (d.st <= 0) { d.state = 'stun'; d.t = 0; d.dur = .55; d.hurtLow = !head; fx('GUARD BROKEN', d.side, 'r'); }
   } else {
-    if (d.state === 'duck' && a.pt === 'upper') { dmg *= 1.4; tag = 'COUNTER!'; }
-    else if (d.state === 'wind') { dmg *= 1.4; tag = 'COUNTER!'; }
-    else if (d.whiff && d.state === 'rec') { dmg *= 1.6; tag = 'COUNTER!'; }
+    if (d.state === 'duck' && a.pt === 'upper') { dmg *= 2; tag = 'COUNTER!'; }                   // counters are the big shots
+    else if (d.state === 'wind') { dmg *= 2; tag = 'COUNTER!'; }
+    else if (d.whiff && d.state === 'rec') { dmg *= 2.4; tag = 'COUNTER!'; }
     if (!head) dmg *= BODY_DMG * (1 + A(d, 'ribs') / 150);
     else dmg *= 1 + A(d, 'jaw') / 250;
     const kr = tag ? 1.4 : 1, k = kr * AILX;                               // injuries build at their own pace
@@ -3872,7 +3872,7 @@ const CONTROLS = `<div class="ctrls">
   <div><b>Swipe &uarr;</b></div><div>Uppercut</div>
   <div><b>Swipe &larr;</b></div><div>Slip back (not on the ropes)</div>
   <div><b>Swipe &darr;</b></div><div>Duck under head punches</div>
-  <div><b>Hold</b> high / low</div><div>Block head / block body</div>
+  <div><b>Hold</b> face high / lower</div><div>Block head / block body: a block takes 2/3 off, an open hit lands full</div>
   <div><b>Knocked down</b></div><div>Hold on and drag to keep the marker in the green</div>
 </div><div class="muted" style="font-size:12px">You walk forward on your own. Get hurt and keep landing: the <span class="yellow">heart</span> bar fills.</div>`;
 function showControls(first){
@@ -3937,8 +3937,8 @@ $('#over').addEventListener('click', e => {
 $('#pauseBtn').addEventListener('click', () => { if (M && !M.paused && $('#over').hidden) { armed = null; showPause(); } });
 
 /* ---- controls: taps and swipes anywhere on the ring ---- */
-// head or body: above or below his shoulders on the screen
-const tgtAt = clientY => clientY * LH / cssH < M.gy - 37 ? 'head' : 'body';
+// head or body: your fighter's face and above is the head, anything lower is the body
+const tgtAt = clientY => clientY * LH / cssH < M.gy - 58 ? 'head' : 'body';
 const HOLD_MS = 170, SWIPE_PX = 24;
 const touches = new Map();
 function blocking(){ return [...touches.values()].some(t => t.block); }
