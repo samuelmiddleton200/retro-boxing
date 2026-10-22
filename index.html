@@ -974,7 +974,7 @@ function mix(a, b, t){
   return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
 const lighten = (hex, t) => mix(hex, '#ffffff', t);
-const SC = 2;                                               // device pixels per world unit on the game canvases
+const SC = 4;                                               // device pixels per world unit on the game canvases
 const snapH = v => Math.round(v * 2) / 2;
 const OUTLINE = '#170f22';
 // glove (fg/bg) and elbow (fe/be) spots for the front and back arm, body lean, crouch, head offset
@@ -1200,11 +1200,11 @@ function drawRobeBack(g, cx, top, robe, nick, town, t = 0){
 }
 const portraits = new Map();
 function portrait(f, w = 44, h = 34){
-  const key = `${f.id}|${JSON.stringify(f.look)}|${w}x${h}`;
+  const look = lookStyle(f), key = `${f.id}|${JSON.stringify(look)}|${w}x${h}`;
   if (portraits.has(key)) return portraits.get(key);
-  const c = document.createElement('canvas'); c.width = w * SC; c.height = h * SC;
-  const g = c.getContext('2d'); g.setTransform(SC, 0, 0, SC, 0, 0);
-  drawBoxer(g, w / 2 - 2, h + 22, 1, POSE.guard, f.look, { noShadow:true });
+  const src = rigFrame(look, 'guard', {}), cw = 60, ch = Math.round(cw * h / w);
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  c.getContext('2d').drawImage(src, RO + 14, ROY - 3, cw, ch, 0, 0, cw, ch);
   const url = c.toDataURL();
   portraits.set(key, url);
   return url;
@@ -1246,6 +1246,296 @@ function drawCardGirl(g, ox, gy, n, t){
   const s = String(n), w = s.length * 8 - 2 + 8;
   R(-w / 2, -58, w, 14, '#f4f4f4'); R(-w / 2, -58, w, 1, '#ffd23f');
   [...s].forEach((d, k) => { const pat = DIGITS[+d]; for (let i = 0; i < 15; i++) if (pat[i] === '1') R(-w / 2 + 4 + k * 8 + (i % 3) * 2, -56 + Math.floor(i / 3) * 2, 2, 2, '#1d1d1d'); });
+}
+
+/* ================= the fighter rig: the hand-drawn boxer, posed ================= */
+// Every fighter is the hand-drawn design (tools/hand.js) with his own colours. Each pose is a set of joints;
+// the body, head, hair, trunks and shoes keep their hand-drawn shapes and the limbs are painted in the same style.
+// Sprites are 84 x 116 pixels, drawn 1:1 on the 2x game canvases (so 42 x 58 world units), facing right.
+const RW = 92, RH = 116, ROY = 10, RO = 6, FOOTX = RO + 40, FOOTY = 95 + ROY;
+function rampHsl(base, spec){
+  const [h, s, l] = hexToHslR(base);
+  return spec.map(([dh, ds, dl, lift]) => '#' + hslToRgbR(h + dh, Math.max(0, Math.min(1, s * ds)), lift ? l + (1 - l) * lift : l * dl).map(v => v.toString(16).padStart(2, '0')).join(''));
+}
+function hexToHslR(h){
+  let [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let hh = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); hh = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh /= 6; }
+  return [hh * 360, s, l];
+}
+function hslToRgbR(h, s, l){
+  h = ((h % 360) + 360) % 360 / 360; l = Math.max(0, Math.min(1, l));
+  const f = n => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return Math.round((l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255); };
+  return [f(0), f(8), f(4)];
+}
+// the colours of one fighter, matched to the hand-drawn palette
+function rigPalette(look){
+  const [s1, s2, s3, s4, s5, s6] = rampHsl(look.skin, [[-18, .8, .3], [-10, .9, .55], [-6, .95, .79], [0, 1, 1], [5, .95, 0, .35], [11, .9, 0, .62]]);
+  const [g1, g2, g3, g4] = rampHsl(look.gloves === '#1d1d1d' ? '#2a2a32' : look.gloves, [[-8, .9, .45], [-4, .95, .72], [0, 1, 1], [6, .9, 0, .38]]);
+  const tr = look.trunks === '#f4f4f4' ? '#e8e8ee' : look.trunks;
+  const [t1, t2, t3, t4] = rampHsl(tr, [[-4, .9, .58], [0, 1, 1], [4, .95, 0, .22], [8, .8, 0, .52]]);
+  const band = look.band || (['#ffd23f', '#e0b12d', '#f4f4f4'].includes(look.trunks) ? '#1d1d24' : '#d8a828');
+  const [y1, y2, y3] = rampHsl(band, [[-6, .9, .62], [0, 1, 1], [6, .9, 0, .4]]);
+  const hair = look.hair === 'none' ? '#3a2a22' : look.hair;
+  const [h1, h2, h3, h4] = hair === '#1b1b1b' || hair === '#141010' ? ['#0e0809', '#221818', '#4a3636', '#6e5656'] : rampHsl(hair, [[-6, .9, .55], [0, 1, 1], [4, .9, 0, .2], [8, .8, 0, .4]]);
+  const boot = look.boots || '#24242c';
+  const [b1, b2, b3] = rampHsl(boot, [[0, 1, .5], [0, 1, 1], [0, 1, 0, .2]]);
+  return { K:'#1a0f14', s1, s2, s3, s4, s5, s6, g1, g2, g3, g4, gw:'#ffffff', c1:'#bdb4a6', c2:'#f4f0e8', t1, t2, t3, t4, y1, y2, y3, h1, h2, h3, h4, b1, b2, b3, b4:'#d8d2c4', eye:'#f4f0e8', iris:'#3a2418', blood:'#b81818', bruise:'#6a2f6a' };
+}
+function RigSprite(PAL){
+  const cv = document.createElement('canvas'); cv.width = RW; cv.height = RH;
+  const tmp = document.createElement('canvas'); tmp.width = RW; tmp.height = RH; const tg = tmp.getContext('2d');
+  const px = new Array(RW * RH).fill(null);
+  let part = null;
+  const C = c => PAL[c] || c;
+  const mk = draw => { tg.clearRect(0, 0, RW, RH); tg.fillStyle = '#000'; tg.beginPath(); draw(tg); tg.fill(); const a = tg.getImageData(0, 0, RW, RH).data, m = new Uint8Array(RW * RH); for (let i = 0; i < RW * RH; i++) m[i] = a[i * 4 + 3] > 127; return m; };
+  const P = pts => g => pts.forEach(([x, y], i) => i ? g.lineTo(x + .5, y + ROY + .5) : g.moveTo(x + .5, y + ROY + .5));
+  const api = {
+    begin(){ part = new Array(RW * RH).fill(null); },
+    end(){
+      const has = (x, y) => x >= 0 && y >= 0 && x < RW && y < RH && part[y * RW + x];
+      for (let y = 0; y < RH; y++) for (let x = 0; x < RW; x++) { const i = y * RW + x; if (!part[i] && (has(x + 1, y) || has(x - 1, y) || has(x, y + 1) || has(x, y - 1))) px[i] = PAL.K; }
+      for (let i = 0; i < RW * RH; i++) if (part[i]) px[i] = part[i];
+    },
+    poly(col, pts){ const m = mk(P(pts)), c = C(col); for (let i = 0; i < RW * RH; i++) if (m[i]) part[i] = c; },
+    ell(col, cx, cy, rx, ry){ const m = mk(g => g.ellipse(cx + .5, cy + ROY + .5, rx, ry, 0, 0, 7)), c = C(col); for (let i = 0; i < RW * RH; i++) if (m[i]) part[i] = c; },
+    shade(col, pts){ const m = mk(P(pts)), c = C(col); for (let i = 0; i < RW * RH; i++) if (m[i] && part[i]) part[i] = c; },
+    shadeE(col, cx, cy, rx, ry){ const m = mk(g => g.ellipse(cx + .5, cy + ROY + .5, rx, ry, 0, 0, 7)), c = C(col); for (let i = 0; i < RW * RH; i++) if (m[i] && part[i]) part[i] = c; },
+    dot(col, x, y, w = 1, h = 1){ const c = C(col); x = Math.round(x); y = Math.round(y) + ROY; for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (x + i >= 0 && x + i < RW && y + j >= 0 && y + j < RH) part[(y + j) * RW + x + i] = c; },
+    line(col, pts){ const c = C(col); for (let k = 1; k < pts.length; k++) { const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let t = 0; t <= n; t++) { const x = Math.round(x0 + (x1 - x0) * t / n), y = Math.round(y0 + (y1 - y0) * t / n) + ROY; if (x >= 0 && x < RW && y >= 0 && y < RH && part[y * RW + x]) part[y * RW + x] = c; } } },
+    // a limb segment, shaded like the hand-drawn arms: lit edge toward the light, shade on the far edge, an optional muscle crease
+    limb(A, B, w1, w2, opt = {}){
+      const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, vx = dx / L, vy = dy / L, nx = -vy, ny = vx;
+      const m = mk(g => { P([[A[0] + nx * w1 / 2, A[1] + ny * w1 / 2], [B[0] + nx * w2 / 2, B[1] + ny * w2 / 2], [B[0] - nx * w2 / 2, B[1] - ny * w2 / 2], [A[0] - nx * w1 / 2, A[1] - ny * w1 / 2]])(g); g.moveTo(A[0] + .5 + w1 / 2, A[1] + ROY + .5); g.ellipse(A[0] + .5, A[1] + ROY + .5, w1 / 2, w1 / 2, 0, 0, 7); g.moveTo(B[0] + .5 + w2 / 2, B[1] + ROY + .5); g.ellipse(B[0] + .5, B[1] + ROY + .5, w2 / 2, w2 / 2, 0, 0, 7); });
+      const lit = nx * .6 - ny * .8 > 0 ? 1 : -1;
+      for (let y = 0; y < RH; y++) for (let x = 0; x < RW; x++) {
+        const i = y * RW + x; if (!m[i]) continue;
+        const qx = x - A[0], qy = y - ROY - A[1], u = (qx * vx + qy * vy) / L, d = (qx * nx + qy * ny) * lit, w = (w1 + (w2 - w1) * Math.max(0, Math.min(1, u))) / 2;
+        let c = opt.dark ? 's3' : 's4';
+        if (d > w - 1.4) c = opt.dark ? 's4' : 's5';
+        else if (d < -(w - 1.8)) c = opt.dark ? 's2' : 's3';
+        if (opt.crease && u > .28 && u < .82 && Math.abs(d + w * .15) < .55) c = 's2';
+        part[i] = C(c);
+      }
+    },
+    canvas(){ const g = cv.getContext('2d'), im = g.createImageData(RW, RH); px.forEach((c, i) => { if (!c) return; const n = parseInt(c.slice(1), 16); im.data[i * 4] = n >> 16; im.data[i * 4 + 1] = (n >> 8) & 255; im.data[i * 4 + 2] = n & 255; im.data[i * 4 + 3] = 255; }); g.putImageData(im, 0, 0); return cv; },
+  };
+  return api;
+}
+// ---- poses: joints in the hand-drawn layout (x before the 6 px margin, y from the top of the head area) ----
+const RIG_BASE = { lean:0, cr:0, hx:0, hy:0, nEl:[37, 44], nWr:[46, 29], nGl:[50, 21], fEl:[37, 43], fWr:[43, 27], fGl:[44, 22], nK:[41, 76], nA:[40, 88], fK:[34, 76], fA:[33, 88] };
+const RIG = {
+  guard:{}, guard2:{ cr:1, nGl:[50, 22], fGl:[44, 23], nWr:[46, 30] },
+  walk1:{ nK:[43, 76], nA:[43, 88], fK:[33, 77], fA:[31, 88] }, walk2:{ nK:[40, 77], nA:[38, 88], fK:[36, 76], fA:[35, 88] },
+  jabW:{ lean:-1, nEl:[38, 42], nWr:[44, 31], nGl:[47, 25] }, jabH:{ lean:3, hx:2, nEl:[52, 26], nWr:[65, 25], nGl:[72, 24] },
+  jabBW:{ cr:3, nEl:[38, 44], nWr:[44, 35], nGl:[47, 31] }, jabBH:{ cr:4, lean:4, hx:2, nEl:[52, 34], nWr:[64, 36], nGl:[70, 37] },
+  hookW:{ lean:-2, nEl:[42, 38], nWr:[40, 29], nGl:[39, 23] }, hookH:{ lean:4, hx:2, nEl:[51, 25], nWr:[60, 25], nGl:[66, 24] },
+  hookBW:{ cr:4, lean:-2, nEl:[40, 46], nWr:[40, 37], nGl:[39, 32] }, hookBH:{ cr:4, lean:4, hx:2, nEl:[50, 37], nWr:[59, 37], nGl:[64, 37] },
+  upW:{ cr:3, fEl:[33, 47], fWr:[39, 53], fGl:[43, 53] }, upH:{ lean:4, cr:-1, hx:2, fEl:[46, 38], fWr:[56, 26], fGl:[61, 18] },
+  block:{ cr:1, lean:-1, nEl:[40, 42], nWr:[46, 28], nGl:[48, 18], fGl:[46, 24], fWr:[43, 30] },
+  blockL:{ cr:3, nEl:[40, 47], nWr:[46, 41], nGl:[49, 37], fWr:[42, 42], fGl:[46, 41] },
+  slip:{ lean:-6, hx:-2, cr:2, nGl:[46, 23], nWr:[42, 31], fGl:[40, 24], fWr:[38, 29] },
+  duck:{ cr:9, lean:3, hx:1 },
+  hurt:{ lean:-4, hx:-3, hy:-1, nEl:[36, 44], nWr:[43, 37], nGl:[48, 31], fGl:[42, 31], fWr:[40, 35] },
+  hurtB:{ lean:2, cr:5, hy:1, nEl:[38, 48], nWr:[44, 45], nGl:[47, 41], fGl:[44, 42] },
+  teeter:{ cr:4, lean:-2, hx:-1, nEl:[37, 47], nWr:[41, 54], nGl:[43, 58], fWr:[37, 53], fGl:[39, 57] },
+  limp:{ nEl:[42, 30], nWr:[47, 20], nGl:[49, 13], fWr:[28, 24], fGl:[26, 18] },
+  push:{ cr:6, lean:4, hx:2, nEl:[41, 47], nWr:[45, 57], nGl:[47, 62], fWr:[40, 57], fGl:[42, 62] },
+  knee:{ cr:10, lean:4, hx:2, nEl:[40, 50], nWr:[46, 54], nGl:[49, 55], fWr:[41, 54], fGl:[43, 55], nK:[47, 84], nA:[40, 88], fK:[31, 92], fA:[25, 88] },
+  win:{ nEl:[41, 16], nWr:[44, 4], nGl:[45, -3], fEl:[31, 16], fWr:[30, 4], fGl:[30, -3] },
+  robe:{ nEl:[37, 44], nWr:[40, 54], nGl:[41, 58], fWr:[38, 54], fGl:[39, 58] },
+};
+// hair styles, drawn by hand in the same way as the spiky original
+function rigHair(S, hx, hy, style){
+  const X = (x, y) => [RO + x + hx, y + hy];
+  if (style === 'bald') return;
+  S.begin();
+  if (style === 'spiky') {
+    S.poly('h2', [X(31, 13), X(30, 7), X(31, 3), X(34, 1), X(38, 0), X(42, 1), X(45, 3), X(47, 6), X(45, 7), X(42, 6), X(39, 8), X(37, 12), X(35, 15), X(33, 15)]);
+    S.poly('h2', [X(41, 2), X(45, -1), X(44, 3)]); S.poly('h2', [X(45, 4), X(49, 3), X(46, 7)]); S.poly('h2', [X(33, 3), X(30, -1), X(36, 1)]);
+    S.poly('h2', [X(31, 8), X(26, 6), X(31, 11)]); S.poly('h2', [X(32, 12), X(28, 13), X(33, 15)]);
+    S.shade('h1', [X(26, 6), X(33, 6), X(35, 15), X(28, 14)]);
+    S.line('h3', [X(36, 2), X(40, 1), X(43, 2)]); S.line('h3', [X(38, 4), X(42, 3)]); S.line('h4', [X(40, 2), X(41, 2)]); S.line('h3', [X(44, 4), X(46, 5)]); S.line('h3', [X(34, 5), X(36, 4)]);
+  } else if (style === 'short') {
+    S.poly('h2', [X(32, 12), X(31, 6), X(33, 3), X(37, 1.5), X(42, 2), X(45, 4), X(46, 7), X(43, 6.5), X(39, 7.5), X(37, 11), X(35, 13)]);
+    S.shade('h1', [X(30, 5), X(34, 4), X(35, 13), X(31, 12)]); S.line('h3', [X(37, 2), X(42, 3)]); S.line('h3', [X(39, 4), X(43, 4)]);
+  } else if (style === 'slick') {
+    S.poly('h2', [X(32, 13), X(31, 6), X(33, 2.5), X(38, 1), X(43, 1.5), X(46, 4), X(47, 7), X(44, 6), X(39, 7), X(37, 11), X(35, 14)]);
+    S.shade('h1', [X(30, 5), X(34, 4), X(35, 14), X(31, 13)]); S.line('h4', [X(37, 2), X(43, 2.5)]); S.line('h3', [X(36, 4), X(44, 4)]); S.line('h3', [X(34, 7), X(38, 6)]);
+  } else if (style === 'flat') {
+    S.poly('h2', [X(31, 12), X(31, -2), X(46, -2), X(47, 6), X(43, 6), X(39, 7), X(37, 11), X(35, 13)]);
+    S.shade('h3', [X(31, -2), X(46, -2), X(46, -1), X(31, -1)]); S.shade('h1', [X(30, 2), X(34, 2), X(35, 13), X(31, 12)]);
+  } else if (style === 'afro') {
+    S.ell('h2', RO + 37 + hx, 4 + hy, 9.5, 7.5); S.shadeE('h1', RO + 33 + hx, 7 + hy, 6, 6); S.shadeE('h3', RO + 40 + hx, hy, 4, 2.5);
+    for (let i = 0; i < 6; i++) S.dot('h1', RO + 31 + hx + i * 2.4, 2 + hy + (i % 2) * 3);
+  }
+  S.end();
+}
+function rigGlove(S, cx, cy, far, rage){
+  S.begin();
+  S.ell(far ? 'g2' : 'g3', cx, cy, 6.5, 6); S.ell(far ? 'g2' : 'g3', cx - 3, cy + 3, 3, 2.6);
+  S.shadeE(far ? 'g1' : 'g2', cx - 2.5, cy + 3.5, 5.5, 3.5);
+  S.shade('g1', [[cx - 7, cy + 2], [cx - 4, cy + 6], [cx + 1, cy + 7], [cx - 6, cy + 7]]);
+  if (!far) { S.shadeE('g4', cx + 2, cy - 2.5, 3, 2.2); S.dot('gw', cx + 2, cy - 4, 2, 1); S.dot('gw', cx + 3, cy - 3); } else S.shadeE('g3', cx + 2, cy - 2.5, 2.5, 2);
+  if (rage) { S.dot('y3', cx - 1, cy - 5, 3, 1); S.dot('y3', cx + 4, cy - 1, 1, 3); }
+  S.line(far ? 'g1' : 'g2', [[cx - 5, cy + 1], [cx - 2, cy + 2], [cx, cy + 4]]);
+  S.end();
+}
+function rigCuff(S, W, E){
+  const ang = Math.atan2(W[1] - E[1], W[0] - E[0]), c = Math.cos(ang), s = Math.sin(ang), Q = (u, v) => [W[0] + u * c - v * s, W[1] + u * s + v * c];
+  S.begin(); S.poly('c2', [Q(-2, -3), Q(2, -3), Q(2, 3), Q(-2, 3)]); S.shade('c1', [Q(-2, 1), Q(2, 1), Q(2, 3), Q(-2, 3)]); S.end();
+}
+function rigLeg(S, H, K, A, near){
+  const M1 = [(H[0] + K[0]) / 2, (H[1] + K[1]) / 2], M2 = [(K[0] + A[0]) / 2, (K[1] + A[1]) / 2], L3 = [K[0] + (A[0] - K[0]) * .67, K[1] + (A[1] - K[1]) * .67], L1 = [K[0] + (A[0] - K[0]) * .33, K[1] + (A[1] - K[1]) * .33];
+  const o = (p, dx, dy = 0) => [RO + p[0] + dx, p[1] + dy];
+  S.begin();
+  S.poly(near ? 's4' : 's3', [o(H, -5), o(H, 5), o(M1, 4.5), o(K, 4), o(M2, 2.5), o(A, 2), o(A, -2), o(L3, -3), o(L1, -5), o(K, -4), o(M1, -4.5)]);
+  S.shade(near ? 's3' : 's2', [o(H, -5), o(H, -2), o(K, -3, -1), o(K, -4), o(M1, -4.5)]);                         // hamstring
+  S.shade(near ? 's3' : 's2', [o(K, -3, 1), o(K, -1, 2), o(L3, -1), o(A, -2), o(L3, -3), o(L1, -5)]);             // calf
+  if (near) S.shade('s2', [o(L1, -4, -1), o(L1, -3, -1), o(L3, -3), o(L3, -4)]);
+  S.shade(near ? 's5' : 's4', [o(M1, 3.5, -1), o(M1, 4.5), o(K, 4, -1), o(K, 2.5, -1)]);                         // front of the thigh
+  S.shade(near ? 's5' : 's4', [o(K, 3, 3), o(K, 4, 2), o(A, 2, -1), o(A, 1, -1)]);                              // shin
+  S.dot(near ? 's5' : 's4', RO + K[0] + 2, K[1] - 1, 2, 2); S.dot('s2', RO + K[0] - 3, K[1], 2, 1);               // kneecap, the crease behind the knee
+  S.end();
+  S.begin();                                                                                                     // slim high-top shoe
+  const x = RO + A[0] - 2, y = A[1];
+  S.poly('b2', [[x, y - 2], [x + 4, y - 2], [x + 5, y + 2], [x + 9, y + 3], [x + 11, y + 5], [x + 10, y + 7], [x - 1, y + 7], [x - 1, y + 3]]);
+  S.shade('c2', [[x - 1, y + 5], [x + 11, y + 5], [x + 11, y + 6], [x - 1, y + 6]]); S.shade('b1', [[x - 1, y + 6.6], [x + 11, y + 6.6], [x + 11, y + 7], [x - 1, y + 7]]);
+  if (near) S.shade('b3', [[x + 5, y + 3], [x + 9, y + 3.6], [x + 10, y + 4.6], [x + 5, y + 4]]); else S.shade('b1', [[x - 1, y - 2], [x + 1, y - 2], [x + 1, y + 5], [x - 1, y + 5]]);
+  S.line('b4', [[x + 1, y + 3], [x + 3, y + 1], [x + 6, y + 3]]); S.dot('b4', x, y - 2, 4, 1);
+  S.end();
+}
+// draw one fighter in one pose. o: { swell 0-1, cut 0-3, nose, jaw, body, rage, headgear, robe:{color,trim} }
+function rigDraw(look, frame, o = {}){
+  const PAL = rigPalette(look), S = RigSprite(PAL), J = { ...RIG_BASE, ...(RIG[frame] || {}) };
+  const t = J.lean, cr = J.cr, hx = t * 1.15 + J.hx, hy = cr + J.hy, sh = 0;
+  const T = (x, y) => [RO + x + t, y + cr];                                   // torso space
+  const style = look.style || (look.hair === 'none' ? 'bald' : look.flat ? 'flat' : 'spiky');
+  const hip = (x) => [x + t * .5, 66 + cr];
+  // ---- far arm (behind everything) ----
+  const fSh = [33 + t, 27 + cr];
+  S.begin(); S.limb([RO + fSh[0], fSh[1]], [RO + J.fEl[0] + t, J.fEl[1] + cr], 7, 5.5, { dark:true }); S.limb([RO + J.fEl[0] + t, J.fEl[1] + cr], [RO + J.fWr[0] + t, J.fWr[1] + cr], 5.5, 4.5, { dark:true }); S.end();
+  rigCuff(S, [RO + J.fWr[0] + t, J.fWr[1] + cr], [RO + J.fEl[0] + t, J.fEl[1] + cr]);
+  rigGlove(S, RO + J.fGl[0] + t, J.fGl[1] + cr, true, o.rage);
+  // ---- legs ----
+  rigLeg(S, hip(32), J.fK, J.fA, false);
+  rigLeg(S, hip(38), J.nK, J.nA, true);
+  // ---- torso in profile ----
+  S.begin();
+  S.poly('s4', [T(33, 20), T(29, 23), T(27, 27), T(26, 33), T(27, 40), T(28, 46), T(27, 50), T(28, 53), T(43, 53), T(44, 50), T(45, 46), T(45, 40), T(44, 36), T(47, 33), T(48, 29), T(46, 25), T(42, 22)]);
+  S.shade('s3', [T(26, 24), T(33, 21), T(33, 53), T(27, 53), T(26, 33)]);
+  S.shade('s2', [T(26, 28), T(28, 26), T(29, 45), T(28, 50), T(26, 40)]);
+  S.shade('s4', [T(28, 46), T(30, 45), T(30, 51), T(28, 51)]);
+  S.shade('s5', [T(42, 24), T(46, 25), T(48, 29), T(46, 31), T(43, 29)]); S.dot('s6', RO + 46 + t, 27 + cr, 1, 2);
+  S.line('s2', [T(41, 34), T(44, 35), T(47, 33)]); S.line('s3', [T(42, 35), T(44, 36)]);
+  for (let r = 0; r < 3; r++) { const [x0, y0] = T(40, 37 + r * 5); S.shade('s4', [[x0, y0], [x0 + 4, y0], [x0 + 4, y0 + 3], [x0, y0 + 3]]); S.dot('s5', x0 + 1, y0, 3, 1); S.dot('s5', x0 + 3, y0, 1, 2); S.dot('s3', x0, y0 + 3, 4, 1); }
+  for (let r = 0; r < 2; r++) S.line('s2', [T(39, 41 + r * 5), T(45, 41 + r * 5)]);
+  S.line('s2', [T(39, 37), T(39, 51)]);
+  S.shade('s3', [T(33, 44), T(38, 44), T(38, 53), T(33, 53)]); S.line('s4', [T(34, 47), T(37, 46)]);
+  if (o.body > .12) S.shade('bruise', [T(40, 43), T(44, 43), T(44, 47), T(40, 47)]);
+  if (o.body > .3) S.shade('bruise', [T(33, 47), T(37, 46), T(37, 50), T(33, 50)]);
+  S.poly('s4', [T(35, 17), T(41, 17), T(42, 23), T(34, 23)]); S.shade('s3', [T(34, 17), T(37, 17), T(37, 23), T(34, 23)]); S.poly('s3', [T(28, 24), T(35, 20), T(35, 25)]);
+  S.end();
+  // ---- trunks ----
+  const tt = t * .5, nA = J.nA[0] - 40;
+  S.begin();
+  S.poly('t2', [[RO + 27 + t, 51 + cr], [RO + 44 + t, 51 + cr], [RO + 45 + t, 57 + cr], [RO + 46 + nA * .5 + tt, 66 + cr], [RO + 39 + tt, 67 + cr], [RO + 37 + tt, 64 + cr], [RO + 35 + tt, 67 + cr], [RO + 27 + tt, 66 + cr], [RO + 26 + tt, 60 + cr], [RO + 26 + t, 55 + cr]]);
+  S.shade('t1', [[RO + 26 + t, 55 + cr], [RO + 30 + t, 51 + cr], [RO + 31 + tt, 66 + cr], [RO + 27 + tt, 66 + cr], [RO + 26 + tt, 60 + cr]]);
+  S.shade('t1', [[RO + 35 + tt, 60 + cr], [RO + 37 + tt, 60 + cr], [RO + 38 + tt, 66 + cr], [RO + 35 + tt, 66 + cr]]);
+  S.shade('t3', [[RO + 41 + t, 54 + cr], [RO + 44 + t, 54 + cr], [RO + 45 + tt, 65 + cr], [RO + 42 + tt, 65 + cr]]);
+  S.line('t4', [[RO + 43 + t, 55 + cr], [RO + 44 + tt, 62 + cr]]); S.line('t4', [[RO + 41 + t, 56 + cr], [RO + 42 + t, 59 + cr]]);
+  S.line('t1', [[RO + 36 + t, 55 + cr], [RO + 35 + tt, 62 + cr]]);
+  S.poly('y2', [[RO + 27 + t, 50 + cr], [RO + 44 + t, 50 + cr], [RO + 44 + t, 54 + cr], [RO + 27 + t, 54 + cr]]);
+  S.dot('y3', RO + 28 + t, 50 + cr, 16, 1); S.dot('y1', RO + 27 + t, 53 + cr, 18, 1); S.dot('y1', RO + 27 + t, 51 + cr, 3, 2);
+  S.line('y2', [[RO + 44 + t, 55 + cr], [RO + 45 + tt, 65 + cr]]);
+  S.end();
+  // ---- head ----
+  const H = (x, y) => [RO + x + hx, y + hy];
+  S.begin();
+  S.poly('s4', [H(32, 9), H(34, 5), H(38, 3), H(43, 4), H(46, 7), H(47, 10), H(47, 12), H(48, 13), H(49, 14), H(48, 15), H(47, 15), H(47, 18), H(45, 20), H(41, 21), H(37, 20), H(34, 17), H(32, 13)]);
+  S.shade('s3', [H(32, 9), H(37, 7), H(38, 19), H(34, 17), H(32, 13)]);
+  S.shade('s2', [H(37, 19), H(45, 19), H(44, 21), H(38, 21)]);
+  S.shade('s5', [H(43, 7), H(46, 8), H(46, 11), H(43, 10)]); S.shade('s5', [H(43, 14), H(46, 15), H(46, 17), H(43, 16)]);
+  S.dot('s6', RO + 48 + hx, 13 + hy); S.dot('s5', RO + 47 + hx, 12 + hy); S.dot('s2', RO + 47 + hx, 15 + hy, 1, 1);
+  S.line('s3', [H(42, 13), H(43, 16)]);
+  S.poly('s3', [H(35, 11), H(37, 11), H(38, 14), H(36, 16), H(35, 15)]); S.dot('s2', RO + 36 + hx, 12 + hy, 1, 3);
+  const sw = o.swell || 0;
+  if (sw > .7) { S.dot('K', RO + 42 + hx, 12 + hy, 3, 1); }                                                 // shut to a slit
+  else { S.dot('eye', RO + 42 + hx, 11 + hy, 3, sw > .4 ? 1 : 2); S.dot('iris', RO + 44 + hx, 11 + hy, 1, sw > .4 ? 1 : 2); }
+  S.dot('K', RO + 41 + hx, 10 + hy, 5, 1); S.dot('s2', RO + 42 + hx, 13 + hy, 3, 1);
+  if (sw > .15) { S.shade('bruise', [H(41, 8), H(46, 8), H(46, 10), H(41, 10)]); S.dot('bruise', RO + 41 + hx, 13 + hy, 4, 1); }
+  if (sw > .45) { S.shade(sw > .7 ? 's1' : 'bruise', [H(41, 7), H(47, 8), H(47, 11), H(41, 11)]); S.dot('bruise', RO + 47 + hx, 9 + hy, 1, 3); }
+  S.line(look.hair === 'none' ? 's2' : 'h2', [H(40, 8), H(43, 9), H(46, 9)]); S.dot(look.hair === 'none' ? 's2' : 'h2', RO + 41 + hx, 9 + hy, 4, 1);
+  if (o.jaw > 30) S.dot('bruise', RO + 45 + hx, 17 + hy, 2, 1);
+  S.line('s1', [H(44, 18), H(46, 18)]); S.dot('s2', RO + 45 + hx, 19 + hy);
+  if (look.stache) S.dot('h2', RO + 44 + hx, 16 + hy, 4, 1);
+  if (o.cut >= 1) S.dot('blood', RO + 45 + hx, 8 + hy, 1, 2);
+  if (o.cut >= 2) { S.dot('blood', RO + 45 + hx, 10 + hy, 1, 3); S.dot('blood', RO + 44 + hx, 14 + hy, 1, 2); }
+  if (o.cut >= 3) S.dot('blood', RO + 43 + hx, 17 + hy, 1, 3);
+  if (o.nose > 20) S.dot('blood', RO + 47 + hx, 16 + hy, 1, o.nose > 50 ? 3 : 2);
+  S.end();
+  if (o.headgear) { S.begin(); S.poly('g2', [H(31, 10), H(32, 3), H(38, 0), H(44, 1), H(47, 5), H(46, 8), H(40, 7), H(37, 11), H(36, 17), H(32, 15)]); S.shade('g3', [H(37, 1), H(44, 2), H(45, 5), H(38, 4)]); S.end(); }
+  else rigHair(S, hx, hy, style);
+  // ---- near arm: big shoulder, upper arm, forearm, cuff, glove ----
+  const nS = [RO + 35 + t, 28 + cr], nE = [RO + J.nEl[0] + t, J.nEl[1] + cr], nW = [RO + J.nWr[0] + t, J.nWr[1] + cr];
+  S.begin();
+  S.limb(nS, nE, 8.5, 6.5, { crease:true });
+  S.limb(nE, nW, 6.4, 5, {});
+  S.ell('s4', nS[0], nS[1], 7, 6);
+  S.shade('s5', [[nS[0], nS[1] - 6], [nS[0] + 5, nS[1] - 5], [nS[0] + 7, nS[1] - 1], [nS[0] + 2, nS[1] - 2]]); S.dot('s6', nS[0] + 3, nS[1] - 5, 2, 1);
+  S.shade('s3', [[nS[0] - 7, nS[1] - 1], [nS[0] - 4, nS[1] - 4], [nS[0] - 3, nS[1] + 5], [nS[0] - 6, nS[1] + 4]]);
+  S.dot('s2', nE[0] - 1, nE[1] + 1, 3, 1);
+  S.end();
+  rigCuff(S, nW, nE);
+  rigGlove(S, RO + J.nGl[0] + t, J.nGl[1] + cr, false, o.rage);
+  // ---- the walkout robe, over everything ----
+  if (o.robe) {
+    const R = { r1:o.robe.color, r2:o.robe.trim };
+    const [c1, c2, c3] = rampHsl(R.r1, [[-6, .9, .62], [0, 1, 1], [6, .9, 0, .35]]);
+    const tr = R.r2;
+    S.begin();
+    S.poly(c2, [T(26, 22), T(34, 18), T(42, 20), T(48, 26), T(49, 40), T(48, 58), T(47, 76), T(26, 76), T(24, 56), T(24, 34)]);
+    S.shade(c1, [T(24, 22), T(31, 20), T(32, 76), T(24, 76)]); S.shade(c3, [T(41, 24), T(46, 26), T(45, 70), T(42, 70)]);
+    S.shade(tr, [T(24, 51), T(49, 51), T(49, 54), T(24, 54)]); S.shade(tr, [T(24, 74), T(48, 74), T(48, 76), T(24, 76)]);
+    S.shade(tr, [T(44, 24), T(46, 24), T(46, 74), T(44, 74)]);
+    S.end();
+    S.begin(); S.poly(c2, [H(29, 12), H(30, 2), H(37, -2), H(44, -1), H(47, 3), H(46, 7), H(39, 6), H(37, 14), H(33, 19)]); S.shade(c1, [H(29, 4), H(33, 2), H(35, 18), H(30, 15)]); S.shade(c3, [H(38, -1), H(44, 0), H(45, 3), H(39, 2)]); S.end();
+  }
+  return S.canvas();
+}
+// cache: one canvas per fighter look + pose + damage step
+const rigCache = new Map();
+function rigKey(look, frame, o){
+  const q = v => v > .7 ? 3 : v > .45 ? 2 : v > .15 ? 1 : 0;
+  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim : ''}`;
+}
+function rigFrame(look, frame, o = {}){
+  const k = rigKey(look, frame, o);
+  let c = rigCache.get(k);
+  if (!c) {
+    if (rigCache.size > 500) rigCache.clear();
+    const q = { ...o, swell:[0, .2, .5, .8][[0, .15, .45, .7].filter(v => (o.swell || 0) > v).length - 1] || 0 };
+    const src = rigDraw(look, frame, q), cp = document.createElement('canvas'); cp.width = RW; cp.height = RH; cp.getContext('2d').drawImage(src, 0, 0);
+    c = cp; rigCache.set(k, c);
+  }
+  return c;
+}
+// draw a fighter at his feet (x, gy) in world units on a 2x canvas; dir 1 faces right, -1 left; ang turns him about his feet
+const RIGS = .75;                                           // world units per sprite pixel in the ring
+function drawRig(g, x, gy, dir, frame, look, o = {}, ang = 0, k = RIGS){
+  const c = rigFrame(look, frame, o);
+  if (!o.noShadow) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(x - 18 * k / .75 + (ang ? Math.sin(ang) * 33 * k / .75 : 0), gy - 1, 36 * k / .75 + Math.abs(Math.sin(ang || 0)) * 33 * k / .75, 2); }
+  g.save(); g.translate(x, gy); if (ang) g.rotate(ang); if (dir < 0) g.scale(-1, 1);
+  g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k, -FOOTY * k, RW * k, RH * k);
+  g.restore();
+}
+// generated fighters get one of the hand-drawn haircuts
+const STYLES_HAIR = ['spiky', 'short', 'slick', 'afro'];
+function lookStyle(f){
+  if (f.look.style) return f.look;
+  let h = 0; for (const ch of String(f.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  f.look.style = f.me ? 'spiky' : f.look.hair === 'none' ? 'bald' : f.look.flat ? 'flat' : STYLES_HAIR[h % STYLES_HAIR.length];
+  return f.look;
 }
 
 /* ================= sound ================= */
@@ -1292,14 +1582,14 @@ function swish(){
 // all times in seconds at Speed 50; the computer's wind-ups are longer so you can read them.
 // reach is in ring pixels between the two boxers' feet
 const FT = {
-  jab:   { wind:.2,  hit:.09, rec:.16, dmg:4.5, cost:5,  stun:.18, push:3, reach:40 },
-  hook:  { wind:.34, hit:.11, rec:.28, dmg:9.5, cost:11, stun:.3,  push:6, reach:37 },
-  upper: { wind:.46, hit:.12, rec:.36, dmg:14,  cost:16, stun:.42, push:7, reach:35 },
+  jab:   { wind:.2,  hit:.09, rec:.16, dmg:4.5, cost:5,  stun:.18, push:3, reach:39 },
+  hook:  { wind:.34, hit:.11, rec:.28, dmg:9.5, cost:11, stun:.3,  push:6, reach:34 },
+  upper: { wind:.46, hit:.12, rec:.36, dmg:14,  cost:16, stun:.42, push:7, reach:31 },
 };
 const GUARD = { jab:.15, hook:.25, upper:.55 };              // share of a punch that gets through a guard at the right height
 const AI_TELL = { jab:1.35, hook:1.55, upper:1.55 };
 const SLIP_T = .42, SLIP_BACK = 10, DUCK_T = .45, EVADE_CD = .3, EVADE_COST = 4, OPEN_T = .6;
-const WALK = 16, CLOSE = 32, MIN_GAP = 24, ROPE_IN = 13;
+const WALK = 17, CLOSE = 31, MIN_GAP = 22, ROPE_IN = 15;
 const BODY_DMG = .75, BODY_DRAIN = 1.6, RAGE_T = 6, AILX = .55;
 const ROUND_SECS = 180, CLOCK_X = 3;                       // a 3:00 round lasts 60 real seconds
 const LH = 120;
@@ -1357,7 +1647,7 @@ function push(f, amt){
 function resolve(a, d){
   const P = FT[a.pt], head = a.tgt === 'head';
   if (d.state === 'down' || d.state === 'falling') return;
-  const hitX = (a.x + d.x) / 2 + (a.side === 0 ? 7 : -7), hitY = M.gy - (head ? 47 : 31);
+  const hitX = (a.x + d.x) / 2 + (a.side === 0 ? 4 : -4), hitY = M.gy - (head ? 62 : 39);
   if (Math.abs(d.x - a.x) > P.reach) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
@@ -1476,7 +1766,7 @@ function move(f, o, dt){
   f.x = clamp(f.x, M.lo, M.hi);
   f.pinned = f.side === 0 ? f.x <= M.lo + .5 : f.x >= M.hi - .5;
   const moved = Math.abs(f.x - ox);
-  if (moved > .01) f.walk += moved * .45;
+  if (moved > .01) { f.walk += moved * .45; f.moving = .12; }
 }
 
 // the computer's brain: reads your wind-ups, punishes your misses, otherwise throws on a rhythm
@@ -1600,7 +1890,7 @@ const HOW = { REF:'Referee stops it', STOP:'Trainer stops it', SPAR:'Sparring', 
 
 function placeFighters(){
   const cx = Math.round(LW / 2);
-  M.f[0].x = cx - 17; M.f[1].x = cx + 17;
+  M.f[0].x = cx - 16; M.f[1].x = cx + 16;
 }
 function startFight(offer){
   const me = G.fighters.me, o = offer.partner || G.fighters[offer.id];
@@ -1646,7 +1936,7 @@ function walkout(dt){
   const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2);
   const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; } };
   if (t < 7.1) { toward(a, M.lo + 4, 34); toward(b, M.hi - 4, 34); }
-  else { M.robes = false; toward(a, cx - 17, 30); toward(b, cx + 17, 30); }
+  else { M.robes = false; toward(a, cx - 16, 34); toward(b, cx + 16, 34); }
   const step = t < 2.1 ? 0 : t < 4.6 ? 1 : t < 7.1 ? 2 : 3;
   M.close = step === 1 ? 1 : step === 2 ? 0 : null;
   $('#hud').style.visibility = $('#pauseBtn').style.visibility = M.close != null ? 'hidden' : '';
@@ -1753,17 +2043,17 @@ function update(dt){
   for (const f of M.f) animate(f, dt);
   moveRef(dt);
   // a rolling recording of the last two seconds, for the knockout replay
-  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat, frame:f.frame })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
   M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 2.2) M.buf.shift();
   if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
 }
 function moveRef(dt){
   const R = M.ref, [a, b] = M.f;
   // he keeps off to one side, out of the punches, on whichever side has room
-  const mid = (a.x + b.x) / 2; let tx = mid + 40 > M.hi + 6 ? mid - 40 : mid + 40;
+  const mid = (a.x + b.x) / 2; let tx = mid + 52 > M.hi + 6 ? mid - 52 : mid + 52;
   if (M.ref.side === undefined) M.ref.side = 1;
   if (M.phase === 'count' || M.phase === 'falling') { const d = M.f[M.downSide]; tx = d.x - away(d) * 6; }
-  else if (M.phase === 'end' && M.result && M.result.winSide >= 0) { const w = M.f[M.result.winSide]; tx = w.x + away(w) * -16; }
+  else if (M.phase === 'end' && M.result && M.result.winSide >= 0) { const w = M.f[M.result.winSide]; tx = w.x + away(w) * -22; }
   const d = tx - R.x; R.x += Math.sign(d) * Math.min(Math.abs(d), 26 * dt);
   R.arm = Math.max(0, R.arm - dt);
 }
@@ -1797,7 +2087,32 @@ function targetPose(f){
     }
   }
 }
+function frameOf(f){
+  const st = f.state, body = f.tgt === 'body';
+  const hit = f.pt === 'jab' ? (body ? 'jabBH' : 'jabH') : f.pt === 'hook' ? (body ? 'hookBH' : 'hookH') : 'upH';
+  const wind = f.pt === 'jab' ? (body ? 'jabBW' : 'jabW') : f.pt === 'hook' ? (body ? 'hookBW' : 'hookW') : 'upW';
+  switch (st) {
+    case 'wind': return wind;
+    case 'hit': return hit;
+    case 'rec': return f.t < f.dur * .45 && !f.whiff ? hit : 'guard';
+    case 'block': return f.guard === 'low' ? 'blockL' : 'block';
+    case 'slip': return 'slip';
+    case 'duck': return 'duck';
+    case 'stun': return f.hurtLow ? 'hurtB' : 'hurt';
+    case 'win': return 'win';
+    case 'falling': return f.fallT < f.T1 ? (f.fallFwd ? 'knee' : 'teeter') : 'limp';
+    case 'down': { const gp = f.gprog || 0; return gp < .3 ? 'limp' : gp < .62 ? 'push' : 'knee'; }
+  }
+  if (f.rock > 55) return Math.sin(M.time * 5 + f.side) > 0 ? 'teeter' : 'guard2';
+  if (f.moving > 0) return Math.floor(f.walk / 2.2) % 2 ? 'walk1' : 'walk2';
+  return Math.sin(M.time * 4 + f.side * 1.7) > 0 ? 'guard' : 'guard2';
+}
 function animate(f, dt){
+  f.moving = Math.max(0, (f.moving || 0) - dt);
+  animatePose(f, dt);
+  f.frame = frameOf(f);
+}
+function animatePose(f, dt){
   f.jit = 0; f.sweat = f.st < f.stMax * .45 || M.round > 2;
   const dir = f.side === 0 ? 1 : -1;
   if (f.state === 'falling') {
@@ -1907,16 +2222,14 @@ function draw(){
     const t0 = M.rFrames[0].t + M.rt, fr = M.rFrames.find(x => x.t >= t0) || M.rFrames[M.rFrames.length - 1];
     view = fr.f.map((v, i) => ({ ...v, src:M.f[i].src })); parts = fr.parts; ref = fr.ref;
   }
-  if (M.phase !== 'walkout' && M.phase !== 'tut') drawRef(g, ref.x, gy - 5, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
+  if (M.phase !== 'walkout' && M.phase !== 'tut') { g.save(); g.translate(ref.x, gy - 5); g.scale(1.35, 1.35); drawRef(g, 0, 0, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0); g.restore(); }
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, sweat:f.sweat };
-    if (f.ang) drawTurned(g, f.x + (f.jit || 0), gy, dir, f.pose, f.src.look, o, f.ang);
-    else drawBoxer(g, f.x + (f.jit || 0), gy, dir, f.pose, f.src.look, o);
-    if (M.robes) drawRobe(g, f.x, gy, dir, f.src.look, robeOf(f.src), M.time);
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeOf(f.src) : null };
+    drawRig(g, f.x + (f.jit || 0), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), o, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
-  if (M.card) drawCardGirl(g, M.card.x, gy + 8, M.card.n, M.time);
+  if (M.card) { g.save(); g.translate(M.card.x, gy + 8); g.scale(1.35, 1.35); drawCardGirl(g, 0, 0, M.card.n, M.time); g.restore(); }
   for (const p of parts) { g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2); }
   // a big shot punches the camera in a touch
   ctx.imageSmoothingEnabled = false;
@@ -1972,7 +2285,7 @@ const popLive = [[], []];                                                    // 
 function fx(text, side, cls){
   const f = M.f[side], now = performance.now(), L = popLive[side];
   while (L.length && L[0] < now - 700) L.shift();
-  fxAt(text, f.x / LW, (M.gy - 58) / LH - L.length * 18 / cssH, cls);
+  fxAt(text, f.x / LW, (M.gy - 80) / LH - L.length * 18 / cssH, cls);
   L.push(now);
 }
 function renderGetup(){
@@ -2206,9 +2519,8 @@ const MINIS = {
         }
       }
       for (const p of S.puffs) MR(bx - 8 + p.x * .3 - 2, by + 18 + p.y, 1.5, 1.5, 'rgba(240,230,210,.8)');
-      const pose = S.hitT > .14 && !S.missed ? (S.hand ? POSE.hookH : POSE.jabH) : S.missed ? POSE.hurt : POSE.guard;
-      const p2 = copyPose(pose); if (S.hitT > .14) p2.lean += 1;
-      drawBoxer(mg, cx - 26, gy, 1, p2, G.fighters.me.look, { sweat:S.hits > 8 });
+      const fr = S.hitT > .14 && !S.missed ? (S.hand ? 'hookH' : 'jabH') : S.missed ? 'hurt' : (Math.sin(MG.time * 4) > 0 ? 'guard' : 'guard2');
+      drawRig(mg, cx - 19, gy, 1, fr, lookStyle(G.fighters.me), {}, 0, .5);
       // the timing bar
       const x0 = cx - 60, w = 120, y = LH - 11;
       MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
@@ -2580,7 +2892,7 @@ const VIEWS = {
   create(){
     const d = draft, sw = (key, list) => `<div class="sw">${list.map(c => `<button data-a="look" data-k="${key}" data-v="${c}" class="${d.look[key] === c ? 'on' : ''}" style="background:${c === 'none' ? 'repeating-linear-gradient(45deg,#555 0 4px,#333 4px 8px)' : c}" aria-label="${key} ${c}"></button>`).join('')}</div>`;
     return `<div class="bar"><div><button class="btn sm" data-a="title">Back</button></div><div class="title">New boxer</div><div></div></div>
-      <div class="create"><div class="preview"><img class="pt" src="${portrait({ id:'draft' + JSON.stringify(d.look), look:d.look }, 44, 60)}" width="132" height="180" alt=""></div>
+      <div class="create"><div class="preview"><img class="pt" src="${portrait({ id:'draft' + JSON.stringify(d.look), me:true, look:{ ...d.look } }, 44, 60)}" width="132" height="180" alt=""></div>
       <div class="panel">
         <div class="field"><span class="label">Name</span><input id="nmIn" maxlength="16" value="${esc(d.name)}" placeholder="YOUR NAME"></div>
         <div class="field"><span class="label">Nick / Town</span><div class="row" style="gap:6px"><input id="nkIn" maxlength="14" value="${esc(d.nick)}" placeholder="nickname" style="text-transform:none"><input id="twIn" maxlength="16" value="${esc(d.town)}" placeholder="Philadelphia" style="text-transform:none"></div></div>
