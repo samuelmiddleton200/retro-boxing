@@ -2479,15 +2479,24 @@ function lyingBoxer(cx, gy, pressed){
   MR(cx - 31, gy - 7, 2, 1, '#141414');
 }
 
+// two fresh zones for each sweep of the heavy bag marker: one in each half
+function bagZones(S){ S.z = [{ c:rnd(.1 + S.zw / 2, .44), hit:false }, { c:rnd(.56, .9 - S.zw / 2), hit:false }]; }
 const MINIS = {
   bag: {
-    name:'Heavy bag', how:'Tap when the white marker is in the green. Yellow is perfect. Keep going until you miss. More Power and Grit = a wider green.', dur:Infinity,
+    name:'Heavy bag', how:'Every sweep of the marker has two green zones. Tap as it crosses each one (yellow is perfect). Tap outside the green, or let a zone go by, and you\'re done. More Power and Grit = wider zones.', dur:Infinity,
     init:() => {
       const r = G.fighters.me.rat, wide = ((r.pow + r.grit) / 2 - 40) / 60;              // 0 at 40, 1 at 100
-      return { hits:0, streak:0, mark:0, dir:1, speed:.7, zc:rnd(.35, .65), zw:.2 + wide * .16, pw:.04 + wide * .03, a:0, v:0, hitT:0, missed:false, hand:0, puffs:[] };
+      const S = { hits:0, streak:0, mark:0, dir:1, speed:.55, zw:.11 + wide * .07, pw:.025 + wide * .015, a:0, v:0, hitT:0, missed:false, hand:0, puffs:[], z:[] };
+      bagZones(S); return S;
     },
     update(S, dt){
-      if (!S.missed) { S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; } }
+      if (!S.missed) {
+        S.mark += S.dir * S.speed * dt;
+        if (S.mark > 1) { S.mark = 1; S.dir = -1; bagZones(S); } if (S.mark < 0) { S.mark = 0; S.dir = 1; bagZones(S); }
+        for (const z of S.z) if (!z.hit && (S.dir > 0 ? S.mark > z.c + S.zw / 2 : S.mark < z.c - S.zw / 2)) {   // let one go by
+          S.missed = true; S.hitT = 1.1; thud(.1, true); miniPop('TOO SLOW', 'r'); break;
+        }
+      }
       S.v += (-S.a * 12 - S.v * 1.1) * dt; S.a += S.v * dt; S.hitT = Math.max(0, S.hitT - dt);
       for (const p of S.puffs) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; } S.puffs = S.puffs.filter(p => p.life > 0);
       if (S.missed && S.hitT <= 0) return true;
@@ -2495,12 +2504,13 @@ const MINIS = {
     tap(S){
       if (S.missed || S.hitT > .14) return;
       S.hitT = .28; S.hand = 1 - S.hand;
-      const d = Math.abs(S.mark - S.zc);
+      const z = S.z.find(z => !z.hit && Math.abs(S.mark - z.c) < S.zw / 2), d = z ? Math.abs(S.mark - z.c) : 1;
+      if (z) z.hit = true;
       if (d < S.pw) { S.hits++; MG.score += 2; S.v += 1.5; thud(1, false); miniPop(S.hits % 5 ? 'PERFECT!' : `${S.hits} IN A ROW!`, 'y'); }
       else if (d < S.zw / 2) { S.hits++; MG.score += 1; S.v += .9; thud(.55, false); miniPop(S.hits % 5 ? 'GOOD' : `${S.hits} IN A ROW!`, S.hits % 5 ? '' : 'y'); }
       else { S.missed = true; S.hitT = 1.1; S.v += .3; thud(.1, true); miniPop('MISSED', 'r'); return; }
       for (let i = 0; i < 6; i++) S.puffs.push({ x:0, y:rnd(-6, 6), vx:rnd(6, 22), vy:rnd(-10, 6), life:rnd(.2, .45) });
-      S.speed *= 1.035; S.zc = rnd(.25, .75);
+      S.speed = Math.min(1.6, S.speed * 1.018);
     },
     draw(S){
       gymBg(); const gy = mgy(), cx = Math.round(MW / 2), P = painter(mg);
@@ -2527,12 +2537,15 @@ const MINIS = {
       const fr = S.hitT > .14 && !S.missed ? (S.hand ? 'hookH' : 'jabH') : S.missed ? 'hurt' : (Math.sin(MG.time * 4) > 0 ? 'guard' : 'guard2');
       drawRig(mg, cx - 19, gy, 1, fr, lookStyle(G.fighters.me), {}, 0, .5);
       // the timing bar
-      const x0 = cx - 60, w = 120, y = LH - 11;
+      const w = Math.min(MW - 24, 220), x0 = Math.round(cx - w / 2), y = LH - 11;
       MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
-      MR(x0 + (S.zc - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (S.zc - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
+      for (const z of S.z) {
+        if (z.hit) { MR(x0 + (z.c - S.zw / 2) * w, y, S.zw * w, 6, '#1f5a2c'); continue; }
+        MR(x0 + (z.c - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (z.c - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
+      }
       MR(x0 + S.mark * w - 1, y - 3, 2, 12, '#ffffff');
     },
-    grade:s => s >= 40 ? 'S' : s >= 26 ? 'A' : s >= 15 ? 'B' : s >= 7 ? 'C' : 'F',
+    grade:s => s >= 70 ? 'S' : s >= 46 ? 'A' : s >= 26 ? 'B' : s >= 12 ? 'C' : 'F',
     hud:S => `${S.hits} in a row`,
   },
   speed: {
