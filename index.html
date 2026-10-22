@@ -319,6 +319,7 @@ tr.tap{cursor:pointer} tr.tap:active td{background:rgba(255,255,255,.08)}
 .minirats .hbar{grid-column:1/-1;height:6px}
 .robegrid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px}
 .robeprev{border:3px solid #fff;border-radius:6px;background:#19154a;display:grid;place-items:center;overflow:hidden}
+.robeopts .cuts{display:flex;flex-wrap:wrap;gap:4px}.robeopts .cuts .btn{padding:4px 8px;font-size:11px}.robeopts{overflow:auto;max-height:calc(100dvh - 70px)}
 .robeprev img{width:100%;max-height:calc(100dvh - 80px);object-fit:contain}
 .emb{width:30px !important;height:30px !important;display:grid;place-items:center;background:var(--blue-dd) !important}
 .tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:6px 0}
@@ -1138,9 +1139,23 @@ const ROBE_TIERS = [
 const ROBE_COLORS = ['#e0b12d', '#e24b3b', '#7a1f2a', '#3f7be0', '#1f2a5a', '#44c45d', '#f4f4f4', '#1d1d1d', '#a24be0', '#ff8a2b'];
 const TRIMS = ['#1d1d1d', '#f4f4f4', '#e0b12d', '#c42d2d', '#1f2a5a'];
 function robeOf(f){
+  if (f.robe && !f.robe.motif) {                                            // older saves and other fighters: pick a cut
+    let h = 0; for (const ch of String(f.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const pk = (k, i) => ROBE_CUTS[k][(h >>> i) % ROBE_CUTS[k].length][0];
+    // each style dresses like it fights: brawlers in deep hoods and fire, speedsters short and light, tanks heavy, counter-punchers calm
+    const FIT = {
+      brawler:{ hood:['deep', 'up'], collar:['band'], len:['long'], sleeve:['wide', 'hem'], obi:['wide', 'cord'], motif:['tiger', 'flames'] },
+      speedster:{ hood:['none', 'down'], collar:['band', 'high'], len:['knee'], sleeve:['slim'], obi:['plain', 'cord'], motif:['bolt', 'stars'] },
+      tank:{ hood:['up', 'down'], collar:['high'], len:['long'], sleeve:['hem', 'wide'], obi:['wide'], motif:['dragon', 'none'] },
+      counter:{ hood:['none', 'pointed'], collar:['shawl', 'band'], len:['long'], sleeve:['wide'], obi:['bow', 'plain'], motif:['koi', 'blossom'] },
+    }[f.style] || {};
+    const pick2 = (k, i) => { const l = FIT[k]; return l ? l[(h >>> i) % l.length] : pk(k, i); };
+    Object.assign(f.robe, f.me ? { hood:'up', collar:'band', len:'long', sleeve:'wide', obi:'plain', motif:'dragon' } : { hood:pick2('hood', 1), collar:pick2('collar', 4), len:pick2('len', 7), sleeve:pick2('sleeve', 9), obi:pick2('obi', 12), motif:pick2('motif', 15) });
+  }
   if (f.robe) return f.robe;
   const i = G ? rankOf(f.id) : -1;
-  return f.robe = { color:f.look.trunks === '#f4f4f4' ? '#d8d8d8' : f.look.trunks, trim:f.look.trunks === '#1d1d1d' ? '#e0b12d' : '#1d1d1d', emblem:pick(Object.keys(EMBLEMS)), tier:i === 0 ? 3 : i > 0 && i <= 5 ? 2 : i > 0 && i <= 15 ? 1 : 0 };
+  f.robe = { color:f.look.trunks === '#f4f4f4' ? '#d8d8d8' : f.look.trunks, trim:f.look.trunks === '#1d1d1d' ? '#e0b12d' : '#1d1d1d', emblem:pick(Object.keys(EMBLEMS)), tier:i === 0 ? 3 : i > 0 && i <= 5 ? 2 : i > 0 && i <= 15 ? 1 : 0 };
+  return robeOf(f);
 }
 // side view in the ring: hood up over the head, sash tied at the waist
 function drawRobe(g, ox, gy, dir, look, robe, t = 0){
@@ -1214,10 +1229,10 @@ function portrait(f, w = 44, h = 34){
 }
 const face = (f, px = 96, w = 44, h = 34) => `<img class="pt" src="${portrait(f, w, h)}" width="${px}" height="${Math.round(px * h / w)}" alt="">`;
 function robeImage(f, robe){
-  const c = document.createElement('canvas'); c.width = 120 * SC; c.height = 124 * SC;
-  const g = c.getContext('2d'); g.setTransform(SC, 0, 0, SC, 0, 0);
-  g.fillStyle = '#19154a'; g.fillRect(0, 0, 120, 124);
-  drawRobeBack(g, 60, 3, robe, f.nick || f.name.split(' ')[0], f.town || '', 0);
+  const src = rigDraw(lookStyle(f), 'robe', { robe:robeRig(robe) }), c = document.createElement('canvas'); c.width = RW * 4; c.height = RH * 4;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#19154a'; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = 'rgba(255,240,200,.08)'; g.beginPath(); g.ellipse(c.width / 2, c.height * .55, c.width * .42, c.height * .5, 0, 0, 7); g.fill();
+  g.drawImage(src, 0, 0, c.width, c.height);
   return c.toDataURL();
 }
 
@@ -1515,7 +1530,8 @@ function rigDraw(look, frame, o = {}){
   rigCuff(S, nW, nE);
   (o.hands ? rigFist : rigGlove)(S, RO + J.nGl[0] + t, J.nGl[1] + cr, false, o.rage);
   // ---- the walkout robe, over everything ----
-  if (o.robe) {
+  if (o.robe && o.robe.style) rigRobe(S, T, H, o.robe);
+  else if (o.robe) {
     const R = { r1:o.robe.color, r2:o.robe.trim };
     const [c1, c2, c3] = rampHsl(R.r1, [[-6, .9, .62], [0, 1, 1], [6, .9, 0, .35]]);
     const tr = R.r2;
@@ -1533,7 +1549,7 @@ function rigDraw(look, frame, o = {}){
 const rigCache = new Map();
 function rigKey(look, frame, o){
   const q = v => v > .7 ? 3 : v > .45 ? 2 : v > .15 ? 1 : 0;
-  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim : ''}|${o.hands ? 1 : 0}`;
+  return `${look.skin}|${look.hair}|${look.trunks}|${look.gloves}|${look.style || ''}|${look.flat ? 1 : 0}|${look.stache ? 1 : 0}|${frame}|${q(o.swell || 0)}|${o.cut || 0}|${(o.nose || 0) > 50 ? 2 : (o.nose || 0) > 20 ? 1 : 0}|${(o.jaw || 0) > 30 ? 1 : 0}|${q(o.body || 0)}|${o.rage ? 1 : 0}|${o.headgear ? 1 : 0}|${o.robe ? o.robe.color + o.robe.trim + (o.robe.style || '') + JSON.stringify(o.robe.v || {}) : ''}|${o.hands ? 1 : 0}`;
 }
 function rigFrame(look, frame, o = {}){
   const k = rigKey(look, frame, o);
@@ -1965,6 +1981,204 @@ function arenaBeams(W, H, cxU, halfU){
   return P.c;
 }
 
+// ---- walkout robes, hand-painted over the fighter in the 'robe' pose (side view, facing right) ----
+// rigRobe(S, T, H, robe): T = torso space, H = head space (both already include the margin)
+const ROBE_STYLES = ['satin', 'kimono', 'towel', 'vest', 'cape', 'fur', 'jewel', 'hoodie', 'dragon', 'sarape'];
+const ROBE_NAMES = { satin:'Champion satin', kimono:'Short kimono jacket', towel:'Towel over the head', vest:'Sleeveless fringe vest', cape:'High-collar cape',
+  fur:'Fur-trimmed king', jewel:'Jeweled shawl robe', hoodie:'Training hoodie + towel', dragon:'Silk dragon kimono', sarape:'Striped sarape poncho' };
+function robeRamp(c){ return rampHsl(c, [[-8, .9, .55], [0, 1, 1], [5, .95, 0, .28], [9, .85, 0, .6]]); }
+function rigRobe(S, T, H, robe){
+  const st = robe.style || 'satin', C = robeRamp(robe.color), R = robeRamp(robe.trim || '#f4f4f4');
+  const [d, b, l, hi] = C;
+  const hood = (c = C) => {
+    S.begin();
+    S.poly(c[1], [H(29, 12), H(30, 2), H(37, -2), H(44, -1), H(47, 3), H(46, 7), H(39, 6), H(37, 14), H(33, 19)]);
+    S.shade(c[0], [H(29, 4), H(33, 2), H(35, 18), H(30, 15)]); S.shade(c[2], [H(38, -1), H(44, 0), H(45, 3), H(39, 2)]); S.shade(c[3], [H(40, -1), H(43, -1), H(43, 0), H(40, 0)]);
+    S.line(c[0], [H(39, 6), H(37, 13)]);
+    S.end();
+  };
+  const body = (len, flare = 2, c = C) => {
+    S.poly(c[1], [T(26, 21), T(34, 17), T(42, 19), T(48, 25), T(49, 38), T(48, 52), T(48 + flare, len), T(25 - flare, len), T(24, 54), T(24, 32)]);
+    S.shade(c[0], [T(22, 21), T(31, 19), T(32, len), T(20, len)]);
+    S.shade(c[2], [T(41, 23), T(46, 25), T(46, len - 6), T(43, len - 6)]);
+  };
+  const sleeve = (c = C, wide = 0, len = 56) => {
+    S.begin();
+    S.poly(c[1], [T(30, 23), T(40, 21), T(44, 29), T(45 + wide * .3, 46), T(47 + wide, len), T(36 - wide * .4, len + 1), T(34, 44), T(31, 32)]);
+    S.shade(c[0], [T(30, 23), T(33, 23), T(36 - wide * .4, len + 1), T(34, len + 1), T(31, 32)]);
+    S.shade(c[2], [T(41, 24), T(43, 29), T(44, 46), T(42, 46)]);
+    S.line(c[0], [T(37, 30), T(39, len - 6)]);
+    S.end();
+  };
+  const cuff = (c, len = 56, wide = 0) => { S.begin(); S.poly(c[1], [T(36 - wide * .4, len - 3), T(47 + wide, len - 3), T(47 + wide, len + 1), T(36 - wide * .4, len + 2)]); S.shade(c[2], [T(36, len - 3), T(47 + wide, len - 3), T(47 + wide, len - 2), T(36, len - 2)]); S.end(); };
+
+  if (st === 'satin') {                                         // long satin robe, hood up, wide trim, sash with tails
+    S.begin(); body(80);
+    for (const x of [29, 36, 44]) S.shade(C[2], [T(x, 24), T(x + 1, 24), T(x + 2, 76), T(x + 1, 76)]);
+    S.shade(C[3], [T(44, 26), T(45, 26), T(46, 60), T(45, 60)]);
+    S.shade(R[1], [T(45, 21), T(48, 24), T(49, 38), T(48, 52), T(50, 80), T(46, 80), T(45, 50), T(46, 36)]);   // front edge trim
+    S.shade(R[2], [T(46, 24), T(47, 25), T(47, 50), T(46, 50)]);
+    S.shade(R[1], [T(21, 77), T(51, 77), T(51, 80), T(21, 80)]);
+    S.shade(R[1], [T(24, 49), T(50, 49), T(50, 53), T(24, 53)]); S.shade(R[0], [T(24, 52), T(50, 52), T(50, 53), T(24, 53)]);   // sash
+    S.end();
+    S.begin(); S.poly(R[1], [T(45, 52), T(49, 52), T(51, 68), T(48, 69)]); S.poly(R[1], [T(44, 52), T(46, 53), T(46, 66), T(43, 66)]); S.shade(R[0], [T(44, 60), T(46, 60), T(46, 66), T(43, 66)]); S.end();
+    sleeve(C); cuff(R); hood();
+  } else if (st === 'kimono') {                                 // cropped at the hip, wide square sleeves, collar band across the chest
+    S.begin(); body(62, 1);
+    S.shade(R[1], [T(36, 18), T(40, 18), T(48, 34), T(46, 40)]); S.shade(R[2], [T(37, 18), T(38, 18), T(47, 35), T(46, 36)]);
+    S.shade(R[0], [T(24, 46), T(49, 46), T(49, 52), T(24, 52)]); S.shade(R[1], [T(24, 47), T(49, 47), T(49, 48), T(24, 48)]);   // wide belt
+    for (let y = 24; y < 60; y += 6) for (let x = 26 + (y % 12 ? 3 : 0); x < 46; x += 6) S.dot(C[2], x + 6, y, 2, 1);    // little wave marks
+    S.shade(R[1], [T(23, 59), T(50, 59), T(50, 62), T(23, 62)]);
+    S.end();
+    S.begin(); S.poly(C[1], [T(30, 23), T(41, 21), T(49, 30), T(51, 52), T(35, 53), T(32, 40)]); S.shade(C[0], [T(30, 23), T(34, 23), T(37, 53), T(35, 53), T(32, 40)]);
+    S.shade(R[1], [T(35, 49), T(51, 49), T(51, 53), T(35, 53)]); S.shade(C[2], [T(43, 25), T(48, 31), T(48, 46), T(46, 46)]); S.end();
+  } else if (st === 'towel') {                                  // no robe: a towel over the head, hanging down the chest and back
+    const W = robeRamp('#f2eee4');
+    S.begin();
+    S.poly(W[1], [H(28, 13), H(29, 1), H(37, -3), H(45, -2), H(48, 3), H(47, 7), H(40, 6), H(38, 14), H(39, 20), T(46, 26), T(47, 40), T(42, 41), T(40, 30), T(36, 24), T(31, 36), T(26, 37), T(25, 26)]);
+    S.shade(W[2], [H(30, 3), H(34, 1), H(35, 6), H(31, 9)]); S.line(W[0], [H(30, 8), H(32, 18)]); S.line(W[0], [T(28, 24), T(28, 34)]);
+    S.shade(W[2], [H(38, -2), H(45, -1), H(46, 3), H(39, 2)]);
+    S.shade(C[1], [T(24, 31), T(33, 31), T(32, 33), T(24, 33)]); S.shade(C[1], [T(40, 33), T(47, 33), T(47, 36), T(41, 36)]);   // the stripes near the ends
+    S.shade(R[1], [T(24, 34), T(32, 34), T(31, 35), T(24, 35)]); S.shade(R[1], [T(41, 37), T(47, 37), T(47, 38), T(42, 38)]);
+    for (let i = 0; i < 3; i++) { S.dot(W[0], 48 + i * 2, 41, 1, 1); S.dot(W[0], 32 + i * 2, 37, 1, 1); }
+    S.line(W[0], [H(39, 6), H(38, 14)]); S.line(W[0], [T(41, 28), T(44, 38)]);
+    S.end();
+  } else if (st === 'vest') {                                   // sleeveless long vest, fringe at the hem, big star on the back
+    S.begin(); body(72, 1);
+    S.shade(R[1], [T(44, 20), T(48, 25), T(49, 38), T(48, 52), T(49, 72), T(46, 72), T(46, 50), T(46, 32)]);
+    const sx = 30, sy = 36;                                      // the star on the back
+    S.shade(R[1], [T(sx, sy - 6), T(sx + 2, sy - 1), T(sx + 6, sy - 1), T(sx + 3, sy + 2), T(sx + 4, sy + 7), T(sx, sy + 4), T(sx - 4, sy + 7), T(sx - 3, sy + 2), T(sx - 6, sy - 1), T(sx - 2, sy - 1)]);
+    S.shade(R[2], [T(sx, sy - 6), T(sx + 1, sy - 2), T(sx - 1, sy - 2)]);
+    S.end();
+    S.begin(); for (let x = 22; x < 50; x += 2) S.dot(x % 4 ? R[1] : R[0], x + 6, 72, 1, 6 + (x % 6 ? 0 : 2)); S.end();
+    S.begin(); S.poly(R[1], [T(29, 22), T(40, 20), T(42, 24), T(32, 27)]); S.end();   // the arm hole trim
+    const nS = T(35, 28), nE = T(37, 44), nW = T(40, 54);                                // the bare arm, back on top
+    S.begin(); S.limb(nS, nE, 8.5, 6.5, { crease:true }); S.limb(nE, nW, 6.4, 5, {}); S.ell('s4', nS[0], nS[1], 7, 6); S.shade('s5', [[nS[0], nS[1] - 6], [nS[0] + 5, nS[1] - 5], [nS[0] + 7, nS[1] - 1], [nS[0] + 2, nS[1] - 2]]); S.end();
+    rigCuff(S, nW, nE); rigGlove(S, T(41, 58)[0], 58, false);
+  } else if (st === 'cape') {                                   // a cape from the shoulders, flowing back, tall collar, clasp at the throat
+    S.begin();
+    S.poly(C[1], [T(28, 18), T(40, 17), T(44, 24), T(38, 30), T(30, 46), T(26, 70), T(28, 86), T(10, 86), T(14, 60), T(20, 36)]);
+    S.shade(C[0], [T(10, 86), T(18, 86), T(22, 40), T(20, 36), T(14, 60)]);
+    S.shade(C[2], [T(26, 30), T(30, 28), T(24, 70), T(21, 70)]); S.shade(C[3], [T(27, 34), T(28, 33), T(23, 60), T(22, 60)]);
+    S.shade(R[1], [T(25, 72), T(28, 72), T(28, 86), T(24, 86)]);                           // the lining shows at the front edge
+    S.end();
+    S.begin(); S.poly(R[1], [H(33, 10), H(35, 5), H(37, 12), H(39, 20), T(41, 23), T(32, 22)]); S.shade(R[0], [H(33, 10), H(35, 5), H(35, 16), T(33, 22)]); S.end();   // tall collar
+    S.begin(); S.ell('#e8c050', 6 + 41, 22, 2, 2); S.dot('#fff6d8', 46, 21); S.end();
+  } else if (st === 'fur') {                                    // regal long robe with a huge fur collar, fur cuffs and a fur hem
+    const F = robeRamp(robe.trim || '#e8e0d0');
+    S.begin(); body(84, 3);
+    for (let y = 30; y < 80; y += 8) S.line('#e0b12d', [T(46, y), T(48, y + 3), T(46, y + 6)]);                 // gold braid down the front
+    S.end();
+    const furBlob = (pts, xs) => { S.begin(); S.poly(F[1], pts); for (let i = 0; i < xs; i++) S.dot(i % 2 ? F[0] : F[2], pts[0][0] + 2 + ((i * 7) % 18), pts[0][1] + 2 + ((i * 5) % 7)); S.end(); };
+    furBlob([T(20, 78), T(24, 76), T(30, 79), T(36, 76), T(42, 79), T(48, 76), T(53, 79), T(53, 86), T(20, 86)], 14);
+    sleeve(C);
+    furBlob([T(34, 50), T(40, 48), T(48, 51), T(49, 58), T(35, 59)], 8);
+    furBlob([T(22, 18), T(28, 13), T(36, 12), T(43, 14), T(49, 20), T(50, 27), T(44, 30), T(36, 27), T(28, 30), T(21, 27)], 16);
+    hood();
+  } else if (st === 'jewel') {                                  // white-and-gold robe covered in rhinestones, shawl lapel, no hood
+    S.begin(); body(74, 2);
+    for (let y = 24; y < 72; y += 4) for (let x = 25 + ((y / 4) % 2) * 2; x < 48; x += 4) S.dot((x + y) % 3 ? R[2] : R[3], x + 6, y, 1, 1);
+    S.shade(R[1], [T(38, 18), T(43, 19), T(48, 26), T(49, 40), T(46, 44), T(45, 30)]); S.shade(R[3], [T(40, 19), T(42, 19), T(46, 28), T(45, 30)]);   // shawl lapel
+    S.shade(R[1], [T(21, 70), T(51, 70), T(51, 74), T(21, 74)]);
+    for (let x = 22; x < 50; x += 3) S.dot('#ffffff', x + 6, 71, 1, 1);
+    S.end();
+    sleeve(C); cuff(R);
+    S.begin(); S.poly(R[1], [H(32, 16), H(36, 13), H(38, 20), T(40, 22), T(32, 22)]); S.end();     // a raised collar behind the neck
+  } else if (st === 'hoodie') {                                 // grey training hoodie with the hood up, front pocket, ribbed cuffs; towel round the neck
+    const G2 = robeRamp(robe.color || '#8d8d96');
+    S.begin();
+    S.poly(G2[1], [T(26, 21), T(34, 17), T(42, 19), T(48, 25), T(49, 38), T(48, 52), T(47, 58), T(25, 58), T(24, 50), T(24, 32)]);
+    S.shade(G2[0], [T(22, 21), T(31, 19), T(32, 58), T(22, 58)]);
+    S.shade(G2[0], [T(25, 54), T(48, 54), T(48, 58), T(25, 58)]); for (let x = 26; x < 48; x += 2) S.dot(G2[1], x + 6, 55, 1, 3);   // ribbed waistband
+    S.shade(G2[0], [T(38, 41), T(48, 41), T(48, 52), T(38, 52)]); S.shade(G2[1], [T(39, 42), T(47, 42), T(47, 51), T(39, 51)]); S.line(G2[0], [T(39, 42), T(43, 46)]);   // the pocket
+    S.end();
+    sleeve(G2, 0, 54); cuff([G2[0], G2[0], G2[1]], 54);
+    hood(G2);
+    S.begin(); S.poly(R[1], [H(38, 18), H(44, 21), T(48, 27), T(49, 40), T(46, 40), T(45, 28), T(36, 24)]); S.shade(R[0], [T(45, 33), T(49, 33), T(49, 35), T(45, 35)]); S.end();   // towel round the neck
+    S.begin(); S.poly('#e8e4d8', [T(44, 25), T(45, 25), T(45, 34), T(44, 34)]); S.end();                // drawstring
+  } else if (st === 'dragon') {                                 // silk kimono: robe.v tweaks length, sleeves, back art, hood, belt, edging
+    const v = robe.v || {}, len = v.len || 90, motif = v.motif || 'dragon', SL = v.sleeveCol ? robeRamp(v.sleeveCol) : C, A = v.artCol ? robeRamp(v.artCol) : R;
+    S.begin(); body(len, v.flare != null ? v.flare : 3);
+    if (motif === 'dragon') {
+      const dr = [[30, 26], [27, 32], [31, 38], [35, 44], [31, 50], [27, 56], [30, 64], [35, 70], [32, 78]].filter(p => p[1] < len - 6);
+      for (let i = 1; i < dr.length; i++) { S.line(A[1], [T(...dr[i - 1]), T(...dr[i])]); S.line(A[1], [T(dr[i - 1][0] + 1, dr[i - 1][1]), T(dr[i][0] + 1, dr[i][1])]); }
+      for (let i = 1; i < dr.length; i += 2) S.dot(A[2], dr[i][0] + 8, dr[i][1], 1, 1);
+      S.dot(A[2], 36, 24, 3, 2); S.dot('#c42d2d', 37, 24, 1, 1);
+    } else if (motif === 'tiger') {
+      for (let y = 26; y < len - 8; y += 6) { S.shade(A[1], [T(25, y), T(33, y + 2), T(31, y + 3), T(25, y + 2)]); S.shade(A[1], [T(36, y + 3), T(40, y + 1), T(41, y + 2), T(37, y + 4)]); }
+      S.shade(A[2], [T(27, 24), T(31, 23), T(31, 26), T(27, 26)]); S.dot('#2a8a3a', 34, 24, 1, 1);
+    } else if (motif === 'flames') {
+      for (let x = 22; x < 50; x += 5) { const h = 14 + ((x * 7) % 11); S.shade(A[1], [T(x, len), T(x + 2, len - h), T(x + 3, len - h + 4), T(x + 5, len)]); S.shade(A[3] || A[2], [T(x + 1, len), T(x + 2, len - h + 6), T(x + 3, len)]); }
+    } else if (motif === 'koi') {
+      for (const [x, y, dir] of [[33, 32, 1], [32, 58, -1]]) { S.shade(A[1], [T(x - 7 * dir, y), T(x - 1 * dir, y - 4), T(x + 6 * dir, y - 1), T(x + 6 * dir, y + 1), T(x, y + 4)]); S.shade(A[1], [T(x - 6 * dir, y), T(x - 11 * dir, y - 4), T(x - 10 * dir, y), T(x - 11 * dir, y + 4)]); S.shade('#f4f0e8', [T(x - 2 * dir, y - 3), T(x + 2 * dir, y - 2), T(x, y)]); S.dot('#141414', T(x + 4 * dir, y)[0], y - 1, 1, 1); }
+      for (let x = 24; x < 50; x += 4) S.line(C[2], [T(x, len - 4), T(x + 2, len - 6), T(x + 4, len - 4)]);
+    } else if (motif === 'bolt') {
+      S.shade(A[1], [T(32, 22), T(36, 22), T(31, 40), T(36, 40), T(27, 70), T(30, 46), T(26, 46)]); S.shade(A[2], [T(33, 23), T(35, 23), T(31, 34), T(30, 34)]);
+    } else if (motif === 'blossom') {
+      const pts = [[28, 28], [33, 34], [27, 42], [36, 47], [30, 55], [25, 62], [34, 66], [29, 74], [38, 30], [26, 50]].filter(p => p[1] < len - 4);
+      for (const [x, y] of pts) { S.dot(A[1], x + 6, y - 1, 1, 1); S.dot(A[1], x + 5, y, 3, 1); S.dot(A[1], x + 6, y + 1, 1, 1); S.dot('#f2c14e', x + 6, y, 1, 1); }
+      S.line(C[3] || C[2], [T(24, 70), T(30, 60), T(28, 50), T(33, 40)]);
+    } else if (motif === 'stars') {
+      for (const [x, y] of [[28, 30], [34, 40], [27, 50], [33, 60], [28, 72], [38, 28], [36, 80]].filter(p => p[1] < len - 4)) { S.dot(A[1], x + 6, y - 1, 1, 3); S.dot(A[1], x + 5, y, 3, 1); S.dot(A[3] || A[2], x + 6, y, 1, 1); }
+    }
+    if (v.piping) { S.shade(A[1], [T(21, len - 2), T(51, len - 2), T(51, len), T(21, len)]); S.shade(A[1], [T(47, 26), T(48, 26), T(49 + 1, len), T(48, len)]); }
+    const col = v.collar || 'band';
+    if (col === 'band') S.shade(A[1], [T(36, 18), T(40, 18), T(48, 34), T(46, 40)]);                                    // collar band
+    else if (col === 'shawl') { S.shade(A[1], [T(37, 17), T(42, 18), T(49, 27), T(50, 42), T(46, 46), T(45, 32)]); S.shade(A[2], [T(39, 18), T(41, 18), T(47, 28), T(46, 30)]); }
+    const ob = v.obi || 'plain';
+    S.shade(R[0], [T(24, 48), T(50, 48), T(50, 54), T(24, 54)]); S.shade(R[2], [T(24, 49), T(50, 49), T(50, 50), T(24, 50)]);
+    if (ob === 'cord') { S.shade(C[1], [T(24, 48), T(50, 48), T(50, 54), T(24, 54)]); S.shade(R[1], [T(24, 50), T(50, 50), T(50, 52), T(24, 52)]); }
+    if (ob === 'wide') { S.shade(R[0], [T(24, 45), T(50, 45), T(50, 56), T(24, 56)]); S.shade(R[2], [T(24, 46), T(50, 46), T(50, 47), T(24, 47)]); S.shade(R[2], [T(24, 54), T(50, 54), T(50, 55), T(24, 55)]); }
+    if (!v.noWaves && motif !== 'flames' && motif !== 'koi') for (let x = 24; x < 52; x += 4) S.line(C[2], [T(x, len - 4), T(x + 2, len - 6), T(x + 4, len - 4)]);
+    if (v.slit) { S.shade(R[1], [T(30, len - 22), T(32, len - 22), T(33, len), T(29, len)]); }
+    S.end();
+    const sw = v.sleeve != null ? v.sleeve : 1, sb = sw >= 2 ? Math.min(len - 6, 80) : 66 - (sw < 1 ? 8 : 0);
+    S.begin();
+    if (sw >= 1) S.poly(SL[1], [T(30, 23), T(41, 21), T(50, 32), T(53 + (sw - 1) * 4, sb), T(36, sb), T(32, 40)]);
+    else S.poly(SL[1], [T(30, 23), T(41, 21), T(45, 30), T(47, 50), T(48, sb), T(37, sb), T(33, 40)]);
+    S.shade(SL[0], [T(30, 23), T(34, 23), T(38, sb), T(36, sb), T(32, 40)]);
+    S.shade(SL[2], [T(44, 26), T(48, 33), T(49, sb - 6), T(47, sb - 6)]); S.shade(R[1], [T(36, sb - 4), T(56, sb - 4), T(56, sb), T(36, sb)]);
+    if (v.sleeveArt) S.shade(A[1], [T(41, 40), T(45, 38), T(47, 44), T(43, 46)]);
+    S.end();
+    if (ob === 'cord') { S.begin(); S.poly(R[1], [T(48, 51), T(50, 51), T(49, 66), T(47, 66)]); S.poly(R[1], [T(46, 51), T(48, 52), T(45, 63), T(44, 62)]); S.dot(R[2], 44 + 6, 66, 3, 2); S.dot(R[2], 44 + 6 - 1, 63, 2, 2); S.end(); }
+    if (ob === 'bow' || ob === 'wide') { S.begin(); S.poly(R[1], [T(50, 49), T(56, 45), T(57, 53), T(51, 53)]); S.poly(R[1], [T(51, 53), T(55, 66), T(52, 67)]); S.poly(R[1], [T(52, 53), T(58, 62), T(56, 64)]); S.shade(R[0], [T(50, 60), T(58, 60), T(58, 67), T(50, 67)]); S.end(); }
+    if (col === 'high') { S.begin(); S.poly(C[1], [H(29, 13), H(31, 2), H(35, 4), H(37, 12), H(39, 20), T(44, 22), T(45, 26), T(31, 25)]); S.shade(C[0], [H(29, 13), H(31, 2), H(32, 18), T(31, 25)]); S.shade(A[1], [H(31, 2), H(35, 4), H(35, 5), H(31, 3)]); S.shade(A[1], [H(35, 4), H(37, 12), H(36, 12), H(34, 5)]); S.end(); }
+    const hd = v.hood === true ? 'up' : v.hood;
+    if (hd === 'up') hood();
+    else if (hd === 'pointed') { hood(); S.begin(); S.poly(C[1], [H(29, 6), H(32, -2), H(26, -6), H(20, -4), H(18, 2), H(22, 1), H(25, 4)]); S.shade(C[0], [H(18, 2), H(22, -3), H(25, 4), H(22, 1)]); S.shade(A[1], [H(18, 1), H(20, 1), H(20, 3), H(18, 3)]); S.end(); }
+    else if (hd === 'deep') {
+      S.begin();
+      S.poly(C[1], [H(28, 14), H(28, 0), H(36, -5), H(47, -4), H(52, 2), H(51, 10), H(46, 10), H(41, 9), H(38, 15), H(35, 22)]);
+      S.shade(C[0], [H(28, 2), H(33, -1), H(35, 20), H(29, 16)]); S.shade(C[2], [H(38, -4), H(46, -3), H(48, 1), H(39, 0)]); S.shade(C[0], [H(41, 7), H(51, 8), H(51, 10), H(41, 9)]); S.shade(A[1], [H(46, 9), H(51, 9), H(51, 10), H(46, 10)]);
+      S.end();
+    } else if (hd === 'down') {                                    // hood folded down onto the shoulders, behind the neck
+      S.begin(); S.poly(C[1], [H(30, 18), H(32, 13), H(37, 14), T(41, 22), T(36, 27), T(26, 29), T(23, 24)]); S.shade(C[0], [T(23, 24), T(30, 22), T(31, 28), T(26, 29)]); S.shade(C[2], [H(32, 14), H(36, 15), T(34, 22), T(32, 21)]); S.line(C[0], [T(27, 25), T(36, 23)]); S.end();
+    }
+  } else if (st === 'sarape') {                                 // a striped sarape poncho over the shoulders, fringe at the edges
+    const stripes = [robe.color, robe.trim || '#f2c14e', '#c42d2d', '#2f7a5a', '#f4f0e8', '#2a3a8a'];
+    S.begin();
+    S.poly(stripes[0], [H(33, 19), T(30, 18), T(44, 19), T(50, 28), T(52, 50), T(46, 62), T(30, 66), T(22, 56), T(21, 30)]);
+    for (let i = 0; i < 12; i++) { const y = 24 + i * 4; S.shade(stripes[i % stripes.length], [T(18, y), T(56, y), T(56, y + 2), T(18, y + 2)]); S.shade(robeRamp(stripes[i % stripes.length])[0], [T(18, y + 2), T(56, y + 2), T(56, y + 2.6), T(18, y + 2.6)]); }
+    S.shade(robeRamp(robe.color)[0], [T(21, 30), T(26, 26), T(28, 62), T(22, 56)]);
+    S.line(robeRamp(robe.color)[0], [T(36, 22), T(38, 60)]);
+    S.end();
+    S.begin(); for (let x = 23; x < 50; x += 2) S.dot(x % 4 ? stripes[1] : stripes[4], x + 6, 63 + Math.round(Math.abs(x - 36) * -.15 + 2), 1, 6); S.end();
+  }
+}
+
+// the player's robe choices -> the kimono painter
+const ROBE_CUTS = {
+  hood:[['none', 'No hood'], ['up', 'Hood up'], ['pointed', 'Pointed'], ['deep', 'Deep'], ['down', 'Hood down']],
+  collar:[['band', 'Band'], ['high', 'High'], ['shawl', 'Shawl']],
+  len:[['long', 'Ankle'], ['knee', 'Knee']],
+  sleeve:[['slim', 'Slim'], ['wide', 'Wide'], ['hem', 'To the hem']],
+  obi:[['plain', 'Sash'], ['wide', 'Wide belt'], ['bow', 'Bow'], ['cord', 'Cord']],
+  motif:[['none', 'Plain'], ['dragon', 'Dragon'], ['tiger', 'Tiger'], ['flames', 'Flames'], ['koi', 'Koi'], ['bolt', 'Lightning'], ['blossom', 'Blossom'], ['stars', 'Stars']],
+};
+const CUT_LABEL = { hood:'Hood', collar:'Collar', len:'Length', sleeve:'Sleeves', obi:'Belt', motif:'Back art' };
+function robeRig(R){
+  return { style:'dragon', color:R.color, trim:R.trim, v:{ hood:R.hood || 'up', collar:R.collar || 'band', len:R.len === 'knee' ? 76 : 90, sleeve:{ slim:0, wide:1, hem:2 }[R.sleeve || 'wide'], obi:R.obi || 'plain', motif:R.motif || 'dragon', piping:R.tier >= 1 } };
+}
 /* ================= sound ================= */
 let AC = null;
 function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch { AC = null; } } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
@@ -2678,7 +2892,7 @@ function draw(){
   if (M.phase !== 'walkout' && M.phase !== 'tut') { g.save(); g.translate(ref.x, gy - 5); g.scale(1.35, 1.35); drawRef(g, 0, 0, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0); g.restore(); }
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeOf(f.src) : null };
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src)) : null };
     drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy, dir, M.robes ? 'robe' : f.frame || 'guard', lookStyle(f.src), { ...o, lift:M.robes ? (M.phase === 'walkout' ? Math.abs(Math.sin(f.walk * 1.3)) * .9 : 0) : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
@@ -3479,17 +3693,18 @@ const VIEWS = {
       <button class="btn go" data-a="storynext">${last ? 'Continue' : 'Next'}</button></div></div></div>`;
   },
   robe(){
-    const me = G.fighters.me, R = me.robe;
+    const me = G.fighters.me, R = robeOf(me);
     const sw = (act, list, cur) => `<div class="sw">${list.map(c => `<button data-a="${act}" data-v="${c}" class="${cur === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div>`;
     const ems = Object.keys(EMBLEMS).map(k => `<button class="emb ${R.emblem === k ? 'on' : ''}" data-a="remb" data-v="${k}">${emblemIcon(k)}</button>`).join('');
     const tiers = ROBE_TIERS.map((T, k) => `<button class="tier ${R.tier === k ? 'on' : ''}" data-a="rtier" data-n="${k}" ${!R.owned.includes(k) && G.cash < T.cost ? 'disabled' : ''}><b>${T.name}</b><span>${R.tier === k ? 'Wearing' : 'Wear it'}</span></button>`).join('');
     return `${bar('Robe', '<button class="btn sm" data-a="team">Back</button>')}<div class="robegrid"><div class="robeprev"><img class="pt" src="${robeImage(me, R)}" alt=""></div>
-      <div class="panel"><div class="field"><span class="label">Satin</span>${sw('rcol', ROBE_COLORS, R.color)}</div>
+      <div class="panel robeopts"><div class="field"><span class="label">Robe</span>${sw('rcol', ROBE_COLORS, R.color)}</div>
       <div class="field"><span class="label">Trim</span>${sw('rtrim', TRIMS, R.trim)}</div>
-      <div class="field"><span class="label">Emblem</span><div class="sw">${ems}</div></div>
+      ${Object.keys(ROBE_CUTS).map(k => `<div class="field"><span class="label">${CUT_LABEL[k]}</span><div class="cuts">${ROBE_CUTS[k].map(([v, nm]) => `<button class="btn sm ${(R[k] || '') === v ? 'go' : ''}" data-a="rcut" data-k="${k}" data-v="${v}">${nm}</button>`).join('')}</div></div>`).join('')}
+      <div class="field"><span class="label">Gold piping</span><div class="cuts"><button class="btn sm ${R.tier >= 1 ? 'go' : ''}" data-a="rpipe">${R.tier >= 1 ? 'On' : 'Off'}</button></div></div>
       <div class="field"><span class="label">Trunks</span>${sw('kit', KITS, me.look.trunks)}</div>
       <div class="field"><span class="label">Gloves</span>${sw('glv', GLOVES, me.look.gloves)}</div>
-      <div class="tiers">${tiers}</div><div class="muted" style="font-size:12px">Every robe is free. Fancier ones get a louder walkout.</div></div></div>`;
+      <div class="muted" style="font-size:12px">Every robe is free.</div></div></div>`;
   },
   spardone(){
     const S = G.lastSpar, ails = ailList(G.fighters.me.ail);
@@ -3557,6 +3772,8 @@ ui.addEventListener('click', e => {
     case 'rcol': G.fighters.me.robe.color = b.dataset.v; save(); break;
     case 'rtrim': G.fighters.me.robe.trim = b.dataset.v; save(); break;
     case 'remb': G.fighters.me.robe.emblem = b.dataset.v; save(); break;
+    case 'rcut': G.fighters.me.robe[b.dataset.k] = b.dataset.v; save(); break;
+    case 'rpipe': { const R = G.fighters.me.robe; R.tier = R.tier >= 1 ? 0 : 1; if (!R.owned.includes(R.tier)) R.owned.push(R.tier); save(); break; }
     case 'kit': G.fighters.me.look.trunks = b.dataset.v; save(); break;
     case 'glv': G.fighters.me.look.gloves = b.dataset.v; save(); break;
     case 'rtier': { const R = G.fighters.me.robe, T = ROBE_TIERS[n]; if (!R.owned.includes(n)) { if (G.cash < T.cost) break; G.cash -= T.cost; R.owned.push(n); } R.tier = n; save(); break; }
