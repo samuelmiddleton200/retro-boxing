@@ -1128,9 +1128,9 @@ const EMBLEMS = {
 };
 const ROBE_TIERS = [
   { name:'Satin', cost:0, desc:'Plain satin.' },
-  { name:'Gold thread', cost:2500, desc:'Gold piping on every edge.' },
-  { name:'Sequins', cost:8000, desc:'Catches every light in the arena.' },
-  { name:'Fur hood', cost:20000, desc:'A champion\'s robe. The crowd goes wild.' },
+  { name:'Gold thread', cost:0, desc:'Gold piping on every edge.' },
+  { name:'Sequins', cost:0, desc:'Catches every light in the arena.' },
+  { name:'Fur hood', cost:0, desc:'A champion\'s robe. The crowd goes wild.' },
 ];
 const ROBE_COLORS = ['#e0b12d', '#e24b3b', '#7a1f2a', '#3f7be0', '#1f2a5a', '#44c45d', '#f4f4f4', '#1d1d1d', '#a24be0', '#ff8a2b'];
 const TRIMS = ['#1d1d1d', '#f4f4f4', '#e0b12d', '#c42d2d', '#1f2a5a'];
@@ -2719,14 +2719,14 @@ const VIEWS = {
     const me = G.fighters.me, R = me.robe;
     const sw = (act, list, cur) => `<div class="sw">${list.map(c => `<button data-a="${act}" data-v="${c}" class="${cur === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div>`;
     const ems = Object.keys(EMBLEMS).map(k => `<button class="emb ${R.emblem === k ? 'on' : ''}" data-a="remb" data-v="${k}">${emblemIcon(k)}</button>`).join('');
-    const tiers = ROBE_TIERS.map((T, k) => `<button class="tier ${R.tier === k ? 'on' : ''}" data-a="rtier" data-n="${k}" ${!R.owned.includes(k) && G.cash < T.cost ? 'disabled' : ''}><b>${T.name}</b><span>${R.owned.includes(k) ? (R.tier === k ? 'Wearing' : 'Owned') : money(T.cost)}</span></button>`).join('');
+    const tiers = ROBE_TIERS.map((T, k) => `<button class="tier ${R.tier === k ? 'on' : ''}" data-a="rtier" data-n="${k}" ${!R.owned.includes(k) && G.cash < T.cost ? 'disabled' : ''}><b>${T.name}</b><span>${R.tier === k ? 'Wearing' : 'Wear it'}</span></button>`).join('');
     return `${bar('Robe', '<button class="btn sm" data-a="team">Back</button>')}<div class="robegrid"><div class="robeprev"><img class="pt" src="${robeImage(me, R)}" alt=""></div>
       <div class="panel"><div class="field"><span class="label">Satin</span>${sw('rcol', ROBE_COLORS, R.color)}</div>
       <div class="field"><span class="label">Trim</span>${sw('rtrim', TRIMS, R.trim)}</div>
       <div class="field"><span class="label">Emblem</span><div class="sw">${ems}</div></div>
       <div class="field"><span class="label">Trunks</span>${sw('kit', KITS, me.look.trunks)}</div>
       <div class="field"><span class="label">Gloves</span>${sw('glv', GLOVES, me.look.gloves)}</div>
-      <div class="tiers">${tiers}</div><div class="muted" style="font-size:12px">Fancier robes get a louder walkout.</div></div></div>`;
+      <div class="tiers">${tiers}</div><div class="muted" style="font-size:12px">Every robe is free. Fancier ones get a louder walkout.</div></div></div>`;
   },
   spardone(){
     const S = G.lastSpar, ails = ailList(G.fighters.me.ail);
