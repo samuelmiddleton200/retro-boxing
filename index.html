@@ -626,6 +626,19 @@ try { SOUND = localStorage.getItem('retroboxing.sound') !== 'off'; } catch {}
 function genLook(){
   return { skin:pick(SKINS), hair:Math.random() < .2 ? 'none' : pick(HAIRS.slice(0, 5)), trunks:pick(KITS), gloves:pick(GLOVES) };
 }
+function sizeOf(f){
+  if (!f) return { ht:70, wt:180 };
+  if (!f.ht) {
+    if (f.me) { f.ht = 70; f.wt = 180; }
+    else { let h = 7; for (const ch of String(f.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      f.ht = 68 + (h % 11); if (f.ht === 77) f.ht = 76;
+      f.wt = Math.round(Math.min(240, Math.max(170, 170 + (f.ht - 68) * 7 + ((h >>> 8) % 13) - 4))); }
+  }
+  return f;
+}
+const ftIn = n => `${Math.floor(n / 12)}'${n % 12}"`;
+// how much bigger to draw him: taller is taller, heavier is broader
+function scaleOf(f){ const z = sizeOf(f), hs = z.ht / 70, ws = hs * Math.pow((z.wt / z.ht / z.ht) / (180 / 4900), .7); return { hs, ws }; }
 function genFighter(base, age){
   const style = pick(Object.keys(STYLES)), m = STYLES[style].mod, rat = {};
   for (const k of RK) rat[k] = clamp(Math.round(base + m[k] + rnd(-5, 5)), 15, 99);
@@ -1645,7 +1658,8 @@ function drawRig(g, x, gy, dir, frame, look, o = {}, ang = 0, k = RIGS){
   const c = rigFrame(look, frame, o);
   if (!o.noShadow) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(x - 18 * k / .75 + (ang ? Math.sin(ang) * 33 * k / .75 : 0), gy - 1, 36 * k / .75 + Math.abs(Math.sin(ang || 0)) * 33 * k / .75, 2); }
   g.save(); g.translate(x, gy - (o.lift || 0)); if (ang) g.rotate(ang); if (dir < 0) g.scale(-1, 1);
-  g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k, -FOOTY * k, RW * k, RH * k);
+  const hs = o.hs || 1, ws = o.ws || 1;
+  g.imageSmoothingEnabled = false; g.drawImage(c, -FOOTX * k * ws, -FOOTY * k * hs, RW * k * ws, RH * k * hs);
   g.restore();
 }
 // generated fighters get one of the hand-drawn haircuts
@@ -3037,7 +3051,7 @@ function resolve(a, d){
   const P = FT[a.pt], head = a.tgt === 'head';
   if (d.state === 'down' || d.state === 'falling') return;
   const hitX = (a.x + d.x) / 2 + (a.side === 0 ? 4 : -4), hitY = M.gy - (head ? 62 : 39);
-  if (Math.abs(d.x - a.x) > P.reach) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
+  if (Math.abs(d.x - a.x) > P.reach * (.7 + .3 * scaleOf(a.src).hs)) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   let dmg = P.dmg * a.pm * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
@@ -3653,7 +3667,7 @@ function draw(){
   const downed = i => view[i].state === 'down' || view[i].state === 'falling';
   const order = downed(0) ? [1, 0] : downed(1) ? [0, 1] : view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // the man on the canvas in front, else whoever is punching
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src), !!f.src.me) : null };
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, robe:M.robes ? robeRig(robeOf(f.src), !!f.src.me) : null, ...scaleOf(f.src) };
     drawRig(g, f.x + (f.jit || 0) + (M.robes ? 0 : (f.sway || 0) * dir), gy + (M.phase === 'walkout' && i === 0 ? walkY(f.x) : 0) + (downed(i) ? 3 : 0), dir, M.robes ? (M.phase === 'walkout' && f.moving > 0 ? (Math.floor(f.walk / 2.2) % 2 ? 'robeW1' : 'robeW2') : 'robe') : f.frame || 'guard', lookStyle(f.src), { ...o, noShadow:true, lift:M.robes ? 0 : f.lift || 0 }, f.ang || 0);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
@@ -4477,7 +4491,7 @@ const VIEWS = {
     return `${bar(o.title ? 'Title fight' : 'Tale of the tape')}
       <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div>${sharp ? '<div class="label good">Sharp: rested and ready</div>' : G.fat > 40 ? '<div class="label bad">Tired</div>' : ''}${o.myGrit ? `<div class="label good">+${o.myGrit} Grit: he moved the date</div>` : ''}</div>
       <div class="panel">${RK.map(row).join('')}
-        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}
+        ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}${line(ftIn(sizeOf(me).ht), 'Height', ftIn(sizeOf(f).ht))}${line(sizeOf(me).wt + ' lb', 'Weight', sizeOf(f).wt + ' lb')}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
       <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>${o.theirGrit ? `<div class="label bad">+${o.theirGrit} Grit: you moved the date</div>` : ''}
         <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>${o.weak ? `<div class="panel" style="margin-top:8px"><span class="label">From the tape</span> ${esc(o.weak)}</div>` : ''}`;
