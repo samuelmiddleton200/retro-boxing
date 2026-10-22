@@ -308,6 +308,19 @@ tr.tap{cursor:pointer} tr.tap:active td{background:rgba(255,255,255,.08)}
 .teamgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tm{display:flex;gap:8px;align-items:center;padding:5px 0;border-top:2px solid rgba(255,255,255,.12)}
 .tm.on b{color:var(--yellow)} .tm .ds{font-size:12px;color:var(--muted)}
+/* --- robe --- */
+.minirats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px}
+.minirats div{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 4px}
+.minirats .label{font-size:9px}
+.minirats b{font-size:13px}
+.minirats .hbar{grid-column:1/-1;height:6px}
+.robegrid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px}
+.robeprev{border:3px solid #fff;border-radius:6px;background:#19154a;display:grid;place-items:center;overflow:hidden}
+.robeprev img{width:100%;max-height:calc(100dvh - 80px);object-fit:contain}
+.emb{width:30px !important;height:30px !important;display:grid;place-items:center;background:var(--blue-dd) !important}
+.tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:6px 0}
+.tier{border:2px solid rgba(255,255,255,.4);border-radius:6px;background:var(--blue-d);padding:5px 4px;display:grid;gap:2px;font-size:11px}
+.tier b{font-family:var(--px);font-size:10px} .tier.on{border-color:var(--yellow)} .tier:disabled{opacity:.4}
 /* --- between rounds --- */
 #over .panel.brk{min-width:min(600px,94vw)}
 .brkcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
@@ -346,6 +359,7 @@ tr.tap{cursor:pointer} tr.tap:active td{background:rgba(255,255,255,.08)}
 #ann .a1{font-family:var(--px);font-size:13px;color:var(--muted)}
 #ann .a2{font-family:var(--px);font-weight:700;font-size:clamp(22px,6vh,40px);color:var(--yellow);line-height:1.1;animation:pop .35s ease-out}
 #ann .a3{font-family:var(--px);font-size:12px;color:#fff}
+#ann.low{top:auto;bottom:5%}
 #ann .skip{font-size:10px;color:var(--muted);margin-top:8px;opacity:.7}
 #replay{position:absolute;inset:0;pointer-events:none;border-top:28px solid #000;border-bottom:28px solid #000}
 #replay b{position:absolute;left:max(16px,env(safe-area-inset-left));top:-22px;font-family:var(--px);font-size:14px;color:#fff}
@@ -607,7 +621,7 @@ const skillOf = f => clamp((ovr(f) - 28) / 60, 0, 1);       // how well the comp
 const randomBday = () => { const d = ri(0, 364), t = dateOf(d); return { m:t.getUTCMonth(), d:t.getUTCDate() }; };
 function newCareer(name, nick, look, town){
   G = { v:2, nextId:1, day:0, cash:500, fat:0, gym:0, trainer:0, mail:[], card:[], fight:null, fighters:{}, ladder:[], pool:[], log:[], best:null, titles:0, defenses:0, over:false, nrWins:0, declines:0, notes:[] };
-  G.fighters.me = { id:'me', me:true, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, grit:40 }, age:21, bday:randomBday(), w:0, l:0, d:0, ko:0, look, ail:{} };
+  G.fighters.me = { id:'me', me:true, robe:{ color:look.trunks === '#f4f4f4' ? '#e0b12d' : look.trunks, trim:'#1d1d1d', emblem:'glove', tier:0, owned:[0] }, name, nick, town:town || 'Philadelphia', style:'you', rat:{ pow:40, spd:40, sta:40, grit:40 }, age:21, bday:randomBday(), w:0, l:0, d:0, ko:0, look, ail:{} };
   for (let i = 0; i <= 30; i++) {                             // 0 is the champion, 1-30 the rankings
     const f = genFighter(87 - i * 1.5);
     f.w = ri(9, 15) + Math.round((30 - i) * .6); f.l = i === 0 ? ri(0, 1) : ri(0, 4) + (i > 15 ? ri(0, 3) : 0); f.d = Math.random() < .3 ? 1 : 0; f.ko = Math.round(f.w * rnd(.4, .75));
@@ -622,6 +636,7 @@ function newCareer(name, nick, look, town){
 function migrate(){
   if (!G.rivals) { addRivals(); G.story = G.story || []; }
   for (const f of Object.values(G.fighters)) if (f.rat.chin !== undefined) { f.rat.grit = f.rat.chin; delete f.rat.chin; }
+  const me0 = G.fighters.me; if (!me0.robe) me0.robe = { color:me0.look.trunks === '#f4f4f4' ? '#e0b12d' : me0.look.trunks, trim:'#1d1d1d', emblem:'glove', tier:0, owned:[0] };
   if (!G.v || G.v < 2) {
     const me = G.fighters.me;
     Object.assign(G, { v:2, day:G.day || 0, fat:0, gym:0, trainer:0, mail:[], card:[], fight:null, declines:0, notes:[] });
@@ -680,7 +695,7 @@ function fillCard(){
     if (!a || !b || a === 'me' || b === 'me' || booked(a) || booked(b) || (j === 0 && Math.random() < .7)) continue;
     G.card.push({ a, b, day:G.day + ri(6, 40), title:j === 0 });
   }
-  if (Math.random() < .5) {
+  if (Math.random() < .12 && G.card.filter(c => G.pool.includes(c.a)).length < 2) {
     const p = pick(G.pool), b = L[ri(25, 30)];
     if (p && b && b !== 'me' && !booked(p) && !booked(b)) G.card.push({ a:p, b, day:G.day + ri(5, 30), title:false });
   }
@@ -743,9 +758,9 @@ function declineMail(k){
 // pushing the fight back a week: smaller purse, and he lets everyone know
 function postpone(){
   const F = G.fight; if (!F || F.postponed) return;
-  F.postponed = true; F.day += 7; F.purse = Math.round(F.purse * .85 / 100) * 100;
+  F.postponed = true; F.day += 7; F.purse = Math.round(F.purse * .85 / 100) * 100; F.theirGrit = (F.theirGrit || 0) + 6;
   const o = G.fighters[F.id];
-  storyBeat([['news', `You push the fight back a week to ${fmtDate(F.day)}. The purse drops to ${money(F.purse)}.`], [o.rival || 'opp:' + o.id, pick(['Scared? Take all the time you need. I\'ll still be here.', 'He\'s hiding. Everybody can see it.', 'Postponed? Tell him to bring a note from his mother.'])]], o.rival || null);
+  storyBeat([['news', `You push the fight back a week to ${fmtDate(F.day)}. The purse drops to ${money(F.purse)}, and he's angry: +6 Grit for him.`], [o.rival || 'opp:' + o.id, pick(['Scared? Take all the time you need. I\'ll still be here.', 'He\'s hiding. Everybody can see it.', 'Postponed? Tell him to bring a note from his mother.'])]], o.rival || null);
   save();
 }
 
@@ -784,7 +799,12 @@ function newDay(){
   runCard(); fillCard();
   while (G.pool.length < 10) { const n = genFighter(rnd(30, 40)); n.w = ri(2, 9); n.l = ri(2, 10); G.pool.push(n.id); }
   G.mail = G.mail.filter(m => m.type !== 'ch' || m.exp >= G.day);
-  if (G.fight && G.fight.day > G.day + 2 && Math.random() < .003) {     // your man gets hurt in camp
+  if (G.fight && G.fight.day > G.day + 3 && !G.fight.theyMoved && Math.random() < .005) {   // his camp asks for more time
+    const F = G.fight, o = G.fighters[F.id];
+    F.theyMoved = true; F.day += 7; F.myGrit = (F.myGrit || 0) + 6;
+    G.mail.unshift({ type:'news', day:G.day, text:`${o.name}'s camp pushed the fight back a week, to ${fmtDate(F.day)}. ${pick(['A "minor cut in sparring," they say.', 'They say he needs more time.', 'His manager wants a bigger venue.'])} You're fired up: +6 Grit for this fight.` });
+  }
+  else if (G.fight && G.fight.day > G.day + 2 && Math.random() < .003) {     // your man gets hurt in camp
     const o = G.fighters[G.fight.id];
     G.mail.unshift({ type:'news', day:G.day, text:`${o.name} pulled out of your fight: hurt in sparring. The date is off.` });
     G.fight = null;
@@ -942,7 +962,7 @@ function applySpar(S){
 }
 
 /* ================= sprites ================= */
-// pixel art drawn from rectangles on a small grid: big flat pixels, no outlines (Retro Bowl style)
+// shaded pixel art drawn at half-unit detail (the canvases run at 2 device pixels per world unit), with a dark outline
 function shade(hex, f){
   const n = parseInt(hex.slice(1), 16);
   const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => clamp(Math.round(v * f), 0, 255));
@@ -953,6 +973,10 @@ function mix(a, b, t){
   const c = [16, 8, 0].map(s => Math.round(lerp((A >> s) & 255, (B >> s) & 255, clamp(t, 0, 1))));
   return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
 }
+const lighten = (hex, t) => mix(hex, '#ffffff', t);
+const SC = 2;                                               // device pixels per world unit on the game canvases
+const snapH = v => Math.round(v * 2) / 2;
+const OUTLINE = '#170f22';
 // glove (fg/bg) and elbow (fe/be) spots for the front and back arm, body lean, crouch, head offset
 const POSE = {
   guard: { lean:0,  cr:0,  hx:0,  hy:0,  fg:[11,-44], fe:[8,-33],  bg:[6,-47],  be:[1,-33] },
@@ -972,8 +996,11 @@ const POSE = {
   duck:  { lean:3,  cr:10, hx:1,  hy:1,  fg:[11,-43], fe:[7,-33],  bg:[7,-45],  be:[2,-33] },
   hurt:  { lean:-4, cr:1,  hx:-3, hy:-1, fg:[9,-39],  fe:[6,-31],  bg:[3,-41],  be:[-1,-31] },
   hurtB: { lean:3,  cr:5,  hx:1,  hy:1,  fg:[8,-35],  fe:[5,-30],  bg:[4,-33],  be:[0,-30] },
-  robe:  { lean:0,  cr:0,  hx:0,  hy:0,  fg:[5,-26], fe:[5,-34],  bg:[-3,-26], be:[-3,-34] },
+  teeter:{ lean:-3, cr:5,  hx:-2, hy:1,  fg:[8,-31],  fe:[6,-33],  bg:[1,-29],  be:[-2,-32] },
+  limp:  { lean:0,  cr:0,  hx:-1, hy:0,  fg:[10,-55], fe:[7,-46],  bg:[-6,-52], be:[-5,-44] },
+  push:  { lean:3,  cr:3,  hx:1,  hy:1,  fg:[9,-20],  fe:[7,-30],  bg:[3,-19],  be:[1,-29] },
   knee:  { lean:5,  cr:14, hx:2,  hy:2,  fg:[10,-27], fe:[7,-34],  bg:[5,-25],  be:[1,-31] },
+  robe:  { lean:0,  cr:0,  hx:0,  hy:0,  fg:[5,-26],  fe:[5,-34],  bg:[-3,-26], be:[-3,-34] },
   win:   { lean:0,  cr:-1, hx:0,  hy:-1, fg:[9,-64],  fe:[8,-52],  bg:[-3,-64], be:[-5,-52] },
 };
 const PK = ['lean','cr','hx','hy'], PV = ['fg','fe','bg','be'];
@@ -984,87 +1011,213 @@ function blendPose(a, b, t){
   for (const k of PV) o[k] = [lerp(a[k][0], b[k][0], t), lerp(a[k][1], b[k][1], t)];
   return o;
 }
-// draws a boxer facing `dir` (1 right, -1 left) with his feet at (ox, gy).
-// o: { walk (step phase), swell 0-1, cut 0-3, body (0-1 share of health lost to the body), rage }
+// a boxer facing `dir` (1 right, -1 left) with his feet at (ox, gy), in world units.
+// o: { walk, swell, cut, body, nose, jaw, rage, headgear, sweat, noShadow }
 function drawBoxer(g, ox, gy, dir, p, look, o = {}){
-  const skin = look.skin, skinB = shade(skin, .82), hair = look.hair, trunks = look.trunks;
-  const glove = o.rage ? mix(look.gloves, '#ffd23f', .55) : look.gloves, gloveB = shade(glove, .78);
+  const skin = look.skin, skD = shade(skin, .82), skDD = shade(skin, .66), skL = lighten(skin, .16);
+  const hair = look.hair, hairL = hair !== 'none' ? lighten(hair, .28) : skin;
+  const glove = o.rage ? mix(look.gloves, '#ffd23f', .55) : look.gloves, gD = shade(glove, .7), gL = lighten(glove, .45);
+  const trunks = look.trunks, tD = shade(trunks, .72), tL = lighten(trunks, .25);
   const band = (trunks === '#f4f4f4' || trunks === '#ffd23f') ? '#1d1d1d' : '#f4f4f4';
-  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
-  const B = (x0, y0, x1, y1, w, c) => {
-    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+  const boot = look.boots || '#24202c', bootL = lighten(boot, .3);
+  let out = false;
+  const R = (x, y, w, h, c) => {
+    const X = dir > 0 ? ox + x : ox - x - w;
+    if (out) { g.fillStyle = OUTLINE; g.fillRect(snapH(X) - .5, snapH(gy + y) - .5, w + 1, h + 1); }
+    else { g.fillStyle = c; g.fillRect(snapH(X), snapH(gy + y), w, h); }
+  };
+  const B = (x0, y0, x1, y1, w, c, hi) => {
+    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2));
     for (let i = 0; i <= n; i++) { const t = i / n; R(x0 + (x1 - x0) * t - w / 2, y0 + (y1 - y0) * t - w / 2, w, w, c); }
+    if (hi && !out) for (let i = 1; i < n; i++) { const t = i / n; R(x0 + (x1 - x0) * t - .5, y0 + (y1 - y0) * t - w / 2, 1, .5, hi); }
   };
-  const L = p.lean, C = p.cr, step = o.walk ? Math.sin(o.walk) * 2 : 0;
-  const arm = (s, e, gl, col, gcol) => {
-    B(s[0], s[1], e[0] + L, e[1] + C, 4, col);
-    B(e[0] + L, e[1] + C, gl[0] + L, gl[1] + C, 4, col);
-    R(gl[0] + L - 3.5, gl[1] + C - 3.5, 7, 7, gcol);
-    R(gl[0] + L - 3.5, gl[1] + C + 2.5, 7, 1, shade(gcol, .8));
-  };
-  R(-13, -1, 26, 2, 'rgba(0,0,0,.28)');                                   // shadow
-  arm([-4 + L, -38 + C], p.be, p.bg, skinB, gloveB);                      // back arm, behind the body
-  B(-3, -16 + C, -7 - step, -3, 4, skinB);                                 // back leg
-  B(3, -16 + C, 7 + step, -3, 4, skin);                                    // front leg
-  R(-10 - step, -3, 6, 3, '#f2f2f2'); R(-10 - step, -1, 6, 1, '#9a9a9a');  // shoes
-  R(4 + step, -3, 6, 3, '#f2f2f2'); R(4 + step, -1, 6, 1, '#9a9a9a');
-  R(-7 + L * .3, -26 + C, 14, 12, trunks);                                 // trunks
-  R(-7 + L * .3, -26 + C, 14, 2, band);
-  R(-6 + L * .5, -33 + C, 12, 8, skin);                                    // body
-  R(-7 + L, -40 + C, 14, 8, skin);
-  if (o.body > .12) R(1 + L * .5, -31 + C, 4, 3, mix(skin, '#b0404a', .25 + o.body));          // bruised ribs
-  if (o.body > .3) R(-3 + L * .5, -29 + C, 3, 2, mix(skin, '#8a2f5a', .2 + o.body));
-  R(-2 + L * 1.1, -43 + C, 4, 3, skin);                                    // neck
+  const L = p.lean, C = p.cr, st = o.walk ? Math.sin(o.walk) * 2 : 0;
   const hx = L * 1.15 + p.hx, hy = C + p.hy, sw = o.swell || 0;
-  R(-5 + hx, -53 + hy, 10, 10, skin);                                      // head
-  if (hair !== 'none') { R(-5 + hx, -53 + hy, 10, 3, hair); R(-5 + hx, -50 + hy, 3, 3, hair); }
-  if (look.flat && hair !== 'none') R(-5 + hx, -56 + hy, 10, 3, hair);    // flat-top
-  if (look.stache) R(1 + hx, -46 + hy, 5, 1, hair !== 'none' ? shade(hair, .9) : '#2a1a10');
-  R(-1 + hx, -48 + hy, 2, 2, skinB);                                       // ear
-  // the eye on our side swells shut as the head shots pile up
-  if (sw > .12) R(1 + hx, -51 + hy, 4, 3, mix(skin, '#7a3f86', sw * .9));
-  if (sw > .4) R(1 + hx, -52 + hy, 5, 5, mix(skin, '#6a2f7a', sw * .85));
-  if (sw > .7) R(5 + hx, -51 + hy, 1, 3, mix(skin, '#5a2068', sw * .8));    // puffs out past the face
-  R(2 + hx, -50 + hy, 3, 1, sw > .4 ? mix(skin, '#5a2068', sw) : hair !== 'none' ? hair : shade(skin, .6));     // brow
-  if (sw > .7) R(2 + hx, -48 + hy, 2, 1, '#141414');                       // eye shut to a slit
-  else R(3 + hx, -49 + hy, 1, sw > .45 ? 1 : 2, '#141414');                // eye
-  if (o.cut >= 1) R(4 + hx, -51 + hy, 1, 2, '#c41e1e');                    // cut over the eye
-  if (o.cut >= 2) { R(4 + hx, -49 + hy, 1, 3, '#c41e1e'); R(3 + hx, -46 + hy, 1, 2, '#a01818'); }
-  if (o.cut >= 3) { R(2 + hx, -45 + hy, 2, 1, '#a01818'); R(2 + L, -37 + C, 1, 2, '#a01818'); R(-1 + L, -34 + C, 1, 1, '#a01818'); }
-  if (o.nose > 20) R(5 + hx, -46 + hy, 1, o.nose > 50 ? 3 : 2, '#c41e1e');            // bloody nose
-  if (o.nose > 60) R(5 + hx, -48 + hy, 1, 1, mix(skin, '#6a2f7a', .6));                 // broken
-  if (o.jaw > 30) R(3 + hx, -45 + hy, 3, 1, mix(skin, '#a03050', .5 + o.jaw / 200));      // fat lip
-  if (o.headgear) { R(-6 + hx, -54 + hy, 12, 4, '#c42d2d'); R(-6 + hx, -50 + hy, 3, 7, '#c42d2d'); R(4 + hx, -51 + hy, 2, 5, '#c42d2d'); R(-6 + hx, -54 + hy, 12, 1, '#e24b3b'); }
-  arm([4 + L, -38 + C], p.fe, p.fg, skin, glove);                          // front arm
+  const arm = (s, e, gl, col, hi, gc, gh, gd) => {
+    const E = [e[0] + L, e[1] + C], P = [gl[0] + L, gl[1] + C];
+    B(s[0], s[1], E[0], E[1], 4, col, hi);                                 // upper arm
+    B(E[0], E[1], P[0], P[1], 3.5, col, hi);                               // forearm
+    const wx = lerp(E[0], P[0], .7), wy = lerp(E[1], P[1], .7);
+    R(wx - 2, wy - 2, 4, 4, '#ece8e0');                                    // the cuff of the glove
+    R(P[0] - 3.5, P[1] - 3, 7, 6, gc); R(P[0] - 3, P[1] - 3.5, 6, 7, gc);  // the glove, rounded off
+    if (!out) { R(P[0] - 2, P[1] - 3, 2.5, 1.5, gh); R(P[0] - 3, P[1] + 2, 6, 1, gd); R(P[0] + .5, P[1] - .5, .5, 2.5, gd); }
+  };
+  const body = () => {
+    arm([-4 + L, -38 + C], p.be, p.bg, skD, skin, gD, glove, shade(gD, .8));          // back arm, behind everything
+    B(-3, -15 + C, -7 - st, -6, 4, skD, null);                                          // legs
+    B(3, -15 + C, 7 + st, -6, 4, skin, skL);
+    R(-10.5 - st, -7.5, 5.5, 5.5, boot); R(-11 - st, -2.5, 7, 2.5, boot);              // high-top boots
+    R(3.5 + st, -7.5, 5.5, 5.5, boot); R(3 + st, -2.5, 7.5, 2.5, boot);
+    if (!out) {
+      R(-11 - st, -1, 7, 1, '#0a0a0a'); R(3 + st, -1, 7.5, 1, '#0a0a0a');               // soles
+      R(-10.5 - st, -8, 5.5, 1, '#f2f2f2'); R(3.5 + st, -8, 5.5, 1, '#f2f2f2');         // socks
+      R(4 + st, -7, 1, 4.5, bootL); R(5.5 + st, -6.5, 2.5, .5, '#cfcfcf'); R(5.5 + st, -5, 2.5, .5, '#cfcfcf'); R(5.5 + st, -3.5, 2.5, .5, '#cfcfcf');   // laces
+    }
+    R(-7.5 + L * .3, -26 + C, 15, 11, trunks);                                          // trunks
+    R(-7.5 + L * .3, -16 + C, 6.5, 2.5, trunks); R(1 + L * .3, -16 + C, 6.5, 2.5, trunks);
+    if (!out) {
+      R(-7.5 + L * .3, -25 + C, 3.5, 11.5, tD); R(-1 + L * .3, -24 + C, 1.5, 10.5, band);
+      R(3 + L * .3, -23 + C, 3, 1, tL); R(-3 + L * .3, -18 + C, 1, 3, tD); R(4 + L * .3, -17 + C, 1, 2, tD);
+    }
+    R(-7.5 + L * .3, -27.5 + C, 15, 3, band);                                           // waistband
+    if (!out) { R(-7.5 + L * .3, -27.5 + C, 15, .5, lighten(band, .35)); R(-7.5 + L * .3, -25 + C, 15, .5, shade(band, .7)); }
+    R(-6 + L * .5, -33 + C, 12, 6, skin); R(-7 + L, -40.5 + C, 14, 8, skin);            // body
+    if (!out) {
+      R(-6 + L * .5, -33 + C, 3, 6, skD); R(-7 + L, -40.5 + C, 3, 8, skD);              // the far side in shadow
+      R(.5 + L, -35 + C, 6, .5, skDD); R(.5 + L, -34.5 + C, 6, .5, skD);                 // chest
+      for (const [ax, ay] of [[2, -32.5], [4, -32.5], [2, -30.5], [4, -30.5], [2, -28.5], [4, -28.5]]) R(ax + L * .6, ay + C, 1.5, 1, skD);   // abs
+      R(3 + L, -40.5 + C, 3.5, 1.5, skL); R(-1 + L, -40.5 + C, 3, .5, skL);              // shoulders catch the light
+      if (o.sweat) for (let i = 0; i < 4; i++) R(rnd(-5, 6) + L, rnd(-40, -27) + C, .5, .5, '#ffffff');
+      if (o.body > .12) R(1 + L * .5, -31 + C, 4, 3, mix(skin, '#b0404a', .25 + o.body));
+      if (o.body > .3) R(-3 + L * .5, -29 + C, 3, 2, mix(skin, '#8a2f5a', .2 + o.body));
+    }
+    R(-2 + L * 1.1, -43.5 + C, 4.5, 3.5, skin);                                         // neck
+    if (!out) R(-2 + L * 1.1, -42 + C, 4.5, 1, skD);
+    R(-5 + hx, -53 + hy, 10, 8, skin); R(-4 + hx, -45 + hy, 8.5, 2, skin);              // head, jaw tapering in
+    if (hair !== 'none') { R(-5.5 + hx, -54.5 + hy, 10.5, 3, hair); R(-5.5 + hx, -52 + hy, 3, 4.5, hair); if (look.flat) R(-5.5 + hx, -57 + hy, 10.5, 3, hair); }
+  };
+  const face = () => {
+    R(-5 + hx, -50 + hy, 2, 5, skD);                                                    // back of the head in shade
+    R(-1.5 + hx, -49 + hy, 2, 3, skD); R(-1 + hx, -48.5 + hy, 1, 2, skDD);              // ear
+    R(4.5 + hx, -48.5 + hy, 1.5, 3, skin); R(5.5 + hx, -47 + hy, .5, 1.5, skD);         // nose
+    R(3 + hx, -44.5 + hy, 2.5, .5, skDD);                                               // mouth
+    R(1.5 + hx, -46.5 + hy, 2, 1.5, mix(skin, '#d0605a', .14));                         // cheek
+    if (hair !== 'none') R(-2 + hx, -54.5 + hy, 4, .5, hairL);
+    R(-4 + hx, -44 + hy, 7.5, .5, skD);                                                 // under the jaw
+    // the eye on our side swells shut as the head shots pile up
+    if (sw > .12) R(1 + hx, -51.5 + hy, 4.5, 3, mix(skin, '#7a3f86', sw * .9));
+    if (sw > .4) R(1 + hx, -52.5 + hy, 5, 5, mix(skin, '#6a2f7a', sw * .85));
+    if (sw > .7) R(5.5 + hx, -51.5 + hy, 1, 3, mix(skin, '#5a2068', sw * .8));
+    R(1.5 + hx, -51 + hy, 4, 1, sw > .4 ? mix(skin, '#5a2068', sw) : hair !== 'none' ? hair : skDD);   // brow
+    if (sw > .7) R(2.5 + hx, -48.5 + hy, 2.5, .5, '#141414');                           // shut to a slit
+    else { R(2.5 + hx, -49.5 + hy, 2, sw > .45 ? 1 : 1.5, '#f2f2f2'); R(3.5 + hx, -49.5 + hy, 1, sw > .45 ? 1 : 1.5, '#141414'); }
+    if (look.stache) R(2.5 + hx, -46 + hy, 3.5, 1, hair !== 'none' ? shade(hair, .9) : '#2a1a10');
+    if (o.cut >= 1) R(4 + hx, -51.5 + hy, 1, 2, '#c41e1e');                             // cut over the eye
+    if (o.cut >= 2) { R(4 + hx, -49.5 + hy, .5, 3, '#c41e1e'); R(3.5 + hx, -46.5 + hy, .5, 2, '#a01818'); }
+    if (o.cut >= 3) { R(2 + hx, -45 + hy, 2, .5, '#a01818'); R(2 + L, -37 + C, .5, 2, '#a01818'); R(-1 + L, -34 + C, .5, 1, '#a01818'); }
+    if (o.nose > 20) R(5 + hx, -45.5 + hy, .5, o.nose > 50 ? 2.5 : 1.5, '#c41e1e');      // bloody nose
+    if (o.nose > 60) R(5 + hx, -48 + hy, 1, 1.5, mix(skin, '#6a2f7a', .6));             // broken
+    if (o.jaw > 30) R(3 + hx, -45 + hy, 3, 1, mix(skin, '#a03050', .5 + o.jaw / 200));    // fat lip
+    if (o.headgear) { R(-6 + hx, -55 + hy, 12, 4, '#c42d2d'); R(-6 + hx, -51 + hy, 3, 7, '#c42d2d'); R(4 + hx, -52 + hy, 2, 5.5, '#c42d2d'); R(-6 + hx, -55 + hy, 12, .5, '#e85a4a'); }
+  };
+  if (!o.noShadow) { g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(snapH(ox - 13), gy - 1, 26, 2); }
+  const front = () => arm([4 + L, -38 + C], p.fe, p.fg, skin, skL, glove, gL, gD);
+  out = true; body(); front();
+  out = false; body(); face(); front();
 }
-// flat on his back, head away from the other man
-function drawDown(g, ox, gy, dir, look, o = {}){
-  const skin = look.skin, hair = look.hair;
-  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
-  R(-38, -1, 52, 2, 'rgba(0,0,0,.28)');
-  R(-2, -5, 13, 4, skin); R(1, -9, 10, 4, shade(skin, .82));               // legs, one knee up
-  R(11, -7, 3, 6, '#f2f2f2'); R(10, -11, 3, 5, '#f2f2f2');                  // shoes
-  R(-13, -7, 12, 6, look.trunks); R(-13, -7, 2, 6, '#f4f4f4');
-  R(-27, -7, 15, 6, skin);                                                   // body
-  const up = o.prop ? -3 : 0;                                               // propped up on an elbow
-  if (o.prop) { R(-30, -11, 3, 6, skin); }
-  R(-37, -9 + up, 10, 9, skin);                                              // head
-  if (hair !== 'none') R(-37, -9, 3, 9, hair);
-  if (o.swell > .12) R(-32, -8, 3, 3, mix(skin, '#7a3f86', o.swell));
-  R(-31, -6, 2, 1, '#141414');
-  if (o.cut >= 1) R(-30, -8, 1, 2, '#c41e1e');
-  R(-25, -11, 9, 3, skin); R(-18, -14, 6, 6, look.gloves);                  // arms flopped out
-  R(-23, -2, 9, 2, shade(skin, .82)); R(-16, -3, 6, 5, shade(look.gloves, .78));
+// a fallen or rising boxer: drawn to a spare canvas, then turned about his feet
+const SPR = document.createElement('canvas'); SPR.width = SPR.height = 200;
+const sg = SPR.getContext('2d');
+function drawTurned(g, x, gy, dir, pose, look, o, ang){
+  sg.setTransform(1, 0, 0, 1, 0, 0); sg.clearRect(0, 0, 200, 200); sg.setTransform(SC, 0, 0, SC, 0, 0);
+  drawBoxer(sg, 50, 85, dir, pose, look, { ...o, noShadow:true });
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(x - 13 + Math.sin(ang) * 26, gy - 1, 26 + Math.abs(Math.sin(ang)) * 24, 2);
+  g.save(); g.translate(x, gy); g.rotate(ang); g.imageSmoothingEnabled = false; g.drawImage(SPR, -50, -85, 100, 100); g.restore();
 }
-// the walkout robe; the arms hang down inside it
-function drawRobe(g, ox, gy, dir, look){
-  const col = look.trunks === '#f4f4f4' ? '#d8d8d8' : look.trunks, trim = col === '#1d1d1d' ? '#ffd23f' : '#f4f4f4';
-  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
-  R(-10, -44, 6, 5, col);                                                    // hood down behind the neck
-  R(-9, -41, 18, 31, col); R(-10, -36, 20, 22, col);
-  R(-9, -41, 18, 2, trim); R(-10, -12, 20, 2, trim);
-  R(3, -39, 2, 27, shade(col, .72));                                         // where it closes at the front
+
+/* ---- robes: satin, hood up, sash and cuffs, your name on the back ---- */
+const EMBLEMS = {
+  horse:['......#.....', '.....###....', '....#####...', '...########.', '..##########', '..######..##', '.#######....', '.######.....', '.#######....', '..#######...', '...######...', '....#####...'],
+  tiger:['.##......##.', '.###....###.', '.##########.', '###.####.###', '###.####.###', '############', '#.##.##.##.#', '############', '.###.##.###.', '..##....##..', '...######...', '............'],
+  eagle:['.....##.....', '....####....', '#...####...#', '##..####..##', '###.####.###', '############', '.##########.', '..########..', '....####....', '...##..##...', '..##....##..', '............'],
+  bull: ['#..........#', '##........##', '.##......##.', '..########..', '.##########.', '.###.##.###.', '.##########.', '..########..', '...######...', '...##..##...', '....####....', '............'],
+  cobra:['....####....', '...######...', '..##.##.##..', '..########..', '...######...', '....####....', '.....##.....', '....##......', '...##.......', '...##...##..', '....######..', '............'],
+  glove:['..######....', '.########...', '##########..', '##########..', '##########..', '###.######..', '###.#####...', '.##.####....', '..######....', '...####.....', '...####.....', '...####.....'],
+  crown:['............', '#....#....#.', '##..###..##.', '###.###.###.', '###########.', '###########.', '###########.', '.#########..', '.#########..', '............', '.#########..', '............'],
+  skull:['...######...', '..########..', '.##########.', '.##########.', '.##..##..##.', '.##..##..##.', '.##########.', '..###..###..', '...######...', '...#.##.#...', '...######...', '............'],
+};
+const ROBE_TIERS = [
+  { name:'Satin', cost:0, desc:'Plain satin.' },
+  { name:'Gold thread', cost:2500, desc:'Gold piping on every edge.' },
+  { name:'Sequins', cost:8000, desc:'Catches every light in the arena.' },
+  { name:'Fur hood', cost:20000, desc:'A champion\'s robe. The crowd goes wild.' },
+];
+const ROBE_COLORS = ['#e0b12d', '#e24b3b', '#7a1f2a', '#3f7be0', '#1f2a5a', '#44c45d', '#f4f4f4', '#1d1d1d', '#a24be0', '#ff8a2b'];
+const TRIMS = ['#1d1d1d', '#f4f4f4', '#e0b12d', '#c42d2d', '#1f2a5a'];
+function robeOf(f){
+  if (f.robe) return f.robe;
+  const i = G ? rankOf(f.id) : -1;
+  return f.robe = { color:f.look.trunks === '#f4f4f4' ? '#d8d8d8' : f.look.trunks, trim:f.look.trunks === '#1d1d1d' ? '#e0b12d' : '#1d1d1d', emblem:pick(Object.keys(EMBLEMS)), tier:i === 0 ? 3 : i > 0 && i <= 5 ? 2 : i > 0 && i <= 15 ? 1 : 0 };
 }
+// side view in the ring: hood up over the head, sash tied at the waist
+function drawRobe(g, ox, gy, dir, look, robe, t = 0){
+  const col = robe.color, trim = robe.trim, lit = lighten(col, .3), dk = shade(col, .72);
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(snapH(dir > 0 ? ox + x : ox - x - w), snapH(gy + y), w, h); };
+  g.fillStyle = OUTLINE;
+  R(-10.5, -42.5, 21, 34, OUTLINE); R(-7.5, -56.5, 14, 6, OUTLINE);
+  R(-10, -42, 20, 33, col);                                                  // the body of the robe, shoulders to the knee
+  R(-10, -42, 5, 33, dk); R(1, -40, 2, 29, lit); R(5, -38, 1, 26, lit);       // satin folds catch the light
+  R(-10, -10, 20, 1.5, trim); R(4.5, -41, 1.5, 31, trim);                    // hem and the front opening
+  R(-10.5, -28, 21, 3, trim); R(5, -27, 2, 7, trim); R(7, -26, 1.5, 6, trim); // the sash, knotted at the front
+  R(6, -33, 5, 9, col); R(6, -25, 5, 2, trim);                               // a sleeve and its cuff
+  R(-7, -56, 13, 5, col); R(-9, -53, 4, 11, col); R(-7, -56, 13, 1, lit); R(-9, -51, 1.5, 9, dk);   // the hood, up
+  if (robe.tier >= 1) { R(-10, -42, 20, .5, '#ffd23f'); R(-10, -9.5, 20, .5, '#ffd23f'); R(4, -41, .5, 31, '#ffd23f'); }
+  if (robe.tier >= 2) for (let i = 0; i < 6; i++) { const k = (i * 37 + Math.floor(t * 6)) % 30; R(-9 + (i * 13) % 18, -40 + k, .5, .5, '#ffffff'); }
+  if (robe.tier >= 3) { R(-8, -57, 15, 1.5, '#f4efe0'); R(-9.5, -55, 1.5, 12, '#f4efe0'); }
+}
+// the back of the robe, close up: the hood, the satin, and the patch with your name arched over the emblem
+function drawRobeBack(g, cx, top, robe, nick, town, t = 0){
+  const col = robe.color, trim = robe.trim, lit = lighten(col, .32), dk = shade(col, .7), dk2 = shade(col, .55);
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(snapH(cx + x), snapH(top + y), w, h); };
+  for (let y = 0; y < 118; y += 1) {                                           // the outline of the robe, row by row
+    const hood = y < 26 ? Math.sqrt(Math.max(0, 1 - ((y - 26) / 26) ** 2)) * 22 * (y < 6 ? .8 + y * .033 : 1) : 0;
+    const sh = y >= 22 ? Math.min(44, 22 + (y - 22) * 2.2) : 0;
+    const w = Math.max(hood, y >= 22 ? sh : 0) + (y > 40 ? (y - 40) * .12 : 0);
+    if (w <= 0) continue;
+    R(-w - 1, y, w * 2 + 2, 1, OUTLINE); R(-w, y, w * 2, 1, col);
+  }
+  R(-46, 40, 9, 64, OUTLINE); R(37, 40, 9, 64, OUTLINE);                      // sleeves
+  R(-45, 40, 8, 63, dk); R(37, 40, 8, 63, dk); R(-45, 92, 8, 11, trim); R(37, 92, 8, 11, trim);   // cuffs
+  for (const [x, w, c] of [[-30, 3, dk], [-16, 2, lit], [-4, 3, dk2], [10, 2, lit], [24, 3, dk], [30, 1, lit]]) R(x, 30, w, 86, c);   // satin folds
+  for (let y = 4; y < 24; y++) { const w = Math.sqrt(Math.max(0, 1 - ((y - 26) / 26) ** 2)) * 22; R(-w + 2, y, 3, 1, dk); R(w * .25, y, 2, 1, lit); }   // the hood's shadow and sheen
+  R(-13, 22, 26, 2, dk);                                                       // where the hood meets the shoulders
+  R(-41, 80, 82, 7, trim); R(-41, 80, 82, 1, lighten(trim, .3));               // the sash
+  R(-42, 114, 84, 4, trim);                                                    // hem
+  if (robe.tier >= 1) { R(-41, 79, 82, .5, '#ffd23f'); R(-41, 87, 82, .5, '#ffd23f'); R(-42, 113.5, 84, .5, '#ffd23f'); }
+  if (robe.tier >= 3) for (let a = 0; a < 40; a++) { const ang = Math.PI * (1 + a / 39); R(Math.cos(ang) * 22 - 1, 26 + Math.sin(ang) * 26 - 1, 2.5, 2.5, '#f4efe0'); }
+  // the patch
+  const py = 54, r = 21;
+  g.fillStyle = trim; g.beginPath(); g.arc(cx, top + py, r + 2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = shade(col, .9); g.beginPath(); g.arc(cx, top + py, r, 0, Math.PI * 2); g.fill();
+  g.fillStyle = trim; g.beginPath(); g.arc(cx, top + py, 12, 0, Math.PI * 2); g.fill();
+  g.fillStyle = col; g.beginPath(); g.arc(cx, top + py, 11, 0, Math.PI * 2); g.fill();
+  const em = EMBLEMS[robe.emblem] || EMBLEMS.glove;
+  em.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') R(-9 + i * 1.5, py - 9 + j * 1.5, 1.5, 1.5, trim); }));
+  // the name arched over the top, the town under the emblem
+  const arc = (text, rad, start, end, size) => {
+    const s = text.toUpperCase().slice(0, 16), n = s.length; if (!n) return;
+    g.font = `700 ${size}px Silkscreen, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = trim;
+    for (let i = 0; i < n; i++) {
+      const a = n === 1 ? (start + end) / 2 : start + (end - start) * i / (n - 1);
+      g.save(); g.translate(cx + Math.sin(a) * rad, top + py - Math.cos(a) * rad); g.rotate(a + (end < start ? Math.PI : 0)); g.fillText(s[i], 0, 0); g.restore();
+    }
+  };
+  const span = n => Math.min(1.5, .16 * n);
+  const nm = (nick || '').slice(0, 14), tw = (town || '').slice(0, 14);
+  arc(nm, r - 4.5, -span(nm.length), span(nm.length), 6);
+  arc(tw, r - 4.5, Math.PI + span(tw.length) * .85, Math.PI - span(tw.length) * .85, 5);
+  if (robe.tier >= 2) for (let i = 0; i < 18; i++) { const k = (i * 53 + Math.floor(t * 8) * 7) % 100; R(-38 + (i * 29) % 76, 30 + k * .8, 1, 1, '#ffffff'); }
+}
+const portraits = new Map();
+function portrait(f, w = 44, h = 34){
+  const key = `${f.id}|${JSON.stringify(f.look)}|${w}x${h}`;
+  if (portraits.has(key)) return portraits.get(key);
+  const c = document.createElement('canvas'); c.width = w * SC; c.height = h * SC;
+  const g = c.getContext('2d'); g.setTransform(SC, 0, 0, SC, 0, 0);
+  drawBoxer(g, w / 2 - 2, h + 22, 1, POSE.guard, f.look, { noShadow:true });
+  const url = c.toDataURL();
+  portraits.set(key, url);
+  return url;
+}
+const face = (f, px = 96, w = 44, h = 34) => `<img class="pt" src="${portrait(f, w, h)}" width="${px}" height="${Math.round(px * h / w)}" alt="">`;
+function robeImage(f, robe){
+  const c = document.createElement('canvas'); c.width = 120 * SC; c.height = 124 * SC;
+  const g = c.getContext('2d'); g.setTransform(SC, 0, 0, SC, 0, 0);
+  g.fillStyle = '#19154a'; g.fillRect(0, 0, 120, 124);
+  drawRobeBack(g, 60, 3, robe, f.nick || f.name.split(' ')[0], f.town || '', 0);
+  return c.toDataURL();
+}
+
 function drawRef(g, ox, gy, dir, armUp){
   const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(dir > 0 ? ox + x : ox - x - w), Math.round(gy + y), w, h); };
   R(-9, -1, 18, 2, 'rgba(0,0,0,.2)');
@@ -1094,18 +1247,6 @@ function drawCardGirl(g, ox, gy, n, t){
   R(-w / 2, -58, w, 14, '#f4f4f4'); R(-w / 2, -58, w, 1, '#ffd23f');
   [...s].forEach((d, k) => { const pat = DIGITS[+d]; for (let i = 0; i < 15; i++) if (pat[i] === '1') R(-w / 2 + 4 + k * 8 + (i % 3) * 2, -56 + Math.floor(i / 3) * 2, 2, 2, '#1d1d1d'); });
 }
-const portraits = new Map();
-function portrait(f, w = 44, h = 34){
-  const key = `${f.id}|${JSON.stringify(f.look)}|${w}x${h}`;
-  if (portraits.has(key)) return portraits.get(key);
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d');
-  drawBoxer(g, w / 2 - 2, h + 22, 1, POSE.guard, f.look);
-  const url = c.toDataURL();
-  portraits.set(key, url);
-  return url;
-}
-const face = (f, px = 96, w = 44, h = 34) => `<img class="pt" src="${portrait(f, w, h)}" width="${px}" height="${Math.round(px * h / w)}" alt="">`;
 
 /* ================= sound ================= */
 let AC = null;
@@ -1166,8 +1307,8 @@ let CROWD = [], M = null, LW = 240, cssW = 0, cssH = 0, bgCanvas = null;
 const cv = $('#cv'), ctx = cv.getContext('2d'), low = document.createElement('canvas'), g = low.getContext('2d');
 
 function mkF(src, side, user, opt = {}){
-  const r = src.rat, ail = user ? { ...(src.ail || {}) } : {};
-  const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && G.restedOn === G.day - 1 && fat <= 25;
+  const boost = (user ? opt.myGrit : opt.theirGrit) || 0, r = boost ? { ...src.rat, grit:Math.min(99, src.rat.grit + boost) } : src.rat, ail = user ? { ...(src.ail || {}) } : {};
+  const fat = user && !opt.spar ? (G.fat || 0) : 0, sharp = user && !opt.spar && opt.id && G.restedOn === G.day - 1 && fat <= 25;
   const hpMax = 70 + r.grit * .6, stMax = (50 + r.sta * .7) * (1 - fat / 300);
   return { src, side, user, r, hpMax, hp:hpMax, stMax, st:stMax, regen:(6 + r.sta * .1) * (1 - fat / 250),
     pm:(.6 + r.pow / 100) * (sharp ? 1.06 : 1), sm:1.25 - .5 * r.spd / 100, lag:(1.35 - .6 * r.spd / 100) * (sharp ? .95 : 1), walkV:WALK * (.8 + r.spd / 250), sharp,
@@ -1215,7 +1356,7 @@ function push(f, amt){
 }
 function resolve(a, d){
   const P = FT[a.pt], head = a.tgt === 'head';
-  if (d.state === 'down') return;
+  if (d.state === 'down' || d.state === 'falling') return;
   const hitX = (a.x + d.x) / 2 + (a.side === 0 ? 7 : -7), hitY = M.gy - (head ? 47 : 31);
   if (Math.abs(d.x - a.x) > P.reach) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
@@ -1305,7 +1446,7 @@ function step(f, o, dt){
   if (f.rage > 0) f.rage = Math.max(0, f.rage - dt);
   f.rock = Math.max(0, f.rock - dt * 7 * (1 - A(f, 'head') / 200)); f.maxRock = Math.max(f.maxRock, f.rock);
   if (f.rock < 40) f.rockedShown = false;
-  if (f.foldAt && M.time >= f.foldAt && f.state !== 'down') {             // the liver shot lands late
+  if (f.foldAt && M.time >= f.foldAt && f.state !== 'down' && f.state !== 'falling') {             // the liver shot lands late
     f.foldAt = 0; f.ail.liver = Math.max(0, A(f, 'liver') - 25); fx('LIVER SHOT', f.side, 'r'); f.fold = true;
     knockdown(f, M.f[1 - f.side]); return;
   }
@@ -1389,10 +1530,19 @@ function knockdown(d, a){
   a.state = 'idle'; a.blockHeld = false;
   if (M.offer.spar) { banner('THAT\'S ENOUGH', 'y'); return finish(a.side, 'STOP'); }
   M.shake = .3; M.flashes += 25; hype(.9);
-  M.capture = { frames:M.buf.slice(), until:M.time + .9 };                 // keep this for the replay
-  if (d.kdR >= 3) { banner('T.K.O.!', 'y'); thud(1, false); return finish(a.side, 'TKO'); }
-  banner('DOWN!', 'y'); thud(1, false);
-  M.phase = 'count'; M.count = 0; M.countT = 0; M.downSide = d.side;
+  M.capture = { frames:M.buf.slice(), until:M.time + 1.9 };                // keep this for the replay, the fall included
+  // he doesn't drop like a stone: he staggers, teeters, then goes over (or folds to his knees from a liver shot)
+  d.state = 'falling'; d.fallT = 0; d.fallFwd = !!d.fold; d.T1 = d.fold ? .55 : rnd(.55, .9);
+  M.phase = 'falling'; M.downSide = d.side;
+  fxAt(pick(['OHHH!', 'HE\'S HURT!', 'OHHH NO!']), rnd(.25, .75), rnd(.1, .22), 'y');
+}
+function land(d){
+  const a = M.f[1 - d.side];
+  d.state = 'down'; thud(1, false); M.shake = .35; M.zoom = Math.max(M.zoom || 0, .06); M.flashes += 20; hype(.6);
+  sparks(d.x + away(d) * 34 * (d.fallFwd ? -1 : 1), M.gy - 2, 10, '#cfc9b4');
+  if (d.kdR >= 3) { banner('T.K.O.!', 'y'); return finish(a.side, 'TKO'); }
+  banner('DOWN!', 'y');
+  M.phase = 'count'; M.count = 0; M.countT = 0;
   if (d.user) M.gu = { prog:0, hold:false, sx:0, base:0, off:0, t:0, m:0, pid:null, zone:clamp(.34 - .05 * (d.kd - 1) + (d.r.grit - 50) / 450 - d.rock / 600, .12, .42), amp:.55 + .18 * (d.kd - 1) };
   else {
     const p = clamp(.95 - .25 * (d.kd - 1) + (d.r.grit - 60) / 220, .05, .97);
@@ -1455,7 +1605,7 @@ function placeFighters(){
 function startFight(offer){
   const me = G.fighters.me, o = offer.partner || G.fighters[offer.id];
   M = { offer, opp:o.id, oppRank:rankShort(o.id), rounds:offer.rounds, round:1, clock:ROUND_SECS, phase:'intro', pt:1.6, time:0,
-    f:[mkF(me, 0, true, offer), mkF(o, 1, false)], zoom:0, cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0,
+    f:[mkF(me, 0, true, offer), mkF(o, 1, false, offer)], zoom:0, cards:[[], [], []], roundStats:[], shake:0, parts:[], flashes:0, paused:false, count:0, heart:0,
     hype:0, ref:{ x:0, arm:0 }, buf:[], capture:null, robes:false, card:null };
   $('#game').hidden = false; $('#ui').hidden = true; $('#over').hidden = true; $('#getup').hidden = true;
   $('#n0').textContent = me.name; $('#n1').textContent = o.name;
@@ -1495,18 +1645,22 @@ function walkout(dt){
   M.wt += dt;
   const t = M.wt, [a, b] = M.f, cx = Math.round(LW / 2);
   const toward = (f, x, v) => { const d = x - f.x; if (Math.abs(d) > .3) { const m = Math.sign(d) * Math.min(Math.abs(d), v * dt); f.x += m; f.walk += Math.abs(m) * .45; } };
-  if (t < 6.4) { toward(a, M.lo + 4, 34); toward(b, M.hi - 4, 34); }
+  if (t < 7.1) { toward(a, M.lo + 4, 34); toward(b, M.hi - 4, 34); }
   else { M.robes = false; toward(a, cx - 17, 30); toward(b, cx + 17, 30); }
-  const step = t < 2.1 ? 0 : t < 4.3 ? 1 : t < 6.4 ? 2 : 3;
+  const step = t < 2.1 ? 0 : t < 4.6 ? 1 : t < 7.1 ? 2 : 3;
+  M.close = step === 1 ? 1 : step === 2 ? 0 : null;
+  $('#hud').style.visibility = $('#pauseBtn').style.visibility = M.close != null ? 'hidden' : '';
+  $('#ann').classList.toggle('low', M.close != null);
   if (step !== M.annStep) {
     M.annStep = step; const L = annLines()[step];
     $('#ann').innerHTML = `<div class="a1">${L[0]}</div><div class="a2">${L[1]}</div><div class="a3">${L[2]}</div><div class="skip">tap to skip</div>`;
-    if (step === 1 || step === 2) { roar(step === 2 ? .9 : .5); M.hype = step === 2 ? .9 : .5; M.flashes += 20; }
+    if (step === 1 || step === 2) { const tier = robeOf(M.f[step === 2 ? 0 : 1].src).tier; roar((step === 2 ? .7 : .45) + tier * .1); M.hype = Math.min(1, (step === 2 ? .7 : .45) + tier * .1); M.flashes += 20 + tier * 10; }
   }
-  if (t > 7.6) skipWalkout();
+  if (t > 8.4) skipWalkout();
 }
 function skipWalkout(){
-  M.robes = false; $('#ann').hidden = true; placeFighters();
+  $('#hud').style.visibility = $('#pauseBtn').style.visibility = '';
+  M.robes = false; M.close = null; $('#ann').classList.remove('low'); $('#ann').hidden = true; placeFighters();
   M.phase = 'intro'; M.pt = 1.4; banner('ROUND 1', 'y'); bell(1);
 }
 function nextRound(){
@@ -1553,6 +1707,12 @@ function update(dt){
   if (M.phase === 'replay') { M.rt += dt * .3; if (M.rt > M.rEnd) endReplay(); return; }
   switch (M.phase) {
     case 'walkout': walkout(dt); break;
+    case 'falling': {
+      const d = M.f[M.downSide]; d.fallT += dt;
+      if (d.fallT < d.T1 && !d.fallFwd) { const m = 18 * dt * (1 - d.fallT / d.T1); d.x = clamp(d.x + away(d) * m, M.lo, M.hi); d.walk += m * .5; }   // stumbling back
+      if (d.fallT >= d.T1 + .42) land(d);
+      break;
+    }
     case 'intro': M.pt -= dt; if (M.card) { M.card.x += dt * (M.hi - M.lo + 80) / 2.4; if (M.card.x > M.hi + 40) M.card = null; } if (M.pt <= 0) { M.phase = 'fight'; banner('FIGHT!', ''); setTimeout(() => { if (M && M.phase === 'fight' && $('#banner').textContent === 'FIGHT!') banner(''); }, 600); } break;
     case 'fight':
       M.clock -= dt * CLOCK_X;
@@ -1577,7 +1737,7 @@ function update(dt){
         if (U.prog >= 1) { rise(d); break; }
         renderGetup();
       } else if (M.count >= d.riseAt) { rise(d); break; }
-      else d.gprog = d.riseAt < 99 ? clamp((M.count + M.countT - 1) / (d.riseAt - 1), 0, 1) * .95 : Math.min(.3, M.count * .04);
+      else { const k = d.riseAt < 99 ? clamp((M.count + M.countT - 1) / (d.riseAt - 1), 0, 1) : Math.min(.35, M.count * .045); d.gprog = d.riseAt < 99 ? k * .95 - (k > .45 && k < .6 ? .25 : 0) : k; }
       if (M.count >= 10) { $('#getup').hidden = true; banner('K.O.!', 'y'); finish(1 - M.downSide, 'KO'); }
       break;
     }
@@ -1593,7 +1753,7 @@ function update(dt){
   for (const f of M.f) animate(f, dt);
   moveRef(dt);
   // a rolling recording of the last two seconds, for the knockout replay
-  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
+  const snap = { t:M.time, f:M.f.map(f => ({ x:f.x, pose:copyPose(f.pose), state:f.state, ail:{ ...f.ail }, rage:f.rage, walk:f.walk, gprog:f.gprog, rock:f.rock, ang:f.ang, jit:f.jit, sweat:f.sweat })), parts:M.parts.map(p => ({ x:p.x, y:p.y, col:p.col })), ref:{ ...M.ref } };
   M.buf.push(snap); while (M.buf.length && M.buf[0].t < M.time - 2.2) M.buf.shift();
   if (M.capture && M.time < M.capture.until) M.capture.frames.push(snap);
 }
@@ -1602,7 +1762,7 @@ function moveRef(dt){
   // he keeps off to one side, out of the punches, on whichever side has room
   const mid = (a.x + b.x) / 2; let tx = mid + 40 > M.hi + 6 ? mid - 40 : mid + 40;
   if (M.ref.side === undefined) M.ref.side = 1;
-  if (M.phase === 'count') { const d = M.f[M.downSide]; tx = d.x - away(d) * 6; }
+  if (M.phase === 'count' || M.phase === 'falling') { const d = M.f[M.downSide]; tx = d.x - away(d) * 6; }
   else if (M.phase === 'end' && M.result && M.result.winSide >= 0) { const w = M.f[M.result.winSide]; tx = w.x + away(w) * -16; }
   const d = tx - R.x; R.x += Math.sign(d) * Math.min(Math.abs(d), 26 * dt);
   R.arm = Math.max(0, R.arm - dt);
@@ -1638,6 +1798,31 @@ function targetPose(f){
   }
 }
 function animate(f, dt){
+  f.jit = 0; f.sweat = f.st < f.stMax * .45 || M.round > 2;
+  const dir = f.side === 0 ? 1 : -1;
+  if (f.state === 'falling') {
+    if (f.fallT < f.T1) {                                                    // legs going, arms dropping, swaying
+      const p = copyPose(f.fallFwd ? POSE.knee : POSE.teeter), w = Math.sin(f.fallT * 11);
+      if (!f.fallFwd) { p.lean += w * 3; p.hx += w; p.cr += f.fallT / f.T1 * 4; }
+      f.pose = blendPose(f.pose, p, 1 - Math.exp(-dt * 14));
+      f.ang = f.fallFwd ? 0 : -dir * w * .06;
+    } else {                                                                 // over he goes
+      const k = clamp((f.fallT - f.T1) / .42, 0, 1);
+      f.pose = blendPose(f.pose, POSE.limp, 1 - Math.exp(-dt * 10));
+      f.ang = (f.fallFwd ? dir : -dir) * k * k * Math.PI / 2;
+    }
+    return;
+  }
+  if (f.state === 'down') {                                                  // flat out, then fighting his way back up
+    const s = f.fallFwd ? dir : -dir, gp = f.gprog || 0;
+    if (gp < .62) {
+      f.ang = s * (gp < .3 ? Math.PI / 2 - gp * .25 : Math.PI / 2 - .08 - (gp - .3) / .32 * .95);
+      f.pose = blendPose(f.pose, gp < .3 ? POSE.limp : POSE.push, 1 - Math.exp(-dt * 6));
+    } else { f.ang = 0; f.pose = blendPose(f.pose, POSE.knee, 1 - Math.exp(-dt * 10)); }
+    if (gp > .05) f.jit = rnd(-.45, .45);
+    return;
+  }
+  f.ang = 0;
   const [tp, k] = targetPose(f);
   f.pose = blendPose(f.pose, tp, 1 - Math.exp(-dt * k));
 }
@@ -1651,7 +1836,7 @@ function resize(){
   const dpr = Math.min(3, devicePixelRatio || 1);
   cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
   LW = Math.max(160, Math.round(LH * cssW / cssH));
-  low.width = LW; low.height = LH;
+  low.width = LW * SC; low.height = LH * SC; g.imageSmoothingEnabled = false;
   if (M) {
     M.gy = Math.round(LH * .86);
     const cx = Math.round(LW / 2), half = ringHalf();
@@ -1662,8 +1847,9 @@ function resize(){
 }
 addEventListener('resize', () => { if (M) resize(); });
 function buildBg(){
-  bgCanvas = document.createElement('canvas'); bgCanvas.width = LW; bgCanvas.height = LH;
-  const b = bgCanvas.getContext('2d'), R = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
+  bgCanvas = document.createElement('canvas'); bgCanvas.width = LW * SC; bgCanvas.height = LH * SC;
+  const b = bgCanvas.getContext('2d'); b.setTransform(SC, 0, 0, SC, 0, 0);
+  const R = (x, y, w, h, c) => { b.fillStyle = c; b.fillRect(x, y, w, h); };
   const gy = Math.round(LH * .86), cx = Math.round(LW / 2), half = ringHalf();
   R(0, 0, LW, LH, '#100d2e');
   // crowd: rows of heads and shoulders, darker further back (drawn every frame so they can jump)
@@ -1693,6 +1879,8 @@ function draw(){
   const gy = M.gy;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.drawImage(bgCanvas, 0, 0);
+  g.setTransform(SC, 0, 0, SC, 0, 0);
+  if (M.phase === 'walkout' && M.close != null) return drawCloseup();
   const hy = M.hype;
   for (const c of CROWD) {
     const up = hy > .05 && Math.sin(M.time * 13 + c.ph) > 1 - hy * 1.7 ? 2 : 0;
@@ -1707,7 +1895,7 @@ function draw(){
     M.flashes = Math.max(0, M.flashes - n);
   }
   const amp = M.shake > .15 ? 2.5 : 1.5, sx = M.shake > 0 ? Math.round(rnd(-amp, amp)) : 0, sy = M.shake > 0 ? Math.round(rnd(-amp * .7, amp * .7)) : 0;
-  g.setTransform(1, 0, 0, 1, sx, sy);
+  g.setTransform(SC, 0, 0, SC, sx * SC, sy * SC);
   // a man pinned on the ropes bends them
   for (const f of M.f) if (f.pinned && f.state !== 'down') {
     const x = f.side === 0 ? M.lo - ROPE_IN + 3 : M.hi + ROPE_IN - 5;
@@ -1722,11 +1910,10 @@ function draw(){
   if (M.phase !== 'walkout' && M.phase !== 'tut') drawRef(g, ref.x, gy - 5, (view[0].x + view[1].x) / 2 > ref.x ? 1 : -1, ref.arm > 0);
   const order = view[1].state === 'wind' || view[1].state === 'hit' ? [0, 1] : [1, 0];   // whoever is punching is drawn in front
   for (const i of order) {
-    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar };
-    if (f.state === 'down' && f.gprog > .62) drawBoxer(g, f.x - dir * 2, gy, dir, POSE.knee, f.src.look, o);
-    else if (f.state === 'down') drawDown(g, f.x - dir * 4, gy, dir, f.src.look, { ...o, prop:f.gprog > .3 });
-    else drawBoxer(g, f.x, gy, dir, f.pose, f.src.look, o);
-    if (M.robes) drawRobe(g, f.x, gy, dir, f.src.look);
+    const f = view[i], dir = i === 0 ? 1 : -1, o = { walk:f.walk, ...ailLook(f.ail), rage:f.rage > 0, headgear:!!M.offer.spar, sweat:f.sweat };
+    if (f.ang) drawTurned(g, f.x + (f.jit || 0), gy, dir, f.pose, f.src.look, o, f.ang);
+    else drawBoxer(g, f.x + (f.jit || 0), gy, dir, f.pose, f.src.look, o);
+    if (M.robes) drawRobe(g, f.x, gy, dir, f.src.look, robeOf(f.src), M.time);
     if (f.rage > 0 && Math.random() < .5) { g.fillStyle = '#ffd23f'; g.fillRect(Math.round(f.x + rnd(-10, 10)), Math.round(gy - rnd(10, 56)), 1, 1); }
   }
   if (M.card) drawCardGirl(g, M.card.x, gy + 8, M.card.n, M.time);
@@ -1734,7 +1921,17 @@ function draw(){
   // a big shot punches the camera in a touch
   ctx.imageSmoothingEnabled = false;
   const z = 1 + (M.zoom || 0), sw = LW / z, sh = LH / z;
-  ctx.drawImage(low, (LW - sw) / 2, (LH - sh) * .55, sw, sh, 0, 0, cv.width, cv.height);
+  ctx.drawImage(low, (LW - sw) / 2 * SC, (LH - sh) * .55 * SC, sw * SC, sh * SC, 0, 0, cv.width, cv.height);
+}
+// the walkout close-up: the back of his robe under the spotlight
+function drawCloseup(){
+  const f = M.f[M.close].src, cx = LW / 2;
+  g.fillStyle = '#0b0926'; g.fillRect(0, 0, LW, LH);
+  for (let i = 0; i < 6; i++) { g.fillStyle = `rgba(255,240,200,${.025 + i * .012})`; g.fillRect(cx - 70 + i * 10, 0, 140 - i * 20, LH); }
+  for (let i = 0; i < 5; i++) if (Math.random() < .35) { g.fillStyle = '#fff'; g.fillRect(ri(0, LW), ri(0, LH), 1.5, 1.5); }
+  drawRobeBack(g, cx, 2, robeOf(f), f.nick || f.name.split(' ')[0], townOf(f), M.time);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(low, 0, 0, low.width, low.height, 0, 0, cv.width, cv.height);
 }
 function hud(){
   M.f.forEach((f, i) => {
@@ -2030,76 +2227,185 @@ const MINIS = {
     hud:S => S.combo > 2 ? `Combo ${S.combo}` : 'Speed bag',
   },
   run: {
-    name:'Roadwork', how:'Up the stairs: tap left, right, left, right. The same side twice and you stumble. Make the top before time runs out.', dur:16,
-    init:() => ({ step:0, total:60, last:0, stumble:0, top:null, walk:0, disp:0, camX:-40, camY:-LH * .8 }),
+    name:'Roadwork', how:'Run the stairs. Tap LEFT to step your left foot, RIGHT for your right foot. Left, right, left, right. The same foot twice and you stumble.', dur:16,
+    init:() => ({ step:0, total:60, fL:0, fR:1, aL:0, aR:1, mL:0, mR:0, last:1, stumble:0, top:null, walk:0, camX:-40, camY:-LH * .8 }),
     update(S, dt){
       S.stumble = Math.max(0, S.stumble - dt);
-      const d = S.step - S.disp;                                             // you actually climb, one step at a time
-      if (d > 0) { const m = Math.min(d, (6 + d * 4) * dt); S.disp += m; S.walk += m * 1.6; }
-      const SX = 7, SY = 4.5, px = S.disp * SX, py = -S.disp * SY;
-      const tx = Math.max(-40, px - MW * .42), ty = py - LH * .8;           // keep his feet low on the screen as he climbs
-      S.camX += (tx - S.camX) * (1 - Math.exp(-dt * 1.6)); S.camY += (ty - S.camY) * (1 - Math.exp(-dt * 1.6));
+      for (const k of ['L', 'R']) {                                            // each foot travels up to its new step
+        const t = S['f' + k], a = S['a' + k];
+        if (a < t) { S['a' + k] = Math.min(t, a + dt * 11); S['m' + k] = (S['a' + k] - (t - 2)) / 2; } else S['m' + k] = 0;
+      }
+      S.walk += dt * (S.aL < S.fL || S.aR < S.fR ? 9 : 0);
+      const hp = runnerHip(S), tx = Math.max(-40, hp[0] - MW * .4), ty = hp[1] - LH * .55;
+      S.camX += (tx - S.camX) * (1 - Math.exp(-dt * 2.2)); S.camY += (ty - S.camY) * (1 - Math.exp(-dt * 2.2));
       if (S.top !== null && MG.time - S.top > 2.8) return true;
     },
     tap(S, x, y, side){
       if (S.top !== null || S.stumble > 0) return;
-      if (side === S.last) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }
-      S.last = side; S.step++;
-      if (S.step >= S.total) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
+      const foot = side < 0 ? 'L' : 'R';
+      if (S['f' + foot] > S['f' + (foot === 'L' ? 'R' : 'L')]) { S.stumble = .45; miniPop('STUMBLE', 'r'); return; }   // that foot is already in front
+      S['f' + foot] = Math.min(S.total, S['f' + (foot === 'L' ? 'R' : 'L')] + 1);
+      S.step = Math.max(S.fL, S.fR);
+      if (S.fL >= S.total && S.fR >= S.total - 1 || S.fR >= S.total && S.fL >= S.total - 1) { S.fL = S.fR = S.total; }
+      if (S.step >= S.total && S.top === null) { S.top = MG.time; roar(1); bell(1); miniPop('THE TOP!', 'y'); }
     },
     draw(S){
       const bands = ['#2c2670', '#5a3a7e', '#a24b7e', '#e2705b', '#f7a86a', '#ffd28a'];
       bands.forEach((c, i) => MR(0, i * LH / 6, MW, LH / 6 + 1, c));
-      if (S.top !== null) { MR(MW * .7 - 8, LH * .3 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 8; i++) MR(MW * .7 + Math.cos(i * .8 + MG.time) * 22, LH * .3 + Math.sin(i * .8 + MG.time) * 22, 2, 2, '#fff3b8'); }
-      for (let x = 0; x < MW; x += 15) MR(x - S.camX * .15 % 15, LH * .55 + (x * 13) % 18, 12, LH, '#3a2850');     // skyline, drifting slowly
-      const SX = 7, SY = 4.5, cX = S.camX, cY = S.camY;
+      if (S.top !== null) { MR(MW * .72 - 8, LH * .25 - 8, 16, 16, '#fff3b8'); for (let i = 0; i < 10; i++) MR(MW * .72 + Math.cos(i * .63 + MG.time) * 24, LH * .25 + Math.sin(i * .63 + MG.time) * 24, 2, 2, '#fff3b8'); }
+      for (let x = -15; x < MW + 15; x += 15) MR(x - (S.camX * .15) % 15, LH * .5 + ((x + 300) * 13) % 18, 12, LH, '#3a2850');
+      const cX = S.camX, cY = S.camY;
       for (let i = -14; i <= S.total + 40; i++) {
-        const x = i * SX - cX, y = -Math.min(i, S.total) * SY - cY;
-        if (x < -SX || x > MW) continue;
-        MR(x, y, SX, LH - y, i > S.total ? '#d8d0bc' : '#c9c2b0'); MR(x, y, SX, 1, '#efe8d4');
+        const x = i * RUN_SX - cX, y = -Math.min(i, S.total) * RUN_SY - cY;
+        if (x < -RUN_SX || x > MW) continue;
+        MR(x, y, RUN_SX, LH - y, i > S.total ? '#d8d0bc' : '#c9c2b0'); MR(x, y, RUN_SX, 1, '#efe8d4'); MR(x, y + 1, 1, LH, '#b8b09c');
       }
-      const bx = (S.total + 10) * SX - cX, by = -S.total * SY - cY;          // the museum at the top
+      const bx = (S.total + 10) * RUN_SX - cX, by = -S.total * RUN_SY - cY;     // the museum at the top
       MR(bx, by - 70, 90, 70, '#e8e2cc'); MR(bx - 4, by - 76, 98, 8, '#f4efe0');
       for (let c = 0; c < 6; c++) MR(bx + 6 + c * 14, by - 66, 5, 66, '#d4ccb4');
-      const pose = S.top !== null && MG.time - S.top > .4 ? POSE.win : S.stumble > 0 ? POSE.hurt : POSE.guard;
-      trainee(S.disp * SX - cX + 3, -S.disp * SY - cY, 1, pose, S.walk, true);
-      const nx = S.last === 1 ? 0 : 1;
-      if (S.top === null) { MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)'); }
+      drawRunner(mg, S, -cX, -cY);
+      if (S.top === null) {                                                     // which foot is next
+        const nx = S.fL <= S.fR ? 0 : 1;
+        MR(nx === 0 ? 4 : MW - 22, LH - 14, 18, 10, 'rgba(255,255,255,.35)');
+      }
     },
     grade:s => s >= 75 ? 'S' : s >= 60 ? 'A' : s >= 45 ? 'B' : s >= 28 ? 'C' : 'F',
     score:S => S.step + (S.top !== null ? Math.round((16 - S.top) * 5) : 0),
     hud:S => `Step ${S.step} / ${S.total}`,
   },
   weights: {
-    name:'Weight room', how:'Bench press. Tap fast to drive the bar up to the line. Each rep gets heavier.', dur:20,
-    init:() => ({ h:0, v:0, reps:0, lower:0, weight:1 }),
+    name:'Weight room', how:'Bench press. The needle swings: tap when it\'s in the green to drive the bar up (yellow is perfect). Ten reps. On the last one, mash to grind it out.', dur:40,
+    init:() => ({ reps:0, max:10, h:0, phase:'ready', t:0, mark:0, dir:1, speed:.85, zc:.5, zw:.34, pw:.07, grind:0, perfect:0 }),
     update(S, dt){
-      if (S.lower > 0) { S.lower -= dt; S.h = Math.max(0, S.h - dt * 2.5); return; }
-      S.v -= (2.2 + S.reps * .25) * dt; S.h += S.v * dt;
-      if (S.h <= 0) { S.h = 0; S.v = Math.max(0, S.v); }
-      if (S.h >= 1) { S.reps++; MG.score = S.reps; S.lower = .45; S.v = 0; thud(.3, true); miniPop(S.reps % 5 === 0 ? `${S.reps} REPS!` : 'REP', S.reps % 5 === 0 ? 'y' : ''); }
+      S.t += dt;
+      const tired = S.reps / S.max;
+      if (S.phase === 'ready') {
+        S.mark += S.dir * S.speed * dt; if (S.mark > 1) { S.mark = 1; S.dir = -1; } if (S.mark < 0) { S.mark = 0; S.dir = 1; }
+        if (S.reps === S.max - 1) { S.phase = 'grind'; S.grind = .15; S.t = 0; miniPop('LAST ONE! MASH!', 'y'); }
+      } else if (S.phase === 'up') { S.h = Math.min(1, S.h + dt / (.32 + tired * .35)); if (S.h >= 1) { S.phase = 'hold'; S.t = 0; } }
+      else if (S.phase === 'hold') { if (S.t > .18) { S.phase = 'down'; } }
+      else if (S.phase === 'down') { S.h = Math.max(0, S.h - dt * 2.2); if (S.h <= 0) { S.phase = S.reps >= S.max ? 'done' : 'ready'; S.mark = 0; S.dir = 1; } }
+      else if (S.phase === 'stall') { S.h = Math.max(0, S.h - dt * 1.4); if (S.h <= 0) { S.phase = 'ready'; } }
+      else if (S.phase === 'grind') {
+        S.grind -= dt * .32; S.h = clamp(S.grind, 0, 1);
+        if (S.grind >= 1) { S.reps++; MG.score += 3; S.phase = 'hold'; S.t = 0; roar(.7); miniPop('LOCKED OUT!', 'y'); }
+        else if (S.t > 5) { S.phase = 'down'; miniPop('FAILED', 'r'); S.reps = S.max; }
+      }
+      if (S.phase === 'done' || (S.phase === 'down' && S.reps >= S.max && S.h <= 0)) return true;
     },
-    tap(S){ if (S.lower <= 0) S.v += .42 / (1 + S.reps * .06); },
+    tap(S){
+      if (S.phase === 'grind') { S.grind += .085; return; }
+      if (S.phase !== 'ready') return;
+      const d = Math.abs(S.mark - S.zc);
+      if (d < S.pw) { S.reps++; S.perfect++; MG.score += 3; S.phase = 'up'; thud(.4, true); miniPop('PERFECT', 'y'); }
+      else if (d < S.zw / 2) { S.reps++; MG.score += 1; S.phase = 'up'; thud(.3, true); miniPop('GOOD', ''); }
+      else { S.phase = 'stall'; S.h = .35; miniPop('STALLED', 'r'); }
+      S.speed *= 1.09; S.zw = Math.max(.14, S.zw * .92); S.zc = rnd(.3, .7);
+    },
     draw(S){
       gymBg(); const gy = mgy(), cx = Math.round(MW / 2);
-      MR(cx - 36, gy - 12, 46, 4, '#3a3a44'); MR(cx - 30, gy - 8, 3, 8, '#555'); MR(cx + 2, gy - 8, 3, 8, '#555');   // the bench
-      MR(cx - 26, gy - 34, 3, 22, '#777'); MR(cx - 14, gy - 34, 3, 22, '#777');                                 // the rack
-      lyingBoxer(cx, gy - 9, S.h > .1);
-      const by = gy - 16 - S.h * 16, me = G.fighters.me;
-      MR(cx - 21, by + 2, 3, gy - 14 - by, me.look.skin);                    // arms up to the bar
-      MR(cx - 34, by - 1, 30, 2, '#c8c8d0');                                 // the bar and plates
-      MR(cx - 38, by - 6, 4, 12, '#1d1d1d'); MR(cx - 8, by - 6, 4, 12, '#1d1d1d');
-      if (S.reps > 3) { MR(cx - 42, by - 5, 3, 10, '#e24b3b'); MR(cx - 4, by - 5, 3, 10, '#e24b3b'); }
-      MR(cx + 40, gy - 50, 6, 40, '#000'); MR(cx + 41, gy - 11 - S.h * 38, 4, S.h * 38, '#44c45d'); MR(cx + 38, gy - 50, 10, 2, '#ffd23f');   // the lift meter
+      drawBench(mg, cx, gy, S);
+      if (S.phase === 'grind') {                                              // the grind meter
+        MR(cx + 46, gy - 52, 8, 44, '#000'); MR(cx + 47, gy - 9 - S.grind * 42, 6, S.grind * 42, '#ffd23f'); MR(cx + 44, gy - 52, 12, 2, '#44c45d');
+      } else {
+        const x0 = cx - 60, w = 120, y = LH - 11;
+        MR(x0 - 1, y - 1, w + 2, 8, '#000'); MR(x0, y, w, 6, '#2c2670');
+        MR(x0 + (S.zc - S.zw / 2) * w, y, S.zw * w, 6, '#44c45d'); MR(x0 + (S.zc - S.pw) * w, y, S.pw * 2 * w, 6, '#ffd23f');
+        if (S.phase === 'ready') MR(x0 + S.mark * w - 1, y - 3, 2, 12, '#ffffff');
+      }
     },
-    grade:s => s >= 12 ? 'S' : s >= 9 ? 'A' : s >= 6 ? 'B' : s >= 3 ? 'C' : 'F',
-    hud:S => `Reps ${S.reps}`,
+    grade:s => s >= 26 ? 'S' : s >= 20 ? 'A' : s >= 13 ? 'B' : s >= 6 ? 'C' : 'F',
+    hud:S => `Rep ${Math.min(S.reps + (S.phase === 'ready' || S.phase === 'grind' ? 1 : 0), S.max)} / ${S.max}`,
   },
 };
+const RUN_SX = 7, RUN_SY = 4.5;
+const SW = '#8d8d96', SWD = '#6c6c78', SWL = '#a9a9b4';
+// a little outlined-pixel painter for the training art
+function painter(g){
+  let out = false;
+  const R = (x, y, w, h, c) => { if (out) { g.fillStyle = OUTLINE; g.fillRect(snapH(x) - .5, snapH(y) - .5, w + 1, h + 1); } else { g.fillStyle = c; g.fillRect(snapH(x), snapH(y), w, h); } };
+  const B = (x0, y0, x1, y1, w, c) => { const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2)); for (let i = 0; i <= n; i++) { const t = i / n; R(x0 + (x1 - x0) * t - w / 2, y0 + (y1 - y0) * t - w / 2, w, w, c); } };
+  return { R, B, set:v => { out = v; }, get out(){ return out; } };
+}
+// two-bone joint: where the knee or elbow goes, bending toward +x when bend is 1
+function joint(A, Bp, a, b, bend){
+  const dx = Bp[0] - A[0], dy = Bp[1] - A[1], d = Math.min(Math.hypot(dx, dy), a + b - .01), ang = Math.atan2(dy, dx);
+  const k = Math.acos(clamp((a * a + d * d - b * b) / (2 * a * d || 1), -1, 1)), t = ang - k * bend;
+  return [A[0] + Math.cos(t) * a, A[1] + Math.sin(t) * a];
+}
+const footAt = (S, k, ox, oy) => { const i = S['a' + k], m = S['m' + k] || 0; return [i * RUN_SX + RUN_SX * .5 + ox, -i * RUN_SY + oy - Math.sin(clamp(m, 0, 1) * Math.PI) * 3.5]; };
+function runnerHip(S){ const L = footAt(S, 'L', 0, 0), R = footAt(S, 'R', 0, 0); return [(L[0] + R[0]) / 2 - 1, (L[1] + R[1]) / 2 - 20]; }
+// the stair runner in grey sweats, leaning into the climb, arms pumping
+function drawRunner(g, S, ox, oy){
+  const me = G.fighters.me, skin = me.look.skin, hair = me.look.hair, P = painter(g), skD = shade(skin, .82);
+  const FL = footAt(S, 'L', ox, oy), FR = footAt(S, 'R', ox, oy), top = S.top !== null && MG.time - S.top > .3;
+  const H = [(FL[0] + FR[0]) / 2 - 1.5, Math.max(FL[1], FR[1]) - 20 + (S.stumble > 0 ? 2.5 : 0)];
+  const lean = top ? 0 : 4, Sh = [H[0] + lean, H[1] - 16], Hd = [Sh[0] + (top ? 0 : 2), Sh[1] - 7.5];
+  const sw = Math.sin(S.walk);
+  const fistN = top ? [Sh[0] + 9, Sh[1] - 14] : [Sh[0] + 3 + sw * 8, Sh[1] + 7 - sw * 4];
+  const fistF = top ? [Sh[0] - 4, Sh[1] - 16] : [Sh[0] + 3 - sw * 8, Sh[1] + 7 + sw * 4];
+  const back = FL[0] < FR[0] ? FL : FR, front = back === FL ? FR : FL;
+  const leg = (F, c) => {
+    const K = joint(H, F, 11.5, 11.5, 1);
+    P.B(H[0], H[1], K[0], K[1], 4.5, c); P.B(K[0], K[1], F[0], F[1] - 3, 3.5, c);
+    P.R(F[0] - 2.5, F[1] - 3.5, 6.5, 3.5, '#24202c');
+    if (!P.out) { P.R(F[0] - 2.5, F[1] - .5, 6.5, .5, '#0a0a0a'); P.R(F[0] - 2, F[1] - 4, 5, 1, '#f2f2f2'); }
+  };
+  const arm = (Fi, c, wrap) => { const E = joint(Sh, Fi, 8, 7.5, top && Fi === fistN ? 1 : -1); P.B(Sh[0], Sh[1], E[0], E[1], 3.5, c); P.B(E[0], E[1], Fi[0], Fi[1], 3, c); P.R(Fi[0] - 2, Fi[1] - 2, 4, 4, wrap); };
+  for (const pass of [true, false]) {
+    P.set(pass);
+    leg(back, SWD); arm(fistF, SWD, '#cfcac0');
+    P.B(H[0], H[1] - 1, Sh[0] - .5, Sh[1] + 1.5, 7.5, SW);                    // the sweatshirt
+    P.R(H[0] - 4, H[1] - 2, 8, 3, SWD);                                       // its waistband
+    P.R(Hd[0] - 7, Hd[1] + 2, 5, 6, SW);                                      // the hood, down his back
+    P.R(Sh[0] - 1.5 + (top ? 0 : 1), Sh[1] - 3, 4, 3, skin);                  // neck
+    P.R(Hd[0] - 5, Hd[1] - 5, 10, 9.5, skin);                                 // head
+    if (hair !== 'none') { P.R(Hd[0] - 5.5, Hd[1] - 6, 10.5, 3, hair); P.R(Hd[0] - 5.5, Hd[1] - 3.5, 3, 4, hair); }
+    leg(front, SW); arm(fistN, SW, '#ece8e0');
+  }
+  P.R(Hd[0] + 2, Hd[1] - 1.5, 2, 1.5, '#f2f2f2'); P.R(Hd[0] + 3, Hd[1] - 1.5, 1, 1.5, '#141414');   // eye
+  P.R(Hd[0] + 1.5, Hd[1] - 3, 3.5, 1, hair !== 'none' ? hair : skD);         // brow
+  P.R(Hd[0] - 1.5, Hd[1] - 1, 1.5, 2.5, skD); P.R(Hd[0] + 4.5, Hd[1] - .5, 1, 2, skD);   // ear, nose
+  P.R(Hd[0] + 2, Hd[1] + 2.5, top ? 2.5 : 2, top ? 1.5 : .5, top ? '#5a1a1a' : shade(skin, .65));   // breathing hard, or yelling at the top
+  P.R(Sh[0] - 3, Sh[1] + 1, 4, .5, SWL); P.R(H[0] - 2, H[1] - 6, 5, .5, SWD);
+  if (MG.time % .6 < .3) P.R(Hd[0] - 3, Hd[1] - 4, .5, .5, '#ffffff');       // sweat
+}
+// the bench press, side on: bench, the boxer flat, both hands on the bar, plates end-on
+function drawBench(g, cx, gy, S){
+  const me = G.fighters.me, skin = me.look.skin, hair = me.look.hair, P = painter(g);
+  const tired = S.reps / S.max, shake = (S.phase === 'up' || S.phase === 'grind') && tired > .3 ? rnd(-1, 1) * tired * 1.2 : 0;
+  const benchY = gy - 12, chest = [cx - 6, benchY - 4];
+  const bar = [cx - 7 + shake * .5, benchY - 14 - S.h * 9 + shake];
+  for (const pass of [true, false]) {
+    P.set(pass);
+    P.R(cx + 34, gy - 46, 3, 46, '#6a6a74'); P.R(cx + 30, gy - 46, 11, 3, '#6a6a74');   // the rack upright behind
+    P.R(cx - 30, benchY + 2, 3, gy - benchY - 2, '#3a3a44'); P.R(cx + 14, benchY + 2, 3, gy - benchY - 2, '#3a3a44');   // bench legs
+    P.R(cx - 34, benchY - 1, 52, 4, '#7a1f2a');                              // the padded bench
+    // him: head on the left, knees up, feet planted
+    P.B(cx + 8, benchY - 2, cx + 18, benchY - 10, 4.5, me.look.trunks);       // thigh in his shorts
+    P.B(cx + 18, benchY - 10, cx + 22, gy - 3, 4, skin);                      // shin down to the floor
+    P.R(cx + 19, gy - 4, 6, 3.5, '#24202c');
+    P.R(cx - 14, benchY - 7, 22, 6.5, skin);                                  // torso
+    P.R(cx + 2, benchY - 7.5, 9, 7, me.look.trunks);                          // shorts
+    P.R(cx - 25, benchY - 8, 9, 8, skin);                                     // head
+    if (hair !== 'none') P.R(cx - 26, benchY - 8, 3, 8, hair);
+    // arms up to the bar (the far one darker)
+    const sh = [cx - 11, benchY - 6];
+    const ef = joint(sh, [bar[0] - 1, bar[1] + 1], 8.5, 8.5, 1), en = joint([sh[0] + 2, sh[1]], [bar[0] + 1, bar[1] + 1], 8.5, 8.5, 1);
+    P.B(sh[0], sh[1], ef[0], ef[1], 3.5, shade(skin, .82)); P.B(ef[0], ef[1], bar[0] - 1, bar[1] + 1, 3, shade(skin, .82));
+    P.B(sh[0] + 2, sh[1], en[0], en[1], 3.5, skin); P.B(en[0], en[1], bar[0] + 1, bar[1] + 1, 3, skin);
+    // the bar end-on: a big plate with a collar
+    g.fillStyle = pass ? OUTLINE : '#1d1d24'; g.beginPath(); g.arc(bar[0], bar[1], pass ? 7.5 : 7, 0, Math.PI * 2); g.fill();
+    if (!pass) { g.fillStyle = '#2e2e38'; g.beginPath(); g.arc(bar[0], bar[1], 5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 2, 0, Math.PI * 2); g.fill(); P.R(bar[0] - 5, bar[1] - 6, 3, 1, '#4a4a58'); }
+    if (S.reps >= 4 && !pass) { g.fillStyle = '#c42d2d'; g.beginPath(); g.arc(bar[0], bar[1], 3.5, 0, Math.PI * 2); g.fill(); g.fillStyle = '#c8c8d0'; g.beginPath(); g.arc(bar[0], bar[1], 1.5, 0, Math.PI * 2); g.fill(); }
+  }
+  P.R(cx - 19, benchY - 6, 1.5, 1, '#141414');                               // eye, straining
+  if (S.phase === 'grind' || tired > .6) { P.R(cx - 21, benchY - 9, .5, .5, '#ffffff'); P.R(cx - 13, benchY - 8, .5, .5, '#ffffff'); }   // sweat
+}
 function mresize(){
   const w = innerWidth, h = innerHeight, dpr = Math.min(3, devicePixelRatio || 1);
   mcv.width = Math.round(w * dpr); mcv.height = Math.round(h * dpr);
-  MW = Math.max(160, Math.round(LH * w / h)); mlow.width = MW; mlow.height = LH;
+  MW = Math.max(160, Math.round(LH * w / h)); mlow.width = MW * SC; mlow.height = LH * SC;
 }
 addEventListener('resize', () => { if (MG) mresize(); });
 function startMini(k){
@@ -2131,7 +2437,7 @@ function finishMini(){
 }
 function miniDraw(){
   if (!MG) return;
-  mg.setTransform(1, 0, 0, 1, 0, 0);
+  mg.setTransform(SC, 0, 0, SC, 0, 0);
   MG.D.draw(MG.S);
   mctx.imageSmoothingEnabled = false; mctx.drawImage(mlow, 0, 0, mcv.width, mcv.height);
   $('#mScore').textContent = MG.D.hud(MG.S);
@@ -2159,6 +2465,11 @@ function bar(title, left = '<button class="btn sm" data-a="hub">Back</button>'){
 }
 let draft = null, storyStep = 0, restPick = 'sleep', treatPick = new Set(), pending = null, callMsg = null, calPick = null;
 const fl = v => Math.floor(v);
+const emIcons = {};
+function emblemIcon(k){
+  if (!emIcons[k]) { const c = document.createElement('canvas'); c.width = c.height = 24; const x = c.getContext('2d'); x.fillStyle = '#ffd23f'; EMBLEMS[k].forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') x.fillRect(i * 2, j * 2, 2, 2); })); emIcons[k] = c.toDataURL(); }
+  return `<img class="pt" src="${emIcons[k]}" width="20" height="20" alt="${k}">`;
+}
 function render(){
   ui.dataset.screen = screen;
   ui.innerHTML = (VIEWS[screen] || VIEWS.title)();
@@ -2230,6 +2541,7 @@ const VIEWS = {
           <div class="muted num" style="font-size:13px">${rec(me)} (${me.ko} KO) &middot; ${rankLabel('me')} &middot; age ${me.age}</div>
           <div class="fatrow"><span class="label">Fatigue</span><div class="hbar"><i style="width:${G.fat.toFixed(0)}%;background:${barCol(100 - G.fat)}"></i></div></div>
         </div></div>
+        <div class="minirats">${RK.map(k => `<div><span class="label">${RNAME[k]}</span><b class="num">${fl(me.rat[k])}</b><div class="hbar"><i style="width:${me.rat[k]}%;background:${barCol(me.rat[k])}"></i></div></div>`).join('')}</div>
         <div class="ails">${ails.length ? ails.slice(0, 4).map(ailChip).join('') : '<span class="muted" style="font-size:12px">No injuries.</span>'}</div>
         <div class="acts">${acts}
           <button class="btn" data-a="mail">Mail${mailN ? ` <span class="badge2">${mailN}</span>` : ''}</button><button class="btn" data-a="rankings">Rankings</button>
@@ -2305,7 +2617,7 @@ const VIEWS = {
   team(){
     const gyms = GYMS.map((Gm, k) => `<div class="tm ${k === G.gym ? 'on' : ''}"><div class="grow"><b>${Gm.name}</b><div class="ds">${Gm.desc}</div></div>${k === G.gym ? '<span class="label">Yours</span>' : k < G.gym ? '' : `<button class="btn sm go" data-a="buygym" data-k="${k}" ${G.cash < Gm.cost || k !== G.gym + 1 ? 'disabled' : ''}>${money(Gm.cost)}</button>`}</div>`).join('');
     const trs = TRAINERS.map((T, k) => `<div class="tm ${k === G.trainer ? 'on' : ''}"><div class="grow"><b>${T.name}</b><div class="ds">${T.desc}</div></div>${k === G.trainer ? '<span class="label">Hired</span>' : `<button class="btn sm ${k ? 'go' : ''}" data-a="hire" data-k="${k}" ${G.cash < T.fee ? 'disabled' : ''}>${T.fee ? money(T.fee) + '/mo' : 'Free'}</button>`}</div>`).join('');
-    return `${bar('Team')}<div class="teamgrid"><div class="panel"><div class="label">Gym (one-time)</div>${gyms}</div><div class="panel"><div class="label">Trainer (paid on the 1st, first month now)</div>${trs}</div></div>`;
+    return `${bar('Team', '<button class="btn sm" data-a="hub">Back</button> <button class="btn sm go" data-a="robe">Robe</button>')}<div class="teamgrid"><div class="panel"><div class="label">Gym (one-time)</div>${gyms}</div><div class="panel"><div class="label">Trainer (paid on the 1st, first month now)</div>${trs}</div></div>`;
   },
   tape(){
     const o = G.fight, me = G.fighters.me, f = G.fighters[o.id];
@@ -2314,11 +2626,11 @@ const VIEWS = {
     const line = (a, k, b) => `<div class="tline"><b class="num">${a}</b><span>${k}</span><b class="num">${b}</b></div>`;
     const sharp = G.restedOn === G.day - 1 && G.fat <= 25;
     return `${bar(o.title ? 'Title fight' : 'Tale of the tape')}
-      <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div>${sharp ? '<div class="label good">Sharp: rested and ready</div>' : G.fat > 40 ? '<div class="label bad">Tired</div>' : ''}</div>
+      <div class="tape"><div class="side"><div class="face">${face(me, 124)}</div><div class="nm">${esc(me.name)}</div>${sharp ? '<div class="label good">Sharp: rested and ready</div>' : G.fat > 40 ? '<div class="label bad">Tired</div>' : ''}${o.myGrit ? `<div class="label good">+${o.myGrit} Grit: he moved the date</div>` : ''}</div>
       <div class="panel">${RK.map(row).join('')}
         ${line(rec(me), 'Record', rec(f))}${line(rankShort('me'), 'Rank', rankShort(o.id))}${line(me.age, 'Age', f.age)}
         <div class="row between" style="margin-top:8px"><span class="muted">${o.rounds} rounds &middot; purse <b class="yellow num">${money(o.purse)}</b></span><button class="btn go" data-a="fight">Fight!</button></div></div>
-      <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>
+      <div class="side"><div class="face" style="transform:scaleX(-1)">${face(f, 124)}</div><div class="nm">${esc(f.name)}</div><div class="label">${f.nick ? '&ldquo;' + esc(f.nick) + '&rdquo; &middot; ' : ''}${STYLES[f.style].name}</div>${o.theirGrit ? `<div class="label bad">+${o.theirGrit} Grit: you moved the date</div>` : ''}
         <div class="bubble">${esc(o.talk || (o.talk = pick((rivalOf(o.id) || {}).tape || TAUNTS[f.style])))}</div></div></div>`;
   },
   story(){
@@ -2332,6 +2644,19 @@ const VIEWS = {
       <div class="say ${talk ? '' : 'news'}">${talk ? '&ldquo;' + text + '&rdquo;' : text}</div>
       <div class="row between" style="margin-top:12px"><div class="dots">${b.lines.map((_, j) => `<i class="${j <= k ? 'on' : ''}"></i>`).join('')}</div>
       <button class="btn go" data-a="storynext">${last ? 'Continue' : 'Next'}</button></div></div></div>`;
+  },
+  robe(){
+    const me = G.fighters.me, R = me.robe;
+    const sw = (act, list, cur) => `<div class="sw">${list.map(c => `<button data-a="${act}" data-v="${c}" class="${cur === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div>`;
+    const ems = Object.keys(EMBLEMS).map(k => `<button class="emb ${R.emblem === k ? 'on' : ''}" data-a="remb" data-v="${k}">${emblemIcon(k)}</button>`).join('');
+    const tiers = ROBE_TIERS.map((T, k) => `<button class="tier ${R.tier === k ? 'on' : ''}" data-a="rtier" data-n="${k}" ${!R.owned.includes(k) && G.cash < T.cost ? 'disabled' : ''}><b>${T.name}</b><span>${R.owned.includes(k) ? (R.tier === k ? 'Wearing' : 'Owned') : money(T.cost)}</span></button>`).join('');
+    return `${bar('Robe', '<button class="btn sm" data-a="team">Back</button>')}<div class="robegrid"><div class="robeprev"><img class="pt" src="${robeImage(me, R)}" alt=""></div>
+      <div class="panel"><div class="field"><span class="label">Satin</span>${sw('rcol', ROBE_COLORS, R.color)}</div>
+      <div class="field"><span class="label">Trim</span>${sw('rtrim', TRIMS, R.trim)}</div>
+      <div class="field"><span class="label">Emblem</span><div class="sw">${ems}</div></div>
+      <div class="field"><span class="label">Trunks</span>${sw('kit', KITS, me.look.trunks)}</div>
+      <div class="field"><span class="label">Gloves</span>${sw('glv', GLOVES, me.look.gloves)}</div>
+      <div class="tiers">${tiers}</div><div class="muted" style="font-size:12px">Fancier robes get a louder walkout.</div></div></div>`;
   },
   spardone(){
     const S = G.lastSpar, ails = ailList(G.fighters.me.ail);
@@ -2395,6 +2720,13 @@ ui.addEventListener('click', e => {
     case 'callout': { const r = callOut(calPick); if (r.ok) { pending = r.deal; calPick = null; screen = 'dates'; } else callMsg = r.msg; break; }
     case 'buygym': { const Gm = GYMS[+k]; if (G.cash >= Gm.cost && +k === G.gym + 1) { G.cash -= Gm.cost; G.gym = +k; save(); } break; }
     case 'hire': { const T = TRAINERS[+k]; if (G.cash >= T.fee) { G.cash -= T.fee; G.trainer = +k; save(); } break; }
+    case 'robe': screen = 'robe'; break;
+    case 'rcol': G.fighters.me.robe.color = b.dataset.v; save(); break;
+    case 'rtrim': G.fighters.me.robe.trim = b.dataset.v; save(); break;
+    case 'remb': G.fighters.me.robe.emblem = b.dataset.v; save(); break;
+    case 'kit': G.fighters.me.look.trunks = b.dataset.v; save(); break;
+    case 'glv': G.fighters.me.look.gloves = b.dataset.v; save(); break;
+    case 'rtier': { const R = G.fighters.me.robe, T = ROBE_TIERS[n]; if (!R.owned.includes(n)) { if (G.cash < T.cost) break; G.cash -= T.cost; R.owned.push(n); } R.tier = n; save(); break; }
     case 'storynext': { const s = G.story[0]; if (storyStep < s.lines.length - 1) storyStep++; else { G.story.shift(); storyStep = 0; save(); screen = 'hub'; } break; }
     case 'retire': if (armed === 'retire') { armed = null; G.over = true; save(); screen = 'hub'; } else armed = 'retire'; break;
   }
