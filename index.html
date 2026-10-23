@@ -3160,7 +3160,7 @@ function resolve(a, d){
   if (Math.abs(d.x - a.x) > P.reach * (.7 + .3 * scaleOf(a.src).hs)) { swish(); if (a.user) fx('SHORT', a.side, ''); return; }       // out of range
   if (d.state === 'slip') { a.whiff = true; swish(); fx(d.user ? 'SLIPPED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
   if (d.state === 'duck' && head && a.pt !== 'upper') { a.whiff = true; swish(); fx(d.user ? 'DUCKED' : 'MISS', d.side, d.user ? 'b' : ''); return; }
-  let dmg = P.dmg * a.pm * (a.user ? 1 : 1.25) * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
+  let dmg = P.dmg * a.pm * (1 - A(a, 'hand') / 300) * (a.weak ? .5 : 1) * (a.rage > 0 ? 1.5 : 1), tag = '';
   const guarded = d.state === 'block' && (d.guard === 'high') === head;
   if (guarded) {
     const sore = Math.max(A(d, 'ribs'), A(d, 'liver')) / 100;             // a beaten-up body can't hold the guard up as well
